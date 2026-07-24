@@ -1,0 +1,21 @@
+{
+  "name": "specathon-2026",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w frontend",
+    "build": "npm run build -w frontend",
+    "preview": "npm run preview -w frontend",
+    "lint": "npm run lint -w frontend",
+    "sync:csv": "npm run sync:csv -w backend",
+    "export:csv": "npm run export:csv -w backend"
+  },
+  "dependencies": {
+    "specathon-2026": "file:"
+  }
+}

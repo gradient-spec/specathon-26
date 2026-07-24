@@ -1,0 +1,33 @@
+node_modules
+*.log
+.DS_Store
+.vscode
+.idea
+
+# Legacy root env files (superseded by frontend/.env and backend/.env)
+/.env
+/.env.example
+/.env.local
+
+# Frontend (Vite/React)
+frontend/dist
+frontend/node_modules
+frontend/.env
+frontend/.env.local
+frontend/tsconfig.tsbuildinfo
+
+# Backend (Supabase tooling)
+backend/node_modules
+backend/.env
+backend/.env.local
+backend/registrations/
+
+# Legacy leftovers from pre-restructure layout (now empty; safe to delete manually)
+/src/
+/public/
+/scripts/
+/supabase/
+/registrations/
+/dist/
+/tsc-help.txt
+/tsconfig.tsbuildinfo

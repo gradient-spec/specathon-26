@@ -1,0 +1,336 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+/* Display text is never editable / selectable — clicking it must not place a
+   text caret or start a selection. Form fields keep their normal behavior. */
+h1, h2, h3, h4, h5, h6,
+.eyebrow, .font-display, .font-serif {
+  -webkit-user-select: none;
+  user-select: none;
+}
+h1, h2, h3, h4, h5, h6, .eyebrow {
+  cursor: default;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display", ui-serif, serif;
+}
+h1 {
+  font-weight: 700;
+}
+h2 {
+  font-weight: 600;
+}
+h3 {
+  font-weight: 500;
+}
+
+/* Animatable custom property powering the watermark glow (GPU-smooth). */
+@property --glow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/* ── Hero title glow ──────────────────────────────────────────────
+   Two animatable custom props compose into one GPU-composited filter:
+   --gp = ambient pulse; --gh = hover intensity. The glow is always present,
+   and hover smoothly intensifies the bloom. */
+@property --gp {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.32;
+}
+@property --gh {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.hero-title {
+  --gp: 0.32;
+  --gh: 0;
+  position: relative;
+  transform-origin: center center;
+  animation: heroPulse 6.4s ease-in-out infinite;
+  transition: transform 0.45s ease-in-out, filter 0.45s ease-in-out, text-shadow 0.45s ease-in-out;
+  will-change: transform, filter, text-shadow;
+  filter:
+    drop-shadow(0 0 calc(10px + var(--gp) * 16px + var(--gh) * 20px)
+      rgba(74, 203, 235, calc(0.12 + var(--gp) * 0.12 + var(--gh) * 0.25)))
+    drop-shadow(0 0 calc(22px + var(--gp) * 26px + var(--gh) * 36px)
+      rgba(107, 64, 190, calc(0.08 + var(--gp) * 0.10 + var(--gh) * 0.20)));
+  text-shadow:
+    0 0 calc(1px + var(--gp) * 1px) rgba(255, 255, 255, 0.16),
+    0 0 calc(18px + var(--gp) * 10px) rgba(74, 203, 235, calc(0.08 + var(--gh) * 0.10)),
+    0 0 calc(34px + var(--gp) * 20px) rgba(119, 86, 208, calc(0.06 + var(--gh) * 0.12));
+}
+@keyframes heroPulse {
+  0%, 100% { --gp: 0.22; }
+  50% { --gp: 0.75; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-title:hover {
+    --gh: 1;
+    transform: scale(1.045);
+  }
+}
+@media (hover: none) {
+  .hero-title {
+    transform: none;
+  }
+}
+
+/* Custom grayish silver metallic cursor */
+.cursor-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 60%, #94a3b8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 10px rgba(248, 250, 252, 0.7), 0 0 20px rgba(203, 213, 225, 0.4);
+  transform: scale(1);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s, box-shadow 0.25s;
+  will-change: transform, box-shadow;
+}
+
+.cursor-dot.cursor-hover {
+  transform: scale(2.2);
+  background: rgba(248, 250, 252, 0.2);
+  backdrop-filter: blur(2px);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.6), 0 0 32px rgba(203, 213, 225, 0.3);
+}
+
+/* Section watermark: always faintly visible; blooms as --glow rises toward 1. */
+.wm-logo {
+  transition: --glow 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: calc(0.05 + var(--glow) * 0.18);
+  transform: scale(calc(1 + var(--glow) * 0.045));
+  filter:
+    blur(1.5px)
+    drop-shadow(0 0 calc(var(--glow) * 48px) rgba(74, 203, 235, calc(var(--glow) * 0.55)))
+    drop-shadow(0 0 calc(var(--glow) * 104px) rgba(36, 14, 92, calc(var(--glow) * 0.45)));
+  will-change: opacity, transform, filter;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  background: #0B0F14;
+  color: #EDEDED;
+  font-family: "Alegreya Sans", system-ui, sans-serif;
+  /* `clip` prevents horizontal overflow WITHOUT creating a scroll container,
+     so position: sticky and scroll-driven animations keep working.
+     (overflow-x: hidden would force overflow-y to auto and break both.) */
+  overflow-x: clip;
+}
+
+/* Hide default cursor on desktop where custom cursor renders */
+@media (hover: hover) and (pointer: fine) {
+  body.has-cursor,
+  body.has-cursor * {
+    cursor: none !important;
+  }
+}
+
+::selection {
+  background: rgba(74, 203, 235, 0.3);
+  color: #fff;
+}
+
+/* Custom scrollbar — ultra-thin, sleek, and translucent */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 203, 235, 0.2) transparent;
+}
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(24, 98, 117, 0.15), rgba(74, 203, 235, 0.25));
+  border-radius: 999px;
+  transition: background 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(24, 98, 117, 0.5), rgba(74, 203, 235, 0.65));
+}
+
+/* Glass utility */
+@layer components {
+  /* Card surface: Surface bg (#1A2332) with translucency + thin border (#2A3647). */
+  .glass {
+    @apply bg-panel/60 backdrop-blur-xl border border-line/70;
+  }
+  .hairline {
+    @apply border-t border-line/70;
+  }
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.28em] text-muted;
+  }
+  /* Primary button: Use the Primary Brand Accent (#186275) with smooth transitions, soft glow on hover. */
+  .btn-primary {
+    @apply relative inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-fg
+           bg-plasma border border-plasma/30
+           transition-all duration-300 hover:scale-[1.02] hover:border-lumen/50
+           hover:shadow-[0_0_24px_rgba(74,203,235,0.35)] active:scale-[0.99];
+  }
+  /* Secondary button: Use the Secondary Accent (#240C5C). */
+  .btn-secondary {
+    @apply relative inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-fg
+           bg-indigo border border-indigo/30
+           transition-all duration-300 hover:scale-[1.02] hover:border-lumen/30
+           hover:shadow-[0_0_20px_rgba(74,203,235,0.15)] active:scale-[0.99];
+  }
+  .btn-ghost, .btn-outline {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium
+           border border-line text-fg/90 hover:border-lumen/50 hover:bg-lumen/[0.06]
+           transition-all duration-300;
+  }
+
+  /* Premium form field: glass surface, thin border, elegant focus glow. */
+  .field {
+    @apply w-full rounded-xl px-4 py-3 text-sm font-body text-fg
+           bg-panel/40 border border-line
+           placeholder:text-muted/60
+           transition-[border-color,box-shadow,background-color] duration-300
+           focus:outline-none focus:border-lumen/70 focus:bg-panel/60
+           focus:shadow-[0_0_0_3px_rgba(74,203,235,0.12),0_0_22px_-6px_rgba(74,203,235,0.5)]
+           hover:border-line/90;
+  }
+
+  /* Gradient-border button with animated shine + glow on hover. */
+  .btn-gradient {
+    @apply relative inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium
+           text-fg overflow-hidden transition-all duration-300
+           hover:shadow-[0_0_28px_-6px_rgba(74,203,235,0.55)] active:scale-[0.98];
+    background:
+      linear-gradient(#0B0F14, #0B0F14) padding-box,
+      linear-gradient(120deg, #4ACBEB, #186275, #240E5C, #4ACBEB) border-box;
+    background-size: 100% 100%, 300% 100%;
+    border: 1.5px solid transparent;
+    animation: borderPan 6s linear infinite;
+  }
+  .btn-gradient::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+    transition: transform 0.7s ease;
+  }
+  .btn-gradient:hover::after {
+    @apply translate-x-full;
+  }
+}
+
+@keyframes borderPan {
+  0% { background-position: 0% 0%, 0% 0%; }
+  100% { background-position: 0% 0%, 300% 0%; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid rgba(74, 203, 235, 0.4);
+  outline-offset: 2px;
+}
+
+/* Noise texture */
+.noise::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Dynamic text shimmer reflection sweep animation */
+.shimmer-text {
+  display: inline-block;
+  overflow: visible;
+  padding: 0.25em 0.25em;
+  margin: -0.25em -0.2em;
+  color: #e2e8f0;
+  background: linear-gradient(
+    110deg,
+    #94a3b8 15%,
+    #cbd5e1 35%,
+    #f8fafc 46%,
+    #ffffff 50%,
+    #f8fafc 54%,
+    #cbd5e1 65%,
+    #94a3b8 85%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShimmer 6s linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes textShimmer {
+  0% {
+    background-position: 150% 0;
+  }
+  30%, 100% {
+    background-position: -150% 0;
+  }
+}
+
+/* Animated flame flicker for watermark ember */
+@keyframes flameFlicker {
+  0%, 100% {
+    opacity: 0.85;
+    transform: translate(-50%, 0) scale(1);
+    filter: drop-shadow(0 0 12px rgba(74, 203, 235, 0.8)) drop-shadow(0 0 30px rgba(74, 203, 235, 0.5));
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -2px) scale(1.08);
+    filter: drop-shadow(0 0 20px rgba(144, 224, 239, 1)) drop-shadow(0 0 45px rgba(74, 203, 235, 0.8));
+  }
+  50% {
+    opacity: 0.72;
+    transform: translate(-50%, 1px) scale(0.94);
+    filter: drop-shadow(0 0 8px rgba(74, 203, 235, 0.6)) drop-shadow(0 0 20px rgba(74, 203, 235, 0.3));
+  }
+  75% {
+    opacity: 0.96;
+    transform: translate(-50%, -1px) scale(1.04);
+    filter: drop-shadow(0 0 16px rgba(144, 224, 239, 0.9)) drop-shadow(0 0 35px rgba(74, 203, 235, 0.7));
+  }
+}
+
+.animate-flameFlicker {
+  animation: flameFlicker 2.4s ease-in-out infinite alternate;
+}
