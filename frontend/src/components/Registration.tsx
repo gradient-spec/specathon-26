@@ -339,7 +339,7 @@ export default function Registration() {
                   <p className="mt-6 text-xs text-muted">
                     A confirmation will be sent to{" "}
                     <span className="text-fg">{leaderEmail}</span>.
-                    Payment of ₹350 per head is due{" "}
+                    Payment of ₹400 per head is due{" "}
                     <span className="text-fg">only after shortlisting</span>.
                   </p>
                 </motion.div>
@@ -589,7 +589,7 @@ export default function Registration() {
                       className="mt-0.5 h-4 w-4 accent-gold shrink-0"
                     />
                     <span className="text-sm text-fg/90">
-                      I acknowledge that <span className="text-gold font-medium">payment of ₹350 per head</span> must be completed <span className="underline decoration-gold/60 underline-offset-2">only after our abstract has been shortlisted / finalized</span>. No payment is due at registration.
+                      I acknowledge that <span className="text-gold font-medium">payment of ₹400 per head</span> must be completed <span className="underline decoration-gold/60 underline-offset-2">only after our abstract has been shortlisted / finalized</span>. No payment is due at registration.
                     </span>
                   </label>
 

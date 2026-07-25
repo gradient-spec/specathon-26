@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Reveal from "./Reveal";
@@ -39,7 +39,7 @@ export default function Gallery() {
     return () => window.clearInterval(id);
   }, [reduce, paused, isInView]);
 
-  const go = (dir: number) => setActive((a) => (a + dir + N) % N);
+  const go = useCallback((dir: number) => setActive((a) => (a + dir + N) % N), []);
 
   // Keyboard arrow keys navigation (ignoring text inputs)
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function Gallery() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [go]);
 
   return (
     <section ref={sectionRef} id="gallery" className="relative pt-0 pb-12 md:pt-0 md:pb-18 overflow-hidden">
@@ -138,7 +138,7 @@ export default function Gallery() {
   );
 }
 
-function Slide({ year, src, active }: { year: string; src: string; active: boolean }) {
+const Slide = memo(function Slide({ year, src, active }: { year: string; src: string; active: boolean }) {
   const [ok, setOk] = useState(Boolean(src));
   return (
     <div
@@ -162,16 +162,15 @@ function Slide({ year, src, active }: { year: string; src: string; active: boole
 
     </div>
   );
-}
+});
 
 function StageButton({ side, onClick }: { side: "left" | "right"; onClick: () => void }) {
   return (
     <button
       aria-label={side === "left" ? "Previous" : "Next"}
       onClick={onClick}
-      className={`absolute top-1/2 -translate-y-1/2 z-40 h-11 w-11 rounded-full glass border border-white/10 flex items-center justify-center text-fg/80 hover:text-lumen hover:border-lumen/50 transition-all outline-none focus:outline-none focus-visible:outline-none active:outline-none ${
-        side === "left" ? "left-4 md:left-10" : "right-4 md:right-10"
-      }`}
+      className={`absolute top-1/2 -translate-y-1/2 z-40 h-11 w-11 rounded-full glass border border-white/10 flex items-center justify-center text-fg/80 hover:text-lumen hover:border-lumen/50 transition-all outline-none focus:outline-none focus-visible:outline-none active:outline-none ${side === "left" ? "left-4 md:left-10" : "right-4 md:right-10"
+        }`}
     >
       {side === "left" ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
     </button>

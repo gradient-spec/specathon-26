@@ -25,7 +25,7 @@ const COORDINATORS: Coordinator[] = [
     name: "G Shubhang",
     title: "",
     phone: "8125426303",
-    email: "23bk1a66T0@stpetershyd.com",
+    email: "23bk1a66t0@stpetershyd.com",
   },
 ];
 

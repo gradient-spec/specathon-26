@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useInView } from "framer-motion";
 import Reveal from "./Reveal";
 
@@ -10,7 +10,7 @@ const STATS = [
   { prefix: "", to: 5, suffix: "+", label: "Years of Legacy" },
 ];
 
-function CountUp({ to, duration = 1.6 }: { to: number; duration?: number }) {
+const CountUp = memo(function CountUp({ to, duration = 1.6 }: { to: number; duration?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   // Read the media query once — it never changes during a session
@@ -39,9 +39,9 @@ function CountUp({ to, duration = 1.6 }: { to: number; duration?: number }) {
   }, [inView, reduce, to, duration]);
 
   return <span ref={ref}>{n}</span>;
-}
+});
 
-export default function Stats() {
+export default memo(function Stats() {
   return (
     <section id="stats" className="relative py-10 md:py-16">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
@@ -68,4 +68,4 @@ export default function Stats() {
       </div>
     </section>
   );
-}
+});

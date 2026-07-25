@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ReactNode } from "react";
 
-export default function Reveal({
+export default memo(function Reveal({
   children,
   delay = 0,
   y = 24,
@@ -26,4 +27,4 @@ export default function Reveal({
       {children}
     </motion.div>
   );
-}
+});

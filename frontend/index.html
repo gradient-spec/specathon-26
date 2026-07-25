@@ -6,7 +6,15 @@
     <meta name="theme-color" content="#05060A" />
     <meta name="color-scheme" content="dark" />
 
-    <title>SPECATHON 2026 — 36 Hours to Build the Impossible</title>
+    <title>Specathon 2026</title>
+
+    <!-- Favicons -->
+    <!-- SVG favicon: supported in Chrome, Edge, Firefox, Safari 17+ -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- ICO fallback: Safari <17, legacy Edge, IE -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="48x48" />
+    <!-- Apple Touch Icon: iOS home screen -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta
       name="description"
       content="SPECATHON 2026 — a 36-hour hackathon hosted by SPEC. September 11–12, 2026."
@@ -23,10 +31,29 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Non-blocking font load: the stylesheet is fetched as a print resource
+      (invisible to the render-blocking parser), then promoted to all media
+      once it arrives. The noscript fallback covers JS-disabled agents.
+      This eliminates the 516 ms render-blocking penalty measured by Lighthouse.
+    -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Alegreya+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Sora:wght@400;600;700;800&display=swap"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Alegreya+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Sora:wght@400;600;700;800&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Alegreya+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Sora:wght@400;600;700;800&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

@@ -18,7 +18,7 @@ const FAQS: Faq[] = [
   },
   {
     q: "How do payments work?",
-    a: "A participation fee of ₹350 per head applies only after your project abstract is shortlisted. A secure online payment link will be sent directly to shortlisted team leads.",
+    a: "A participation fee of ₹400 per head applies only after your project abstract is shortlisted. A secure online payment link will be sent directly to shortlisted team leads.",
   },
   {
     q: "Are fees refundable?",

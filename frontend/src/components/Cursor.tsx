@@ -78,7 +78,6 @@ export default function Cursor() {
 
     document.addEventListener("mousemove", handleMouseMove, { passive: true });
 
-    const interactive = document.querySelectorAll("a, button, input, textarea, select, [data-cursor]");
     const grow = () => dotRef.current?.classList.add("cursor-hover");
     const shrink = () => dotRef.current?.classList.remove("cursor-hover");
 
