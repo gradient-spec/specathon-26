@@ -16,7 +16,7 @@ const STEPS: Step[] = [
     note: "Final deadline to complete team registration and submit your initial project abstract. Ensure all team member details and problem statement proposals are uploaded before midnight.",
   },
   {
-    day: "25th August 2026",
+    day: "23rd August 2026",
     title: "Shortlisted Teams Announced",
     note: "Evaluation of submitted abstracts concludes. The official list of shortlisted teams qualified to compete in the main hackathon edition will be published.",
   },
@@ -62,19 +62,19 @@ export default function Timeline() {
               const left = i % 2 === 0;
               return (
                 <li key={`${s.day}-${s.title}`} className="relative md:grid md:grid-cols-2 md:gap-x-12 pl-12 md:pl-0 pb-12 md:pb-10 last:pb-0 group">
-                  <Reveal delay={0.04} x={left ? -24 : 24}>
-                    {/* Node */}
-                    <span
-                      className={`absolute left-4 md:left-1/2 top-2 md:-translate-x-1/2 h-4 w-4 rounded-full z-10 transition-all duration-300 ${i === 0
-                        ? "bg-lumen border-2 border-lumen shadow-[0_0_20px_rgba(74,203,235,0.8)]"
-                        : "bg-[#0B0F17] border-2 border-lumen/70 shadow-[0_0_10px_rgba(74,203,235,0.25)]"
-                        } group-hover:bg-lumen group-hover:border-lumen group-hover:scale-125 group-hover:shadow-[0_0_28px_rgba(74,203,235,1),0_0_50px_rgba(74,203,235,0.65)]`}
-                    >
-                      <span className="absolute -inset-1 rounded-full border border-lumen/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
-                    </span>
+                  {/* Node — sits directly in <li> so absolute positioning is correct */}
+                  <span
+                    className={`absolute left-4 md:left-1/2 top-2 md:-translate-x-1/2 h-4 w-4 rounded-full z-10 transition-all duration-300 ${i === 0
+                      ? "bg-lumen border-2 border-lumen shadow-[0_0_20px_rgba(74,203,235,0.8)]"
+                      : "bg-[#0B0F17] border-2 border-lumen/70 shadow-[0_0_10px_rgba(74,203,235,0.25)]"
+                      } group-hover:bg-lumen group-hover:border-lumen group-hover:scale-125 group-hover:shadow-[0_0_28px_rgba(74,203,235,1),0_0_50px_rgba(74,203,235,0.65)]`}
+                  >
+                    <span className="absolute -inset-1 rounded-full border border-lumen/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
+                  </span>
 
+                  <Reveal delay={0.04} x={left ? -24 : 24} className={left ? "md:col-start-1" : "md:col-start-2"}>
                     {/* Card */}
-                    <div className={left ? "md:col-start-1 md:text-right md:pr-6" : "md:col-start-2 md:pl-6"}>
+                    <div className={left ? "md:text-right md:pr-6" : "md:pl-6"}>
                       <div className="rounded-2xl glass p-5 md:p-6 mb-4 md:mb-0 transition-all duration-500 hover:-translate-y-1.5 hover:border-lumen/60 hover:shadow-[0_0_35px_rgba(74,203,235,0.25),0_10px_30px_-10px_rgba(0,0,0,0.5)] hover:bg-panel/80 group-hover:border-lumen/50 cursor-pointer">
                         <div className={`flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-lumen font-semibold ${left ? "md:justify-end" : ""}`}>
                           <span>{s.day}</span>

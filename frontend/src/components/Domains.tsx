@@ -28,7 +28,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "sec",
     name: "Cybersecurity",
-    short: "Security & Privacy",
+    short: "Cybersecurity",
     description:
       "Develop innovative solutions to protect digital systems, networks, and sensitive information from cyber threats. Strengthen privacy, detect vulnerabilities, and build a safer digital future.",
     icon: "/icons/cyber-security.png",
@@ -39,7 +39,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "data",
     name: "Data Science",
-    short: "Data Insights",
+    short: "Data Science",
     description:
       "Turn raw data into meaningful insights through analytics, visualization, and predictive modeling. Solve real-world challenges by making data-driven decisions that create measurable impact.",
     icon: "/icons/data-science.png",
@@ -61,7 +61,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "blockchain",
     name: "Blockchain",
-    short: "Trustless Web",
+    short: "Blockchain",
     description:
       "Create decentralized, secure, and transparent applications powered by blockchain technology. Explore smart contracts, digital identity, and trustless systems for the future of the web.",
     icon: "/icons/blockchain.png",
@@ -72,7 +72,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "autotech",
     name: "AutoTech",
-    short: "Mobility & EV",
+    short: "AutoTech",
     description:
       "Reimagine the future of mobility with innovations in connected, electric, and autonomous vehicles. Develop smart transportation solutions that enhance safety, efficiency, and sustainability.",
     icon: "/icons/self-driving-car.png",
@@ -105,7 +105,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "low-poverty",
     name: "Low Poverty",
-    short: "Poverty Alleviation",
+    short: "Low Poverty",
     description:
       "Develop technology-driven solutions aimed at alleviating poverty, empowering underprivileged communities, and expanding access to microfinance, employment opportunities, and essential resources for sustainable economic growth.",
     icon: "/icons/low poverty.png",
@@ -314,7 +314,7 @@ export default function Domains() {
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-[11px] text-muted uppercase tracking-[0.28em]">
-                      Track / {String(activeIndex + 1).padStart(2, "0")}
+                      Domain / {String(activeIndex + 1).padStart(2, "0")}
                     </span>
                     <span className="h-px flex-1 bg-white/10" />
                   </div>

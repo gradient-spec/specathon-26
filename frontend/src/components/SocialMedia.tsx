@@ -35,7 +35,7 @@ const SOCIALS: SocialItem[] = [
   {
     icon: UnstopIcon,
     label: "Unstop",
-    href: "https://unstop.com",
+    href: "https://unstop.com/p/specathon-2026-st-peters-engineering-college-1723868",
     hoverText: "group-hover:text-emerald-400",
     hoverBorder: "hover:border-emerald-500/60",
     glowBg: "bg-emerald-500/20",

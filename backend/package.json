@@ -8,7 +8,7 @@
     "sync:csv": "node scripts/sync-csv.mjs",
     "export:csv": "node scripts/sync-csv.mjs --once"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.45.4"
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.110.8"
   }
 }

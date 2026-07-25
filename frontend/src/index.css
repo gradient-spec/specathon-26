@@ -104,7 +104,7 @@ h3 {
 }
 
 .cursor-dot.cursor-hover {
-  transform: scale(2.2);
+  transform: scale(1.5);
   background: rgba(248, 250, 252, 0.2);
   backdrop-filter: blur(2px);
   border: 1.5px solid rgba(255, 255, 255, 0.9);

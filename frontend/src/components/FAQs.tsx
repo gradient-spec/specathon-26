@@ -79,11 +79,10 @@ export default function FAQs() {
             return (
               <div
                 key={faq.q}
-                className={`relative rounded-2xl glass overflow-hidden transition-all duration-300 ${
-                  isOpen
-                    ? "border border-lumen/50 shadow-[0_0_30px_rgba(74,203,235,0.22)] bg-panel/90"
-                    : "border border-white/10 hover:border-white/20"
-                }`}
+                className={`relative rounded-2xl glass overflow-hidden transition-all duration-300 ${isOpen
+                  ? "border border-lumen/50 shadow-[0_0_30px_rgba(74,203,235,0.22)] bg-panel/90"
+                  : "border border-white/10 hover:border-white/20"
+                  }`}
               >
                 {/* Glow backdrop when open */}
                 {isOpen && (
@@ -96,15 +95,14 @@ export default function FAQs() {
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-xs text-lumen shrink-0">
-                      /{String(idx + 1).padStart(2, "0")}
+                      {/* {String(idx + 1).padStart(2, "0")} */}
                     </span>
                     <span className="leading-snug">{faq.q}</span>
                   </div>
                   <ChevronDown
                     size={18}
-                    className={`text-lumen shrink-0 transition-transform duration-300 ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
+                    className={`text-lumen shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -117,11 +115,11 @@ export default function FAQs() {
                       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                       className="overflow-hidden"
                     >
-                      <div className="px-5 pb-5 pt-3 border-t border-white/[0.08] bg-void/30 relative">
-                        <div className="flex items-center gap-2 font-mono text-[11px] text-muted uppercase tracking-[0.28em] mb-2.5">
-                          <span className="text-lumen">/{String(idx + 1).padStart(2, "0")}</span>
-                          <span className="h-px w-6 bg-white/15" />
-                          Answer
+                      <div className="px-5 pb-5 pt-3 border-t border-white/[0.08]  bg-void/30 relative">
+                        <div className="flex items-center gap-2 font-mono text-  [11px] text-muted uppercase tracking-[0.28em] mb-2.5">
+                          {/* <span className="text-lumen">/{String(idx + 1).padStart(2, "0")}</span> */}
+                          {/* <span className="h-px w-6 bg-white/15" /> */}
+                          {/* Answdfder */}
                         </div>
                         <p className="text-muted leading-relaxed text-sm">
                           {faq.a.replace("粒 ", "")}
@@ -157,7 +155,7 @@ export default function FAQs() {
                 accentColor="#4ACBEB"
                 textColor="#c4c4c4"
                 markerColor="#186275"
-                showIndex
+                showIndex={false}
                 showMarker
                 proximityRadius={120}
                 maxShift={24}
@@ -190,9 +188,9 @@ export default function FAQs() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 font-mono text-[11px] text-muted uppercase tracking-[0.28em]">
-                      <span className="text-lumen">/{String(active + 1).padStart(2, "0")}</span>
+                      {/* <span className="text-lumen">{String(active + 1).padStart(2, "0")}</span>
                       <span className="h-px w-8 bg-white/15" />
-                      Answer
+                      Answer */}
                     </div>
 
                     {isLocked && (

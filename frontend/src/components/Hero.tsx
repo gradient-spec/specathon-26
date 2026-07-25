@@ -30,10 +30,10 @@ export default function Hero() {
         {/* Wordmark: SPECATHON [2026 glass badge] */}
         <h1
           ref={titleRef}
-          className="hero-title font-display font-bold leading-[1.25] text-[clamp(2.5rem,8.5vw,7.5rem)] tracking-tightest flex items-center justify-center flex-nowrap gap-x-4 md:gap-x-6 py-4 px-2 overflow-visible"
+          className="hero-title font-display font-bold leading-[1.25] text-[clamp(2rem,8.5vw,6.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-4 md:flex-nowrap md:gap-x-6 py-4 px-2 overflow-visible"
           aria-label="SPECATHON 2026"
         >
-          <span className="overflow-visible inline-flex italic py-2 px-1">
+          <span className="overflow-visible inline-flex py-2 px-1" style={{ fontFamily: '"Playfair Display", ui-serif, serif', fontStyle: 'normal' }}>
             {title.split("").map((c, i) => (
               <span
                 key={i}
@@ -49,7 +49,7 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.8, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 2.3, type: "spring", stiffness: 180, damping: 16 }}
-            className="font-bold text-lumen text-[clamp(2.5rem,8.5vw,7.5rem)]"
+            className="font-bold text-lumen text-[clamp(2rem,8.5vw,5.5rem)]"
             style={{ fontFamily: '"Playfair Display", ui-serif, serif' }}
           >
             2026
@@ -92,7 +92,7 @@ export default function Hero() {
         >
           <p className="text-fg/80 text-base md:text-lg leading-relaxed font-body">
             Thirty-six hours, one campus, and a room full of builders. SPECATHON is
-            SPEC's flagship national hackathon — pick a problem, ship a working demo,
+            st. peter's flagship national hackathon — pick a problem, ship a working demo,
             and defend it in front of mentors and judges.
           </p>
         </motion.div>
