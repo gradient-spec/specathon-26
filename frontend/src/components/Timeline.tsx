@@ -6,7 +6,7 @@ type Step = { day: string; title: string; note: string };
 
 const STEPS: Step[] = [
   {
-    day: "25th July 2026",
+    day: "27th July 2026",
     title: "Registrations Start",
     note: "Official registration portal opens for all participating teams. Form your squad, select your preferred domain track, and begin drafting your project proposal.",
   },
