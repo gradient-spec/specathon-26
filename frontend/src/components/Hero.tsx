@@ -49,7 +49,7 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.8, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 2.3, type: "spring", stiffness: 180, damping: 16 }}
-            className="font-bold text-lumen text-[clamp(2rem,8.5vw,5.5rem)]"
+            className="font-bold text-lumen text-[clamp(2rem,8.5vw,6.5rem)]"
             style={{ fontFamily: '"Playfair Display", ui-serif, serif' }}
           >
             2026
@@ -91,8 +91,8 @@ export default function Hero() {
           className="mt-8 scroll-mt-24 max-w-4xl text-center mx-auto"
         >
           <p className="text-fg/80 text-base md:text-lg leading-relaxed font-body">
-            Thirty-six hours, one campus, and a room full of builders. SPECATHON is
-            st. peter's flagship national hackathon — pick a problem, ship a working demo,
+            Thirty-six hours, one campus, and a room full of innovators. SPECATHON is flagship national hackathon hosted by
+            St. Peter's Engineering College — pick a problem, ship a working demo,
             and defend it in front of mentors and judges.
           </p>
         </motion.div>

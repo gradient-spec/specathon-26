@@ -11,11 +11,13 @@ export function Logo({
   size = 24,
   src,
   alt,
+  className,
 }: {
   variant: "spec" | "stpeters";
   size?: number;
   src?: string;
   alt?: string;
+  className?: string;
 }) {
   const logoSrc = src || (variant === "spec" ? "/spec-logo-header.png" : undefined);
   if (logoSrc) {
@@ -25,8 +27,8 @@ export function Logo({
         alt={alt ?? (variant === "spec" ? "SPEC" : "St. Peter's Engineering College")}
         width={size}
         height={size}
-        className="object-contain shrink-0"
-        style={{ height: size, width: "auto" }}
+        className={`object-contain shrink-0 ${className ?? ""}`}
+        style={className ? { width: "auto" } : { height: size, width: "auto" }}
       />
     );
   }

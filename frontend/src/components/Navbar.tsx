@@ -109,7 +109,7 @@ export default function Navbar() {
               aria-label="SPEC"
               className="hidden md:flex items-center gap-2 pr-3 border-r border-white/10 text-fg/85 group"
             >
-              <Logo variant="spec" size={26} />
+              <Logo variant="spec" size={40} className="h-7 md:h-8 lg:h-10" />
               <span className="font-display text-sm tracking-widest group-hover:text-lumen transition-colors">
                 SPEC
               </span>
@@ -148,7 +148,7 @@ export default function Navbar() {
           >
             <div className="flex items-center justify-between h-16 px-6 border-b border-white/5">
               <div className="flex items-center gap-2.5">
-                <Logo variant="spec" size={26} />
+                <Logo variant="spec" size={40} className="h-7 md:h-8 lg:h-10" />
                 <span className="font-display text-sm tracking-widest">SPECATHON</span>
               </div>
               <button aria-label="Close menu" onClick={() => setOpen(false)} className="p-2">
