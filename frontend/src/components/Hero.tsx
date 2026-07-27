@@ -91,8 +91,7 @@ export default function Hero() {
           className="mt-8 scroll-mt-24 max-w-4xl text-center mx-auto"
         >
           <p className="text-fg/80 text-base md:text-lg leading-relaxed font-body">
-            Thirty-six hours, one campus, and a room full of innovators. SPECATHON is flagship national hackathon hosted by
-            St. Peter's Engineering College — pick a problem, ship a working demo,
+            Thirty-six hours, one campus, and a room full of innovators. SPECATHON is flagship national level hackathon hosted by Department of CSE(AI&ML),  St. Peter's Engineering College, Hyderabad — pick a problem, ship a working demo,
             and defend it in front of mentors and judges.
           </p>
         </motion.div>
