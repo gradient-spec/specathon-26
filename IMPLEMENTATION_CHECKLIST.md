@@ -6,8 +6,8 @@
 
 ## CSV Import
 - [ ] Upload UI
-- [ ] Validation
-- [ ] Atomic import
+- [x] Validation
+- [x] Atomic import
 
 ## Payment
 - [ ] Validate Team API
