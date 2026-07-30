@@ -2,7 +2,7 @@
 
 ## Database
 - [x] shortlisted_teams
-- [ ] payment_events
+- [x] payment_events
 
 ## CSV Import
 - [ ] Upload UI
