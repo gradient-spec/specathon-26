@@ -21,3 +21,9 @@ enabled     = true
 verify_jwt  = false
 import_map  = "./functions/shortlisted-teams/deno.json"
 entrypoint  = "./functions/shortlisted-teams/index.ts"
+
+[functions.validate-team]
+enabled    = true
+verify_jwt = false
+import_map = "./functions/validate-team/deno.json"
+entrypoint = "./functions/validate-team/index.ts"

@@ -10,7 +10,7 @@
 - [x] Atomic import
 
 ## Payment
-- [ ] Validate Team API
+- [x] Validate Team API
 - [ ] Create Order API
 - [ ] Webhook
 - [ ] Razorpay Integration
