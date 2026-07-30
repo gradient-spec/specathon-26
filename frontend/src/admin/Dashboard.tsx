@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff } from "lucide-react";
+import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { deleteTeams, listMembersFor, listTeams, type MemberRow, type TeamRow } from "@/services/admin";
@@ -10,6 +10,9 @@ import RegistrationsTable, { applyFilters, emptyFilters, type Filters } from "./
 import RegistrationDrawer from "./RegistrationDrawer";
 import ExportBar from "./ExportBar";
 import ConfirmDialog from "./ConfirmDialog";
+import ShortlistImport from "./ShortlistImport";
+
+type View = "registrations" | "import";
 
 export default function Dashboard() {
   const { email, signOut } = useAuth();
@@ -23,6 +26,7 @@ export default function Dashboard() {
   const [selected, setSelected] = useState<string[]>([]);
   const [viewId, setViewId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ ids: string[] } | null>(null);
+  const [view, setView] = useState<View>("registrations");
 
   // Coalesce burst reloads (a team + its members insert ≈ 3 events within ms).
   const debounceRef = useRef<number | null>(null);
@@ -117,14 +121,35 @@ export default function Dashboard() {
               <div className="eyebrow">SPECATHON · Admin</div>
               <div className="font-display text-sm tracking-widest">Dashboard</div>
             </div>
+            {/* View tabs */}
+            <div className="hidden md:flex items-center gap-1 ml-4 rounded-lg border border-line bg-panel/40 p-1">
+              <button
+                onClick={() => setView("registrations")}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "registrations"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
+              >
+                Registrations
+              </button>
+              <button
+                onClick={() => setView("import")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "import"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
+              >
+                <Upload size={11} />
+                Import Shortlist
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
             <span
               title={live ? "Live updates connected" : "Reconnecting…"}
-              className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] ${
-                live ? "text-lumen" : "text-muted"
-              }`}
+              className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] ${live ? "text-lumen" : "text-muted"
+                }`}
             >
               {live ? <Wifi size={11} /> : <WifiOff size={11} />}
               {live ? "live" : "offline"}
@@ -155,7 +180,32 @@ export default function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-[1400px] px-6 md:px-8 py-10 space-y-10">
-        {loading ? (
+        {/* Mobile tab switcher */}
+        <div className="flex md:hidden items-center gap-1 rounded-lg border border-line bg-panel/40 p-1 w-fit">
+          <button
+            onClick={() => setView("registrations")}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "registrations"
+                ? "bg-plasma/20 border border-plasma/30 text-fg"
+                : "text-muted hover:text-fg"
+              }`}
+          >
+            Registrations
+          </button>
+          <button
+            onClick={() => setView("import")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "import"
+                ? "bg-plasma/20 border border-plasma/30 text-fg"
+                : "text-muted hover:text-fg"
+              }`}
+          >
+            <Upload size={11} />
+            Import
+          </button>
+        </div>
+
+        {view === "import" ? (
+          <ShortlistImport />
+        ) : loading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 size={22} className="animate-spin text-plasma" />
           </div>

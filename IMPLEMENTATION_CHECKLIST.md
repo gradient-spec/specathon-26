@@ -5,7 +5,7 @@
 - [x] payment_events
 
 ## CSV Import
-- [ ] Upload UI
+- [x] Upload UI
 - [x] Validation
 - [x] Atomic import
 
@@ -22,7 +22,7 @@
 - [ ] Failure Page
 
 ## Admin
-- [ ] CSV Import
+- [x] CSV Import
 - [ ] Payment Dashboard
 - [ ] Payment Notes
 

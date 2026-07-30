@@ -96,6 +96,35 @@ export async function deleteTeams(ids: string[], actor: string | null) {
   for (const id of ids) await logAudit(actor, "delete", "team", id, {});
 }
 
+// ── V2: Shortlisted Teams Import ──────────────────────────────────────────
+
+export type ShortlistedTeamRow = {
+  team_id: string;
+  registration_source: "WEBSITE" | "UNSTOP";
+  team_name: string;
+  team_lead_name: string;
+  contact: string;
+  team_size: number;
+  amount: number;
+  payment_status: "PENDING";
+  payment_notes: string | null;
+};
+
+/**
+ * Passes a validated array of rows to the import_shortlisted_teams() RPC.
+ * The RPC handles all business logic and runs atomically inside Postgres.
+ * Returns { imported: number } on success, throws on any error.
+ */
+export async function importShortlisted(
+  rows: ShortlistedTeamRow[]
+): Promise<{ imported: number }> {
+  const { data, error } = await client().rpc("import_shortlisted_teams", {
+    rows,
+  });
+  if (error) throw error;
+  return data as { imported: number };
+}
+
 export async function logAudit(
   actor: string | null,
   action: string,
