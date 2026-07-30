@@ -16,7 +16,7 @@
 - [ ] Razorpay Integration
 
 ## Public Website
-- [ ] Shortlisted Teams
+- [x] Shortlisted Teams
 - [ ] Payment Page
 - [ ] Success Page
 - [ ] Failure Page
