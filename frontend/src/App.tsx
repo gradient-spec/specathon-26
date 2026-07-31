@@ -4,6 +4,7 @@ import { AuthProvider } from "./admin/AuthContext";
 import RequireAdmin from "./admin/RequireAdmin";
 
 const Home = lazy(() => import("./pages/Home"));
+const ShortlistedTeams = lazy(() => import("./pages/ShortlistedTeams"));
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
 const Dashboard = lazy(() => import("./admin/Dashboard"));
 
@@ -17,6 +18,7 @@ export default function App() {
           <Routes>
             {/* Public */}
             <Route path="/" element={<Home />} />
+            <Route path="/shortlisted" element={<ShortlistedTeams />} />
 
             {/* Admin */}
             <Route path="/admin/login" element={<AdminLogin />} />
