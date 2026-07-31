@@ -125,6 +125,56 @@ export async function importShortlisted(
   return data as { imported: number };
 }
 
+// ── V2: Payment Dashboard ─────────────────────────────────────────────────
+
+export type ShortlistedTeamFull = {
+  id:                  string;
+  team_id:             string;
+  registration_source: string;
+  team_name:           string;
+  team_lead_name:      string;
+  contact:             string;
+  team_size:           number;
+  amount:              number;
+  payment_status:      "PENDING" | "FAILED" | "PAID";
+  payment_notes:       string | null;
+  paid_at:             string | null;
+  created_at:          string;
+};
+
+export type PaymentEvent = {
+  id:                  string;
+  shortlisted_team_id: string;
+  razorpay_order_id:   string | null;
+  razorpay_payment_id: string | null;
+  event_type:          string;
+  amount:              number;
+  payload:             Record<string, unknown>;
+  signature_verified:  boolean | null;
+  created_at:          string;
+};
+
+export async function listShortlistedTeams(): Promise<ShortlistedTeamFull[]> {
+  const { data, error } = await client()
+    .from("shortlisted_teams")
+    .select("*")
+    .order("team_id", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ShortlistedTeamFull[];
+}
+
+export async function listPaymentEventsForTeam(
+  shortlistedTeamId: string
+): Promise<PaymentEvent[]> {
+  const { data, error } = await client()
+    .from("payment_events")
+    .select("*")
+    .eq("shortlisted_team_id", shortlistedTeamId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as PaymentEvent[];
+}
+
 export async function logAudit(
   actor: string | null,
   action: string,

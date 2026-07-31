@@ -23,7 +23,7 @@
 
 ## Admin
 - [x] CSV Import
-- [ ] Payment Dashboard
+- [x] Payment Dashboard
 - [ ] Payment Notes
 
 ## Testing

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload } from "lucide-react";
+import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload, CreditCard } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { deleteTeams, listMembersFor, listTeams, type MemberRow, type TeamRow } from "@/services/admin";
@@ -11,8 +11,9 @@ import RegistrationDrawer from "./RegistrationDrawer";
 import ExportBar from "./ExportBar";
 import ConfirmDialog from "./ConfirmDialog";
 import ShortlistImport from "./ShortlistImport";
+import PaymentDashboard from "./PaymentDashboard";
 
-type View = "registrations" | "import";
+type View = "registrations" | "import" | "payments";
 
 export default function Dashboard() {
   const { email, signOut } = useAuth();
@@ -142,6 +143,16 @@ export default function Dashboard() {
                 <Upload size={11} />
                 Import Shortlist
               </button>
+              <button
+                onClick={() => setView("payments")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "payments"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
+              >
+                <CreditCard size={11} />
+                Payments
+              </button>
             </div>
           </div>
 
@@ -185,8 +196,8 @@ export default function Dashboard() {
           <button
             onClick={() => setView("registrations")}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "registrations"
-                ? "bg-plasma/20 border border-plasma/30 text-fg"
-                : "text-muted hover:text-fg"
+              ? "bg-plasma/20 border border-plasma/30 text-fg"
+              : "text-muted hover:text-fg"
               }`}
           >
             Registrations
@@ -194,17 +205,29 @@ export default function Dashboard() {
           <button
             onClick={() => setView("import")}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "import"
-                ? "bg-plasma/20 border border-plasma/30 text-fg"
-                : "text-muted hover:text-fg"
+              ? "bg-plasma/20 border border-plasma/30 text-fg"
+              : "text-muted hover:text-fg"
               }`}
           >
             <Upload size={11} />
             Import
           </button>
+          <button
+            onClick={() => setView("payments")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "payments"
+              ? "bg-plasma/20 border border-plasma/30 text-fg"
+              : "text-muted hover:text-fg"
+              }`}
+          >
+            <CreditCard size={11} />
+            Payments
+          </button>
         </div>
 
         {view === "import" ? (
           <ShortlistImport />
+        ) : view === "payments" ? (
+          <PaymentDashboard />
         ) : loading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 size={22} className="animate-spin text-plasma" />
