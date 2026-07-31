@@ -103,8 +103,12 @@ export default function Hero() {
           transition={{ delay: 3.1, duration: 0.6 }}
           className="mt-10 flex justify-center items-center w-full"
         >
-          <a href="#register" id="hero-register-btn" className="btn-primary group/btn !px-8 !py-4 text-base">
-            Register Now
+          <a
+            href="#shortlisted"
+            id="hero-cta-btn"
+            className="btn-primary group/btn !px-8 !py-4 text-base"
+          >
+            View Shortlisted Teams
             <ArrowRight size={18} className="transition-transform group-hover/btn:translate-x-1" />
           </a>
         </motion.div>

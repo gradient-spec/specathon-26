@@ -4,18 +4,17 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
 
 const links: { id: string; label: string }[] = [
-  { id: "about", label: "About" },
+  { id: "top", label: "Home" },
   { id: "gallery", label: "Gallery" },
-  { id: "domains", label: "Domains" },
   { id: "timeline", label: "Timeline" },
-  { id: "faq", label: "FAQ" },
+  { id: "shortlisted", label: "Shortlisted Teams" },
+  { id: "faq", label: "FAQs" },
   { id: "contact", label: "Contact" },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
     let rafId = 0;
@@ -23,14 +22,7 @@ export default function Navbar() {
 
     const update = () => {
       pending = false;
-      const scrollY = window.scrollY;
-      setScrolled(scrollY > 80);
-      const heroBtn = document.getElementById("hero-register-btn");
-      if (heroBtn) {
-        setShowRegister(heroBtn.getBoundingClientRect().bottom < 64);
-      } else {
-        setShowRegister(scrollY > 500);
-      }
+      setScrolled(window.scrollY > 80);
     };
 
     const onScroll = () => {
@@ -40,7 +32,7 @@ export default function Navbar() {
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    update(); // run once on mount to set initial state
+    update();
     return () => {
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(rafId);
@@ -102,7 +94,7 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* Right — scroll-in Register + SPEC logo + menu */}
+          {/* Right — SPEC logo + nav links CTA + mobile menu */}
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
             <a
               href="https://spechyd.ac.in"
@@ -115,20 +107,13 @@ export default function Navbar() {
               </span>
             </a>
 
-            <AnimatePresence>
-              {showRegister && (
-                <motion.a
-                  href="#register"
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 12 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className="hidden md:inline-flex btn-primary !px-5 !py-2 text-[13px]"
-                >
-                  Register Now
-                </motion.a>
-              )}
-            </AnimatePresence>
+            {/* Shortlisted Teams CTA — always visible on desktop */}
+            <a
+              href="#shortlisted"
+              className="hidden md:inline-flex btn-primary !px-5 !py-2 text-[13px]"
+            >
+              Shortlisted Teams
+            </a>
 
             {/* Mobile menu */}
             <button aria-label="Open menu" onClick={() => setOpen(true)} className="md:hidden text-fg p-2">
@@ -171,8 +156,8 @@ export default function Navbar() {
                 </motion.a>
               ))}
 
-              <a href="#register" onClick={() => setOpen(false)} className="btn-primary self-start mt-8">
-                Register your team
+              <a href="#shortlisted" onClick={() => setOpen(false)} className="btn-primary self-start mt-8">
+                View Shortlisted Teams
               </a>
             </nav>
           </motion.div>

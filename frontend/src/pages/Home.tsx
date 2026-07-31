@@ -5,11 +5,11 @@ import Stats from "@/components/Stats";
 import Loader from "@/components/Loader";
 import Cursor from "@/components/Cursor";
 import Particles from "@/components/Particles";
+import ShortlistedTeamsSection from "@/components/ShortlistedTeamsSection";
 import { useLenis } from "@/hooks/useLenis";
+
 const Gallery = lazy(() => import("@/components/Gallery"));
-const Domains = lazy(() => import("@/components/Domains"));
 const Timeline = lazy(() => import("@/components/Timeline"));
-const Registration = lazy(() => import("@/components/Registration"));
 const FAQs = lazy(() => import("@/components/FAQs"));
 const Contact = lazy(() => import("@/components/Contact"));
 const SocialMedia = lazy(() => import("@/components/SocialMedia"));
@@ -28,9 +28,9 @@ export default function Home() {
         <Suspense fallback={<div className="h-40" />}>
           <Gallery />
           <Stats />
-          <Domains />
-          <Registration />
           <Timeline />
+          {/* Shortlisted Teams — embedded section with id="shortlisted" for scroll nav */}
+          <ShortlistedTeamsSection embedded />
           <FAQs />
           <Contact />
           <SocialMedia />
