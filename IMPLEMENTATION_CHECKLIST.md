@@ -18,8 +18,8 @@
 ## Public Website
 - [x] Shortlisted Teams
 - [x] Payment Page
-- [ ] Success Page
-- [ ] Failure Page
+- [x] Success Page
+- [x] Failure Page
 
 ## Admin
 - [x] CSV Import
