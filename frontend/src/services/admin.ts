@@ -121,7 +121,20 @@ export async function importShortlisted(
   const { data, error } = await client().rpc("import_shortlisted_teams", {
     rows,
   });
-  if (error) throw error;
+
+  if (error) {
+    // Supabase RPC errors are plain objects { code, message, details, hint },
+    // not Error instances. Extract the human-readable message explicitly so
+    // the UI never shows "[object Object]".
+    console.error("[importShortlisted] RPC error:", error);
+    const msg =
+      (typeof error === "object" && error !== null && "message" in error
+        ? (error as { message?: string }).message
+        : null) ??
+      String(error);
+    throw new Error(msg || "Import failed. Check the browser console for details.");
+  }
+
   return data as { imported: number };
 }
 
