@@ -11,7 +11,7 @@
 
 ## Payment
 - [x] Validate Team API
-- [ ] Create Order API
+- [x] Create Order API
 - [ ] Webhook
 - [ ] Razorpay Integration
 

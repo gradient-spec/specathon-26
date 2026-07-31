@@ -27,3 +27,9 @@ enabled    = true
 verify_jwt = false
 import_map = "./functions/validate-team/deno.json"
 entrypoint = "./functions/validate-team/index.ts"
+
+[functions.create-payment-order]
+enabled    = true
+verify_jwt = false
+import_map = "./functions/create-payment-order/deno.json"
+entrypoint = "./functions/create-payment-order/index.ts"
