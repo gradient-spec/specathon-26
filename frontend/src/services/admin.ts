@@ -175,6 +175,23 @@ export async function listPaymentEventsForTeam(
   return (data ?? []) as PaymentEvent[];
 }
 
+/**
+ * Updates payment_notes on a shortlisted_teams row.
+ * Only touches payment_notes — never modifies payment_status, amount,
+ * paid_at or any other field. Admin-only via service-role client.
+ */
+export async function updatePaymentNotes(
+  id: string,
+  notes: string
+): Promise<void> {
+  const trimmed = notes.trim().slice(0, 1000);
+  const { error } = await client()
+    .from("shortlisted_teams")
+    .update({ payment_notes: trimmed || null })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function logAudit(
   actor: string | null,
   action: string,

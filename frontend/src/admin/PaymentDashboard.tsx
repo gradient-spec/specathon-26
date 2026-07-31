@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2, AlertCircle, RefreshCcw, Search, X,
   Users, CreditCard, CheckCircle2, XCircle, Clock,
-  ChevronRight, ArrowDownRight,
+  ChevronRight, ArrowDownRight, StickyNote,
 } from "lucide-react";
 import {
   listShortlistedTeams,
   listPaymentEventsForTeam,
+  updatePaymentNotes,
   type ShortlistedTeamFull,
   type PaymentEvent,
 } from "@/services/admin";
@@ -19,23 +20,23 @@ import {
 const STATUS_CONFIG = {
   PAID: {
     label: "Paid",
-    icon:  CheckCircle2,
-    cls:   "border-lumen/30 bg-lumen/[0.08] text-lumen",
+    icon: CheckCircle2,
+    cls: "border-lumen/30 bg-lumen/[0.08] text-lumen",
   },
   FAILED: {
     label: "Failed",
-    icon:  XCircle,
-    cls:   "border-ember/30 bg-ember/[0.08] text-ember",
+    icon: XCircle,
+    cls: "border-ember/30 bg-ember/[0.08] text-ember",
   },
   PENDING: {
     label: "Pending",
-    icon:  Clock,
-    cls:   "border-gold/30 bg-gold/[0.08] text-gold",
+    icon: Clock,
+    cls: "border-gold/30 bg-gold/[0.08] text-gold",
   },
 } as const;
 
 function StatusBadge({ status }: { status: ShortlistedTeamFull["payment_status"] }) {
-  const cfg  = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium tracking-wide ${cfg.cls}`}>
@@ -50,11 +51,11 @@ function StatusBadge({ status }: { status: ShortlistedTeamFull["payment_status"]
 // ─────────────────────────────────────────────────────────────────────────────
 
 const EVENT_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
-  ORDER_CREATED:    { label: "Order Created",    cls: "text-muted",  dot: "bg-muted/60"      },
-  PAYMENT_SUCCESS:  { label: "Payment Success",  cls: "text-lumen",  dot: "bg-lumen"         },
-  PAYMENT_FAILED:   { label: "Payment Failed",   cls: "text-ember",  dot: "bg-ember"         },
-  PAYMENT_REFUNDED: { label: "Payment Refunded", cls: "text-gold",   dot: "bg-gold"          },
-  WEBHOOK_RECEIVED: { label: "Webhook Received", cls: "text-muted",  dot: "bg-plasma/60"     },
+  ORDER_CREATED: { label: "Order Created", cls: "text-muted", dot: "bg-muted/60" },
+  PAYMENT_SUCCESS: { label: "Payment Success", cls: "text-lumen", dot: "bg-lumen" },
+  PAYMENT_FAILED: { label: "Payment Failed", cls: "text-ember", dot: "bg-ember" },
+  PAYMENT_REFUNDED: { label: "Payment Refunded", cls: "text-gold", dot: "bg-gold" },
+  WEBHOOK_RECEIVED: { label: "Webhook Received", cls: "text-muted", dot: "bg-plasma/60" },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,8 +68,8 @@ type FetchState =
   | { kind: "ok"; teams: ShortlistedTeamFull[] };
 
 export default function PaymentDashboard() {
-  const [state,    setState]    = useState<FetchState>({ kind: "loading" });
-  const [query,    setQuery]    = useState("");
+  const [state, setState] = useState<FetchState>({ kind: "loading" });
+  const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ShortlistedTeamFull | null>(null);
 
   const load = useCallback(async () => {
@@ -90,10 +91,10 @@ export default function PaymentDashboard() {
   const teams = state.kind === "ok" ? state.teams : [];
   const filtered = query.trim()
     ? teams.filter(
-        (t) =>
-          t.team_id.toLowerCase().includes(query.toLowerCase()) ||
-          t.team_name.toLowerCase().includes(query.toLowerCase())
-      )
+      (t) =>
+        t.team_id.toLowerCase().includes(query.toLowerCase()) ||
+        t.team_name.toLowerCase().includes(query.toLowerCase())
+    )
     : teams;
 
   // Summary counts
@@ -127,10 +128,10 @@ export default function PaymentDashboard() {
       {state.kind === "ok" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Total",   value: teams.length,      cls: "text-fg"    },
-            { label: "Paid",    value: counts.PAID,        cls: "text-lumen" },
-            { label: "Pending", value: counts.PENDING,     cls: "text-gold"  },
-            { label: "Failed",  value: counts.FAILED,      cls: "text-ember" },
+            { label: "Total", value: teams.length, cls: "text-fg" },
+            { label: "Paid", value: counts.PAID, cls: "text-lumen" },
+            { label: "Pending", value: counts.PENDING, cls: "text-gold" },
+            { label: "Failed", value: counts.FAILED, cls: "text-ember" },
           ].map(({ label, value, cls }) => (
             <div key={label} className="rounded-xl glass p-4">
               <div className="text-xs text-muted uppercase tracking-[0.2em] font-mono mb-1">{label}</div>
@@ -303,7 +304,34 @@ function PaymentDetailsDrawer({
 }) {
   const [events, setEvents] = useState<PaymentEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError  ] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // ── Notes ────────────────────────────────────────────────────────────────
+  const MAX_NOTES = 1000;
+  const [notes, setNotes] = useState(team.payment_notes ?? "");
+  const [savedNotes, setSavedNotes] = useState(team.payment_notes ?? "");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  const isDirty = notes !== savedNotes;
+  const tooLong = notes.length > MAX_NOTES;
+
+  const handleSave = async () => {
+    if (tooLong) return;
+    setSaveState("saving");
+    try {
+      await updatePaymentNotes(team.id, notes);
+      const trimmed = notes.trim().slice(0, MAX_NOTES);
+      setSavedNotes(trimmed);
+      setNotes(trimmed);
+      setSaveState("saved");
+      setTimeout(() => setSaveState("idle"), 2500);
+    } catch {
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
+  };
+
+  const handleReset = () => { setNotes(savedNotes); setSaveState("idle"); };
 
   useEffect(() => {
     let cancelled = false;
@@ -373,11 +401,11 @@ function PaymentDetailsDrawer({
             </div>
             <dl className="space-y-3">
               {[
-                { label: "Team ID",    value: team.team_id,        mono: true  },
-                { label: "Team Name",  value: team.team_name,       mono: false },
-                { label: "Team Lead",  value: team.team_lead_name,  mono: false },
-                { label: "Team Size",  value: `${team.team_size} members`, mono: false },
-                { label: "Source",     value: team.registration_source, mono: true },
+                { label: "Team ID", value: team.team_id, mono: true },
+                { label: "Team Name", value: team.team_name, mono: false },
+                { label: "Team Lead", value: team.team_lead_name, mono: false },
+                { label: "Team Size", value: `${team.team_size} members`, mono: false },
+                { label: "Source", value: team.registration_source, mono: true },
               ].map(({ label, value, mono }) => (
                 <div key={label} className="flex items-center justify-between border-b border-line/60 pb-2.5 last:border-0">
                   <dt className="text-xs text-muted uppercase tracking-[0.18em] font-mono shrink-0">{label}</dt>
@@ -446,8 +474,8 @@ function PaymentDetailsDrawer({
                   {events.map((ev) => {
                     const cfg = EVENT_CONFIG[ev.event_type] ?? {
                       label: ev.event_type,
-                      cls:   "text-muted",
-                      dot:   "bg-muted/60",
+                      cls: "text-muted",
+                      dot: "bg-muted/60",
                     };
                     return (
                       <div key={ev.id} className="relative">
@@ -479,8 +507,8 @@ function PaymentDetailsDrawer({
                             {ev.signature_verified === true
                               ? "Verified ✓"
                               : ev.signature_verified === false
-                              ? "Unverified ✗"
-                              : "N/A"
+                                ? "Unverified ✗"
+                                : "N/A"
                             }
                           </div>
                         </div>
@@ -491,6 +519,82 @@ function PaymentDetailsDrawer({
               </div>
             )}
           </section>
+          {/* Payment Notes */}
+          <section>
+            <div className="eyebrow flex items-center gap-2 mb-4">
+              <StickyNote size={11} /> Payment Notes
+            </div>
+
+            <div className="space-y-3">
+              <div className="relative">
+                <textarea
+                  id="payment-notes"
+                  aria-label="Payment notes"
+                  value={notes}
+                  onChange={(e) => { setNotes(e.target.value); setSaveState("idle"); }}
+                  rows={4}
+                  maxLength={MAX_NOTES + 50}
+                  placeholder="Internal notes visible to admins only. Never shown to participants."
+                  className="
+                    w-full rounded-xl border border-line bg-panel/40
+                    px-4 py-3 text-sm text-fg placeholder:text-muted/60
+                    resize-none focus:border-lumen/60 focus:outline-none
+                    hover:border-lumen/30 transition-colors leading-relaxed
+                  "
+                />
+                {/* Character count */}
+                <span className={`absolute bottom-3 right-3 text-[10px] font-mono tabular-nums ${tooLong ? "text-ember" : "text-muted/60"
+                  }`}>
+                  {notes.length}/{MAX_NOTES}
+                </span>
+              </div>
+
+              {/* Save feedback */}
+              {saveState === "saved" && (
+                <p className="text-xs text-lumen flex items-center gap-1.5">
+                  <CheckCircle2 size={11} /> Saved successfully.
+                </p>
+              )}
+              {saveState === "error" && (
+                <p className="text-xs text-ember flex items-center gap-1.5">
+                  <AlertCircle size={11} /> Failed to save. Please try again.
+                </p>
+              )}
+              {tooLong && (
+                <p className="text-xs text-ember">
+                  Notes must be {MAX_NOTES} characters or fewer.
+                </p>
+              )}
+
+              {/* Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSave}
+                  disabled={!isDirty || tooLong || saveState === "saving"}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl
+                             bg-plasma/15 border border-plasma/30 text-xs font-medium text-fg
+                             hover:bg-plasma/25 hover:border-plasma/50 transition-all
+                             disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {saveState === "saving"
+                    ? <><Loader2 size={11} className="animate-spin" /> Saving…</>
+                    : "Save"
+                  }
+                </button>
+                <button
+                  onClick={handleReset}
+                  disabled={!isDirty || saveState === "saving"}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl
+                             border border-line text-xs font-medium text-muted
+                             hover:text-fg hover:border-lumen/40 transition-all
+                             disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </section>
+
         </div>
       </motion.aside>
     </>
