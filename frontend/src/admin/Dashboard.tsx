@@ -28,6 +28,9 @@ export default function Dashboard() {
   const [viewId, setViewId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ ids: string[] } | null>(null);
   const [view, setView] = useState<View>("registrations");
+  // Timestamp bumped after every successful CSV import.
+  // PaymentDashboard watches this to re-fetch automatically.
+  const [lastImport, setLastImport] = useState(0);
 
   // Coalesce burst reloads (a team + its members insert ≈ 3 events within ms).
   const debounceRef = useRef<number | null>(null);
@@ -225,9 +228,9 @@ export default function Dashboard() {
         </div>
 
         {view === "import" ? (
-          <ShortlistImport />
+          <ShortlistImport onImported={() => setLastImport(Date.now())} />
         ) : view === "payments" ? (
-          <PaymentDashboard />
+          <PaymentDashboard lastImport={lastImport} />
         ) : loading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 size={22} className="animate-spin text-plasma" />

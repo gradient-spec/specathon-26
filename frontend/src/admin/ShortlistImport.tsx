@@ -18,7 +18,7 @@ const REQUIRED_HEADERS = [
   "payment_notes",
 ] as const;
 
-class ParseError extends Error {}
+class ParseError extends Error { }
 
 function splitLines(text: string): string[] {
   const lines: string[] = [];
@@ -62,20 +62,20 @@ function parseFields(line: string): string[] {
 }
 
 function parseCsv(raw: string): ShortlistedTeamRow[] {
-  const text  = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trimEnd();
+  const text = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trimEnd();
   const lines = splitLines(text).filter(l => l.trim());
 
   if (lines.length === 0) throw new ParseError("The CSV file is empty.");
-  if (lines.length < 2)  throw new ParseError("The CSV file has no data rows.");
+  if (lines.length < 2) throw new ParseError("The CSV file has no data rows.");
 
   const headers = parseFields(lines[0]);
 
   const missing = REQUIRED_HEADERS.filter(h => !headers.includes(h));
-  const extra   = headers.filter(h => !(REQUIRED_HEADERS as readonly string[]).includes(h));
+  const extra = headers.filter(h => !(REQUIRED_HEADERS as readonly string[]).includes(h));
   if (missing.length > 0 || extra.length > 0) {
     const parts: string[] = [];
     if (missing.length > 0) parts.push(`Missing: ${missing.join(", ")}`);
-    if (extra.length > 0)   parts.push(`Unexpected: ${extra.join(", ")}`);
+    if (extra.length > 0) parts.push(`Unexpected: ${extra.join(", ")}`);
     throw new ParseError(
       `Invalid CSV headers. ${parts.join(". ")}.\n` +
       `Expected: ${REQUIRED_HEADERS.join(", ")}`
@@ -95,15 +95,15 @@ function parseCsv(raw: string): ShortlistedTeamRow[] {
     headers.forEach((h, idx) => { obj[h] = fields[idx]; });
 
     rows.push({
-      team_id:             obj.team_id,
+      team_id: obj.team_id,
       registration_source: obj.registration_source as "WEBSITE" | "UNSTOP",
-      team_name:           obj.team_name,
-      team_lead_name:      obj.team_lead_name,
-      contact:             obj.contact,
-      team_size:           parseInt(obj.team_size, 10),
-      amount:              parseInt(obj.amount, 10),
-      payment_status:      "PENDING",
-      payment_notes:       obj.payment_notes?.trim() || null,
+      team_name: obj.team_name,
+      team_lead_name: obj.team_lead_name,
+      contact: obj.contact,
+      team_size: parseInt(obj.team_size, 10),
+      amount: parseInt(obj.amount, 10),
+      payment_status: "PENDING",
+      payment_notes: obj.payment_notes?.trim() || null,
     });
   }
   return rows;
@@ -118,9 +118,9 @@ type State =
   | { type: "success"; imported: number }
   | { type: "error"; message: string };
 
-export default function ShortlistImport() {
-  const inputRef           = useRef<HTMLInputElement>(null);
-  const [state, setState]  = useState<State>({ type: "idle" });
+export default function ShortlistImport({ onImported }: { onImported: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [state, setState] = useState<State>({ type: "idle" });
 
   // ── File selection ───────────────────────────────────────────────────────
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,7 +134,7 @@ export default function ShortlistImport() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const raw  = ev.target?.result as string;
+        const raw = ev.target?.result as string;
         const rows = parseCsv(raw);
         setState({ type: "ready", file, rows });
       } catch (err) {
@@ -156,6 +156,7 @@ export default function ShortlistImport() {
     try {
       const result = await importShortlisted(state.rows);
       setState({ type: "success", imported: result.imported });
+      onImported();
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       // Supabase wraps RPC errors — the useful message is inside .message

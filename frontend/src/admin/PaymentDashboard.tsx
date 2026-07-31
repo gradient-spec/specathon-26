@@ -67,7 +67,7 @@ type FetchState =
   | { kind: "error"; message: string }
   | { kind: "ok"; teams: ShortlistedTeamFull[] };
 
-export default function PaymentDashboard() {
+export default function PaymentDashboard({ lastImport }: { lastImport: number }) {
   const [state, setState] = useState<FetchState>({ kind: "loading" });
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ShortlistedTeamFull | null>(null);
@@ -85,7 +85,8 @@ export default function PaymentDashboard() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // Re-fetch on mount AND whenever a new import completes
+  useEffect(() => { load(); }, [load, lastImport]);
 
   // Client-side search — filter by team_id or team_name
   const teams = state.kind === "ok" ? state.teams : [];
@@ -284,6 +285,21 @@ export default function PaymentDashboard() {
           <PaymentDetailsDrawer
             team={selected}
             onClose={() => setSelected(null)}
+            onNotesUpdated={(id, notes) => {
+              // Update the in-memory teams list so reopening the drawer shows fresh notes
+              setState(prev =>
+                prev.kind === "ok"
+                  ? {
+                    ...prev,
+                    teams: prev.teams.map(t =>
+                      t.id === id ? { ...t, payment_notes: notes || null } : t
+                    ),
+                  }
+                  : prev
+              );
+              // Also update the selected team so the current drawer reflects the save
+              setSelected(prev => prev && prev.id === id ? { ...prev, payment_notes: notes || null } : prev);
+            }}
           />
         )}
       </AnimatePresence>
@@ -298,9 +314,11 @@ export default function PaymentDashboard() {
 function PaymentDetailsDrawer({
   team,
   onClose,
+  onNotesUpdated,
 }: {
   team: ShortlistedTeamFull;
   onClose: () => void;
+  onNotesUpdated: (id: string, notes: string) => void;
 }) {
   const [events, setEvents] = useState<PaymentEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,6 +341,7 @@ function PaymentDetailsDrawer({
       const trimmed = notes.trim().slice(0, MAX_NOTES);
       setSavedNotes(trimmed);
       setNotes(trimmed);
+      onNotesUpdated(team.id, trimmed);
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2500);
     } catch {
