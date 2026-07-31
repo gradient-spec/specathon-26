@@ -33,3 +33,9 @@ enabled    = true
 verify_jwt = false
 import_map = "./functions/create-payment-order/deno.json"
 entrypoint = "./functions/create-payment-order/index.ts"
+
+[functions.payment-callback]
+enabled    = true
+verify_jwt = false
+import_map = "./functions/payment-callback/deno.json"
+entrypoint = "./functions/payment-callback/index.ts"
