@@ -5,6 +5,7 @@ import RequireAdmin from "./admin/RequireAdmin";
 
 const Home = lazy(() => import("./pages/Home"));
 const ShortlistedTeams = lazy(() => import("./pages/ShortlistedTeams"));
+const Payment = lazy(() => import("./pages/Payment"));
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
 const Dashboard = lazy(() => import("./admin/Dashboard"));
 
@@ -19,6 +20,7 @@ export default function App() {
             {/* Public */}
             <Route path="/" element={<Home />} />
             <Route path="/shortlisted" element={<ShortlistedTeams />} />
+            <Route path="/payment" element={<Payment />} />
 
             {/* Admin */}
             <Route path="/admin/login" element={<AdminLogin />} />

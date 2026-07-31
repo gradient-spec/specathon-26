@@ -17,7 +17,7 @@
 
 ## Public Website
 - [x] Shortlisted Teams
-- [ ] Payment Page
+- [x] Payment Page
 - [ ] Success Page
 - [ ] Failure Page
 
