@@ -216,7 +216,7 @@ export async function upsertSheetRows(rows: SheetRow[]): Promise<void> {
   const readData = await readRes.json() as { values?: string[][] };
   const existing: string[][] = readData.values ?? [];
 
-  // ── 2. Ensure header row exists ───────────────────────────────────────────
+  // ── 2. Ensure header row exists and is valid ─────────────────────────────
   if (existing.length === 0) {
     // Sheet is completely empty — write headers first
     await fetch(
@@ -228,6 +228,33 @@ export async function upsertSheetRows(rows: SheetRow[]): Promise<void> {
       },
     );
     existing.push(SHEET_HEADERS as unknown as string[]);
+  } else {
+    // Sheet has content — validate that row 1 matches expected headers exactly.
+    // Trim each cell to be tolerant of accidental trailing spaces.
+    const actualHeaders = (existing[0] ?? []).map((h) => (h ?? "").trim());
+    const expectedHeaders = SHEET_HEADERS as unknown as string[];
+
+    const headersMatch =
+      actualHeaders.length === expectedHeaders.length &&
+      expectedHeaders.every((h, i) => actualHeaders[i] === h);
+
+    if (!headersMatch) {
+      const mismatch = expectedHeaders.map((expected, i) => {
+        const actual = actualHeaders[i] ?? "(missing)";
+        return expected === actual ? null : `col ${i + 1}: expected "${expected}", got "${actual}"`;
+      }).filter(Boolean);
+
+      console.error(
+        "[sheets] Header validation failed. Mismatches:",
+        mismatch.join(" | "),
+        "| Full actual header row:",
+        JSON.stringify(actualHeaders),
+      );
+
+      throw new Error(
+        "Invalid Automation Sheet header. Please restore the expected header row."
+      );
+    }
   }
 
   // ── 3. Build team_id → row index map (1-based, row 1 = header) ───────────
