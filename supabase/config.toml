@@ -39,3 +39,9 @@ enabled    = true
 verify_jwt = false
 import_map = "./functions/payment-callback/deno.json"
 entrypoint = "./functions/payment-callback/index.ts"
+
+[functions.sync-sheet]
+enabled    = true
+verify_jwt = true
+import_map = "./functions/sync-sheet/deno.json"
+entrypoint = "./functions/sync-sheet/index.ts"

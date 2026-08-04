@@ -138,6 +138,39 @@ export async function importShortlisted(
   return data as { imported: number };
 }
 
+/**
+ * Fires the sync-sheet Edge Function for the supplied team IDs.
+ * Fire-and-forget from the frontend — never throws, never blocks the import.
+ * Errors are logged to the console only.
+ */
+export async function syncSheetForTeams(teamIds: string[]): Promise<void> {
+  if (teamIds.length === 0) return;
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+    const edgeUrl     = `${supabaseUrl}/functions/v1/sync-sheet`;
+
+    const res = await fetch(edgeUrl, {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({ teamIds }),
+    });
+
+    const body = await res.json() as { success: boolean; message?: string; synced?: number };
+    if (!body.success) {
+      console.warn("[syncSheetForTeams] Sheet sync reported failure:", body.message);
+    } else {
+      console.log(`[syncSheetForTeams] Synced ${body.synced} row(s) to Automation Sheet.`);
+    }
+  } catch (err) {
+    // Never propagate — sheet sync failure must not affect CSV import success.
+    console.error("[syncSheetForTeams] Unexpected error:", err);
+  }
+}
+
 // ── V2: Payment Dashboard ─────────────────────────────────────────────────
 
 export type ShortlistedTeamFull = {

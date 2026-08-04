@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { FileUp, Loader2, CheckCircle2, AlertCircle, UploadCloud } from "lucide-react";
-import { importShortlisted, type ShortlistedTeamRow } from "@/services/admin";
+import { importShortlisted, syncSheetForTeams, type ShortlistedTeamRow } from "@/services/admin";
 
 // ── CSV parsing ────────────────────────────────────────────────────────────
 // The frontend ONLY parses the CSV into plain objects so they can be sent
@@ -157,6 +157,8 @@ export default function ShortlistImport({ onImported }: { onImported: () => void
       const result = await importShortlisted(state.rows);
       setState({ type: "success", imported: result.imported });
       onImported();
+      // Fire-and-forget — sheet sync failure must never affect import success
+      syncSheetForTeams(state.rows.map((r) => r.team_id));
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       // Supabase wraps RPC errors — the useful message is inside .message

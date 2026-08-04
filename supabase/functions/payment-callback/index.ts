@@ -1,7 +1,6 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@^2";
 import { getProvider }  from "../_shared/provider.ts";
-import { buildConfirmationEmail } from "../_shared/email-template.ts";
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 
@@ -49,94 +48,7 @@ type OrderCreatedEvent = {
 type ShortlistedTeam = {
   id:             string;
   payment_status: string;
-  team_id:        string;
-  team_name:      string;
-  team_lead_name: string;
-  email:          string | null;
 };
-
-// ── Email ─────────────────────────────────────────────────────────────────────
-
-/**
- * Sends the payment confirmation email via Resend.
- * Non-fatal — payment success is never rolled back if email fails.
- * Idempotency is enforced by the caller (email is only called when
- * transitioning from non-PAID → PAID for the first time).
- */
-async function sendConfirmationEmail(
-  team:      ShortlistedTeam,
-  paymentId: string,
-): Promise<void> {
-  const apiKey = Deno.env.get("RESEND_API_KEY");
-  if (!apiKey) {
-    console.error("[payment-callback] RESEND_API_KEY secret is not set — email not sent.");
-    return;
-  }
-
-  if (!team.email) {
-    console.warn(
-      `[payment-callback] No email for team ${team.team_id} — confirmation email skipped.`
-    );
-    return;
-  }
-
-  const { subject, html, text } = buildConfirmationEmail({
-    teamName:       team.team_name,
-    teamLeadName:   team.team_lead_name,
-    registrationId: team.team_id,
-    toEmail:        team.email,
-  });
-
-  const payload = {
-    from:    "SPECATHON 2026 <gradient@stpetershyd.com>",
-    to:      [team.email],
-    subject,
-    html,
-    text,
-  };
-
-  const logCtx = {
-    team_id:    team.team_id,
-    team_name:  team.team_name,
-    recipient:  team.email,
-    payment_id: paymentId,
-    timestamp:  new Date().toISOString(),
-  };
-
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method:  "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type":  "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const responseBody = await res.json();
-
-    if (!res.ok) {
-      console.error("[payment-callback] Email send FAILED:", {
-        ...logCtx,
-        success:  false,
-        status:   res.status,
-        response: responseBody,
-      });
-    } else {
-      console.log("[payment-callback] Email send SUCCESS:", {
-        ...logCtx,
-        success:   true,
-        resend_id: responseBody.id,
-      });
-    }
-  } catch (err) {
-    console.error("[payment-callback] Email send threw an exception:", {
-      ...logCtx,
-      success: false,
-      error:   err instanceof Error ? err.message : String(err),
-    });
-  }
-}
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
@@ -223,7 +135,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   try {
     const { data, error } = await db
       .from("shortlisted_teams")
-      .select("id, payment_status, team_id, team_name, team_lead_name, email")
+      .select("id, payment_status")
       .eq("id", orderEvent.shortlisted_team_id)
       .single();
 
@@ -300,11 +212,39 @@ Deno.serve(async (req: Request): Promise<Response> => {
         return json({ success: false, message: "Payment recorded but status update failed. Please contact support." }, 500);
       }
 
-      // ── Send confirmation email (non-fatal) ────────────────────────────
-      // Called only here — after a confirmed PAID transition.
-      // The idempotency guard above (team.payment_status === "PAID") ensures
-      // this code path runs exactly once per team.
-      await sendConfirmationEmail(team, paymentId);
+      // ── Fire-and-forget: sync the updated row to the Automation Sheet ──────
+      // Failure here must NEVER block the payment response.
+      // The sheet is not the source of truth — Supabase is.
+      ;(async () => {
+        try {
+          // We need the team_id (human-readable) to call sync-sheet.
+          // Fetch it from the shortlisted_teams row we just updated.
+          const { data: teamData } = await db
+            .from("shortlisted_teams")
+            .select("team_id")
+            .eq("id", orderEvent.shortlisted_team_id)
+            .single();
+
+          if (!teamData?.team_id) {
+            console.warn("[payment-callback] sync-sheet skipped: team_id not found.");
+            return;
+          }
+
+          const syncUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/sync-sheet`;
+          const syncKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+          await fetch(syncUrl, {
+            method:  "POST",
+            headers: {
+              "Content-Type":  "application/json",
+              "Authorization": `Bearer ${syncKey}`,
+            },
+            body: JSON.stringify({ teamIds: [teamData.team_id] }),
+          });
+        } catch (syncErr) {
+          console.error("[payment-callback] sync-sheet fire-and-forget error:", syncErr);
+        }
+      })();
 
       return json({ success: true });
 
