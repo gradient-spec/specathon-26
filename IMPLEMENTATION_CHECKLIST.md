@@ -14,6 +14,7 @@
 - [x] Create Order API
 - [x] Webhook
 - [x] Razorpay Integration
+- [x] Payment Confirmation Email (Resend)
 
 ## Public Website
 - [x] Shortlisted Teams
