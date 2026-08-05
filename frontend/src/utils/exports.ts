@@ -272,7 +272,115 @@ export function exportAllXlsx(teams: FullTeam[]) {
   XLSX.writeFile(wb, `SPECATHON2026_AllRegistrations_${TODAY()}.xlsx`);
 }
 
-/* ─── CSV ─────────────────────────────────────────────────────── */
+/* ─── Domain-wise team export ──────────────────────────────────
+ * One sheet per domain. One row per TEAM (not per participant).
+ * Columns: Registration ID, Team Name, Contact, Email, College,
+ *          State, Abstract (clickable hyperlink if URL is present).
+ * Called from ExportBar after presigned URLs are resolved externally.
+ */
+
+type TeamSummaryRow = {
+  "Registration ID": string;
+  "Team Name":       string;
+  "Team Size":       number;
+  "Domain":          string;
+  "Contact":         string;
+  "Email":           string;
+  "College":         string;
+  "State":           string;
+  "Abstract":        string; // presigned URL or empty
+};
+
+export function exportDomainXlsx(
+  teams: FullTeam[],
+  /** Map from reg_code → presigned abstract URL (empty string if none) */
+  abstractUrls: Map<string, string>,
+) {
+  if (teams.length === 0) return;
+
+  // Group teams by domain, sort domain names alphabetically
+  const byDomain = new Map<string, FullTeam[]>();
+  for (const t of teams) {
+    const d = t.domain || "Unknown";
+    const list = byDomain.get(d) ?? [];
+    list.push(t);
+    byDomain.set(d, list);
+  }
+  const domains = [...byDomain.keys()].sort();
+
+  const wb = baseWb();
+
+  for (const domain of domains) {
+    const domainTeams = byDomain.get(domain)!;
+
+    const rows: TeamSummaryRow[] = domainTeams.map((t) => ({
+      "Registration ID": t.reg_code ?? t.id,
+      "Team Name":       t.team_name,
+      "Team Size":       t.team_size,
+      "Domain":          t.domain,
+      "Contact":         t.phone,
+      "Email":           t.email ?? "",
+      "College":         t.college || (t.is_internal ? STPETERS : ""),
+      "State":           t.college_state ?? (t.is_internal ? "Telangana" : ""),
+      "Abstract":        abstractUrls.get(t.reg_code ?? "") ?? "",
+    }));
+
+    // Build the worksheet manually so we can inject HYPERLINK formulas
+    const headers: (keyof TeamSummaryRow)[] = [
+      "Registration ID", "Team Name", "Team Size", "Domain",
+      "Contact", "Email", "College", "State", "Abstract",
+    ];
+
+    const wsData: unknown[][] = [headers];
+    for (const row of rows) {
+      const abstractUrl = row["Abstract"];
+      wsData.push(
+        headers.map((h) => {
+          if (h === "Abstract" && abstractUrl) {
+            // HYPERLINK formula — opens directly in Excel/Google Sheets
+            return { f: `HYPERLINK("${abstractUrl}","Open Abstract")`, t: "s" };
+          }
+          return row[h];
+        }),
+      );
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Column widths
+    ws["!cols"] = [
+      { wch: 18 }, // Registration ID
+      { wch: 28 }, // Team Name
+      { wch: 10 }, // Team Size
+      { wch: 22 }, // Domain
+      { wch: 15 }, // Contact
+      { wch: 30 }, // Email
+      { wch: 34 }, // College
+      { wch: 16 }, // State
+      { wch: 18 }, // Abstract
+    ];
+
+    // Freeze + style header row
+    ws["!views"] = [{ state: "frozen", ySplit: 1 }] as unknown as XLSX.WorkSheet["!views"];
+    for (let c = 0; c < headers.length; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      const cell = ws[addr];
+      if (!cell) continue;
+      cell.s = {
+        font:      { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+        fill:      { fgColor: { rgb: "186275" } },
+        alignment: { horizontal: "left", vertical: "center" },
+      };
+    }
+    ws["!rows"] = [{ hpt: 22 }];
+
+    // Tab name: truncate domain to 31 chars (Excel limit)
+    const tabName = domain.slice(0, 31);
+    XLSX.utils.book_append_sheet(wb, ws, tabName);
+  }
+
+  XLSX.writeFile(wb, `SPECATHON2026_DomainWise_${TODAY()}.xlsx`);
+}
 
 function toCsv<T extends Record<string, unknown>>(rows: T[]): string {
   if (rows.length === 0) return "";
