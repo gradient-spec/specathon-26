@@ -326,7 +326,7 @@ export function exportDomainXlsx(
       "College":         t.college || (t.is_internal ? STPETERS : ""),
       "State":           t.college_state ?? (t.is_internal ? "Telangana" : ""),
       "Abstract":        t.abstract_url
-        ? `${r2PublicBase}/${t.abstract_url}`
+        ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(`${r2PublicBase}/${t.abstract_url}`)}`
         : "",
     }));
 
