@@ -296,7 +296,10 @@ export function exportDomainXlsx(
 ) {
   if (teams.length === 0) return;
 
-  const r2PublicBase = (import.meta.env.VITE_R2_PUBLIC_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+  const r2PublicBase = (
+    (import.meta.env.VITE_R2_PUBLIC_URL as string | undefined) ??
+    "https://pub-04614df7e12440b09256674be74d02c4.r2.dev"
+  ).replace(/\/$/, "");
 
   // Group teams by domain, sort domain names alphabetically
   const byDomain = new Map<string, FullTeam[]>();
