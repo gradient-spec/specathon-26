@@ -73,41 +73,11 @@ export default function ExportBar({ rows }: { rows: TeamRow[] }) {
   };
 
   const downloadDomainExport = async () => {
-    const token = session?.access_token;
-    if (!token) { toast.error("You must be signed in to export."); return; }
     if (rows.length === 0) { toast.info("Nothing to export."); return; }
-
     setDomainBusy(true);
     try {
       const full = await fetchFull(rows);
-
-      // Resolve presigned abstract URLs (concurrency-limited, failures silently skipped)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const edgeUrl = `${supabaseUrl}/functions/v1/get-abstract-url`;
-      const withAbstract = full.filter((t) => t.abstract_url && t.reg_code);
-      const urlMap = new Map<string, string>();
-      const CONCURRENCY = 5;
-
-      for (let i = 0; i < withAbstract.length; i += CONCURRENCY) {
-        const batch = withAbstract.slice(i, i + CONCURRENCY);
-        await Promise.allSettled(
-          batch.map(async (team) => {
-            try {
-              const res = await fetch(edgeUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ teamId: team.reg_code }),
-              });
-              const body = await res.json() as { success: boolean; signedUrl?: string };
-              if (res.ok && body.success && body.signedUrl) {
-                urlMap.set(team.reg_code!, body.signedUrl);
-              }
-            } catch { /* silently skip — row still exports without link */ }
-          })
-        );
-      }
-
-      exportDomainXlsx(full, urlMap);
+      exportDomainXlsx(full);
       toast.success(`Exported ${full.length} team${full.length === 1 ? "" : "s"} grouped by domain.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Domain export failed.");
