@@ -21,10 +21,11 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",
+    "react-slot-counter": "^3.3.3",
+    "react-webcam": "^7.2.0",
     "recharts": "^2.13.0",
     "sonner": "^1.5.0",
-    "xlsx": "^0.18.5",
-    "react-slot-counter": "^3.3.3"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/react": "^18.3.10",

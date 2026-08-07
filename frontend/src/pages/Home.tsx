@@ -6,6 +6,7 @@ import Loader from "@/components/Loader";
 import Cursor from "@/components/Cursor";
 import Particles from "@/components/Particles";
 import ShortlistedTeamsSection from "@/components/ShortlistedTeamsSection";
+import PhotoBoothSection from "@/components/PhotoBoothSection";
 import { useLenis } from "@/hooks/useLenis";
 
 const Gallery = lazy(() => import("@/components/Gallery"));
@@ -31,6 +32,8 @@ export default function Home() {
           <Timeline />
           {/* Shortlisted Teams — embedded section with id="shortlisted" for scroll nav */}
           <ShortlistedTeamsSection embedded />
+          {/* Digital Photobooth — embedded below shortlisted teams */}
+          <PhotoBoothSection />
           <FAQs />
           <Contact />
           <SocialMedia />
