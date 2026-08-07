@@ -48,7 +48,8 @@ export default function ShortlistedTeamsSection({ embedded = false }: Shortliste
       const teams = await fetchShortlistedTeams(q || undefined);
       setState({ kind: "ok", teams });
     } catch (err) {
-      setState({ kind: "error", message: "Unable to load shortlisted teams. Please try again." });
+      const message = err instanceof Error ? err.message : "Unable to load shortlisted teams. Please try again.";
+      setState({ kind: "error", message });
       console.error("[ShortlistedTeamsSection] fetch error:", err);
     }
   }, []);

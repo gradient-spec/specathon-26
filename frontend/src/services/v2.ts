@@ -6,14 +6,26 @@
  * VITE_SUPABASE_URL env var used throughout the project.
  */
 
-const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL as string;
-const ANON_KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const SUPA_URL  = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const ANON_KEY  = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 function edgeUrl(fn: string): string {
+  if (!SUPA_URL) {
+    throw new Error(
+      "VITE_SUPABASE_URL is not configured. " +
+      "Please add it to frontend/.env (see frontend/.env.example for template)."
+    );
+  }
   return `${SUPA_URL}/functions/v1/${fn}`;
 }
 
 function headers(extra?: Record<string, string>): Record<string, string> {
+  if (!ANON_KEY) {
+    throw new Error(
+      "VITE_SUPABASE_ANON_KEY is not configured. " +
+      "Please add it to frontend/.env (see frontend/.env.example for template)."
+    );
+  }
   return {
     "Content-Type": "application/json",
     Authorization:  `Bearer ${ANON_KEY}`,
