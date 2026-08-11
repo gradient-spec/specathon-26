@@ -27,34 +27,30 @@
   <meta name="twitter:title" content="SPECATHON 2026" />
   <meta name="twitter:description" content="A 36-hour hackathon hosted by SPEC. " />
 
-  <!-- Google tag (gtag.js) -->
+  <!-- Google Analytics: only the async external script lives here.
+       The gtag() initialisation has been moved to src/analytics.ts
+       to eliminate the inline <script> that would require 'unsafe-inline'. -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6NTN0DVME7"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-6NTN0DVME7');
-  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!--
-      Non-blocking font load: the stylesheet is fetched as a print resource
-      (invisible to the render-blocking parser), then promoted to all media
-      once it arrives. The noscript fallback covers JS-disabled agents.
-      This eliminates the 516 ms render-blocking penalty measured by Lighthouse.
-    -->
-  <link rel="preload" as="style"
+      Non-blocking font load: fetched as a print stylesheet, promoted to
+      all media once loaded. The inline onload handler has been replaced
+      with the script below to stay CSP-compliant.
+  -->
+  <link id="google-fonts-css" rel="preload" as="style"
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Alegreya+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Sora:wght@400;600;700;800&display=swap" />
-  <link
+  <link id="google-fonts-sheet"
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Alegreya+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Sora:wght@400;600;700;800&display=swap"
-    rel="stylesheet" media="print" onload="this.media='all'" />
+    rel="stylesheet" media="print" />
   <noscript>
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Alegreya+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Sora:wght@400;600;700;800&display=swap"
       rel="stylesheet" />
   </noscript>
+  <!-- Promote font stylesheet from print to all once loaded (CSP-safe external script) -->
+  <script src="/font-loader.js" defer></script>
 </head>
 
 <body>
