@@ -14,10 +14,14 @@ export default function PhotoBooth() {
   const [tagline] = useState('');
   const [frame, setFrame] = useState(DEFAULT_FRAME);
 
+  const [webcamKey, setWebcamKey] = useState(0);
+
   const {
     webcamRef,
+    active: cameraActive,
     status: cameraStatus,
     isReady,
+    startCamera,
     handleUserMedia,
     handleUserMediaError,
     stopCamera,
@@ -37,17 +41,36 @@ export default function PhotoBooth() {
   }, []);
 
   const handleCapture = useCallback(() => {
+    // If camera not started yet — start it (asks permission on first use)
+    if (cameraStatus === 'idle' || cameraStatus === 'stopped') {
+      startCamera();
+      return;
+    }
+    if (cameraStatus === 'denied') {
+      showToast('🔒 Camera blocked. Click the camera icon in your browser address bar to allow access.');
+      return;
+    }
+    if (cameraStatus === 'error') {
+      showToast('⚠️ Camera unavailable on this device.');
+      return;
+    }
+    if (cameraStatus === 'requesting') {
+      showToast('⏳ Waiting for camera permission — please allow access in your browser.');
+      return;
+    }
+    // Camera is ready — capture
     const shot = capture();
     if (!shot) return;
     stopCamera();
     showToast('📸 Photo Captured');
     setJustCaptured(true);
     window.setTimeout(() => setJustCaptured(false), 1300);
-  }, [capture, stopCamera, showToast]);
+  }, [cameraStatus, startCamera, capture, stopCamera, showToast]);
 
   const handleRetake = useCallback(() => {
     retake();
     restartCamera();
+    setWebcamKey((k) => k + 1); // force Webcam remount so hardware track restarts
     setJustCaptured(false);
   }, [retake, restartCamera]);
 
@@ -69,8 +92,9 @@ export default function PhotoBooth() {
   return (
     <div className="w-full flex flex-col items-center gap-8">
       <CameraCard
-        tagline={tagline}
         webcamRef={webcamRef}
+        webcamKey={webcamKey}
+        cameraActive={cameraActive}
         cameraStatus={cameraStatus}
         photo={photo}
         isFlashing={isFlashing}
@@ -82,10 +106,11 @@ export default function PhotoBooth() {
 
       <ActionButtons
         hasPhoto={Boolean(photo)}
-        cameraReady={isReady}
+        cameraActive={cameraActive}
         onChangeFrame={handleChangeFrame}
         onCapture={handleCapture}
         onRetake={handleRetake}
+        onStopCamera={stopCamera}
         onDownload={handleDownload}
         onShare={() => setShareOpen(true)}
         isDownloading={isDownloading}

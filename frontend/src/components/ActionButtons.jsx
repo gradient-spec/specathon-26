@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PanelsTopLeft, Camera, RotateCcw, Download, Share2, Loader2 } from 'lucide-react';
+import { PanelsTopLeft, Camera, RotateCcw, Download, Share2, Loader2, VideoOff } from 'lucide-react';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -27,7 +27,7 @@ function TileButton({ icon: Icon, label, onClick, disabled, busy, accent = 'viol
       whileHover={disabled ? {} : { y: -2 }}
       whileTap={disabled ? {} : { scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 400, damping: 24 }}
-      className="relative overflow-hidden flex flex-col items-center justify-center gap-1.5 w-[84px] h-[76px] sm:w-[100px] sm:h-[86px] rounded-2xl border-[1.5px] bg-white/[0.03] backdrop-blur-md transition-colors duration-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none"
+      className="relative overflow-hidden flex flex-col items-center justify-center gap-2 w-[88px] h-[72px] sm:w-[96px] sm:h-[76px] rounded-2xl border-[1.5px] bg-white/[0.04] backdrop-blur-md transition-all duration-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none"
       style={{
         borderColor: `${accentColor}80`,
         color: accentColor,
@@ -56,15 +56,15 @@ function TileButton({ icon: Icon, label, onClick, disabled, busy, accent = 'viol
 /**
  * The four persistent controls beneath the polaroid: change frame,
  * capture/retake (toggles once a photo exists), download, and share.
- * Download/Share stay visible but disabled until there's a photo, matching
- * the reference layout instead of popping in and out.
+ * Download/Share stay visible but disabled until there's a photo.
  */
 export default function ActionButtons({
   hasPhoto,
-  cameraReady,
+  cameraActive,
   onChangeFrame,
   onCapture,
   onRetake,
+  onStopCamera,
   onDownload,
   onShare,
   isDownloading,
@@ -74,20 +74,44 @@ export default function ActionButtons({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2, ease: EASE }}
-      className="flex items-center justify-center gap-3 sm:gap-4"
+      className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap"
     >
-      <TileButton icon={PanelsTopLeft} label="Frame" onClick={onChangeFrame} accent="violet" />
+      {/* Frame — always enabled */}
+      <TileButton
+        icon={PanelsTopLeft}
+        label="Frame"
+        onClick={onChangeFrame}
+        accent="violet"
+      />
+
+      {/* Capture / Retake — always enabled; handler shows toast if no permission */}
       {hasPhoto ? (
-        <TileButton icon={RotateCcw} label="Retake" onClick={onRetake} accent="violet" />
+        <TileButton
+          icon={RotateCcw}
+          label="Retake"
+          onClick={onRetake}
+          accent="violet"
+        />
       ) : (
         <TileButton
           icon={Camera}
           label="Capture"
           onClick={onCapture}
-          disabled={!cameraReady}
           accent="violet"
         />
       )}
+
+      {/* Stop Camera — only shown while camera is live and no photo taken yet */}
+      {cameraActive && !hasPhoto && (
+        <TileButton
+          icon={VideoOff}
+          label="Stop"
+          onClick={onStopCamera}
+          accent="violet"
+        />
+      )}
+
+      {/* Download — enabled once photo exists */}
       <TileButton
         icon={Download}
         label="Download"
@@ -96,7 +120,15 @@ export default function ActionButtons({
         busy={isDownloading}
         accent="cyan"
       />
-      <TileButton icon={Share2} label="Share" onClick={onShare} disabled={!hasPhoto} accent="cyan" />
+
+      {/* Share — enabled once photo exists */}
+      <TileButton
+        icon={Share2}
+        label="Share"
+        onClick={onShare}
+        disabled={!hasPhoto}
+        accent="cyan"
+      />
     </motion.div>
   );
 }

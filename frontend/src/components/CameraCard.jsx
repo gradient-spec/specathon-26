@@ -24,8 +24,13 @@ const SOCIALS = [
   { icon: Linkedin, label: 'The SPEC Gradient Club' },
 ];
 
-function CornerBracket({ className }) {
-  return <span className={`absolute w-5 h-5 border-cyan-glow/60 ${className}`} />;
+function CornerBracket({ style: extraStyle, className }) {
+  return (
+    <span
+      className={`absolute w-5 h-5 ${className}`}
+      style={{ borderColor: 'rgba(0,194,255,0.6)', ...extraStyle }}
+    />
+  );
 }
 
 /**
@@ -35,6 +40,8 @@ function CornerBracket({ className }) {
  */
 export default function CameraCard({
   webcamRef,
+  webcamKey,
+  cameraActive,
   cameraStatus,
   handleUserMedia,
   handleUserMediaError,
@@ -58,7 +65,7 @@ export default function CameraCard({
       initial={{ opacity: 0, y: 14, rotate: CARD_TILT }}
       animate={{ opacity: 1, y: 0, rotate: CARD_TILT, scale: justCaptured ? 1.006 : 1 }}
       transition={{ duration: 0.7, ease: EASE }}
-      className="relative w-[350px] max-w-full rounded-[24px] px-3.5 pt-3 pb-4 sm:px-4 sm:pt-3.5 sm:pb-5 transition-colors duration-500 flex-shrink-0"
+      className="relative w-[260px] rounded-[20px] px-2.5 pt-2.5 pb-3 transition-colors duration-500 flex-shrink-0 mx-auto"
       style={{
         backgroundColor: safeFrame.paper,
         color: safeFrame.ink,
@@ -75,11 +82,11 @@ export default function CameraCard({
       />
 
       {/* Logos - printed on the paper, top of the card */}
-      <div className="relative z-10 flex items-center justify-between mb-2.5 px-1 pt-1">
+      <div className="relative z-10 flex items-center justify-between mb-2 px-1 pt-1">
         <img
           src={collegeCrestUrl}
           alt="St. Peter's Engineering College"
-          className="h-8 w-auto object-contain transition-all duration-300"
+          className="h-6 w-auto object-contain transition-all duration-300"
           style={{
             filter: safeFrame.logoFilter || 'none',
             mixBlendMode: safeFrame.isDark ? 'screen' : 'multiply',
@@ -89,7 +96,7 @@ export default function CameraCard({
         <img
           src={gradientMarkUrl}
           alt="Gradient Technical Club"
-          className="h-8 w-auto object-contain transition-all duration-300"
+          className="h-6 w-auto object-contain transition-all duration-300"
           style={{
             filter: safeFrame.logoFilter || 'none',
             mixBlendMode: safeFrame.isDark ? 'screen' : 'multiply',
@@ -98,13 +105,13 @@ export default function CameraCard({
         />
       </div>
 
-      {/* Photo inset - landscape frame with camera corner reticles and side tech-motifs */}
-      <div className="relative z-10 mx-auto w-[86%]">
+      {/* Photo inset - portrait frame */}
+      <div className="relative z-10 mx-auto" style={{ width: '86%' }}>
         <PolaroidDecorations frame={safeFrame} />
         <div
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setParallax({ x: 0, y: 0 })}
-          className="relative w-full aspect-[4/5] rounded-[8px] overflow-hidden bg-ink-950 ring-1 ring-black/10"
+          style={{ aspectRatio: '4/5', minHeight: '200px', borderRadius: '6px', overflow: 'hidden', position: 'relative', backgroundColor: '#0B0F14', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10)' }}
         >
           <motion.div
             className="absolute inset-0"
@@ -117,6 +124,12 @@ export default function CameraCard({
                 alt="Your captured hackathon moment"
                 className="w-full h-full object-cover scale-[1.03]"
               />
+            ) : !cameraActive ? (
+              // Camera not started yet — show idle placeholder, no permission asked
+              <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
+                <span style={{ fontSize: '2rem' }}>📸</span>
+                <p className="text-xs leading-relaxed" style={{ color: 'white', opacity: 0.8 }}>Click <strong>Capture</strong> to open camera</p>
+              </div>
             ) : cameraStatus === 'denied' || cameraStatus === 'error' ? (
               <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 px-8 text-center">
                 <CameraOff className="w-8 h-8" strokeWidth={1.5} />
@@ -128,6 +141,7 @@ export default function CameraCard({
               </div>
             ) : (
               <Webcam
+                key={webcamKey}
                 ref={webcamRef}
                 audio={false}
                 mirrored
@@ -192,7 +206,8 @@ export default function CameraCard({
                         scale: 0.3,
                       }}
                       transition={{ duration: 0.7, ease: EASE, delay: i * 0.02 }}
-                      className="absolute w-1.5 h-1.5 rounded-full bg-cyan-glow"
+                      className="absolute w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: '#00C2FF' }}
                     />
                   );
                 })}
@@ -202,31 +217,23 @@ export default function CameraCard({
         </div>
       </div>
 
-      {/* Printed caption block - straight, aligned, exact font sizes and gaps */}
-      <div className="relative z-20 flex flex-col items-center pt-2">
-        <p className="mt-3 font-mono text-[11.5px] font-semibold tracking-wider text-center" style={{ color: safeFrame.mutedInk }}>
+      {/* Printed caption block */}
+      <div className="relative z-20 flex flex-col items-center pt-1">
+        <p className="mt-2 font-mono text-[9px] font-semibold tracking-wider text-center" style={{ color: safeFrame.mutedInk }}>
           See you at
         </p>
-        <p className="mt-1 font-playfair text-2xl sm:text-3xl font-bold tracking-tight text-center" style={{ color: safeFrame.ink }}>
+        <p className="mt-0.5 font-playfair text-lg font-bold tracking-tight text-center" style={{ color: safeFrame.ink }}>
           SPECATHON-2026
         </p>
-        <p
-          className="mt-1 font-mono text-[10px] font-bold tracking-[0.12em] text-center"
-          style={{ color: safeFrame.hashtagColor || '#000000' }}
-        >
+        <p className="mt-0.5 font-mono text-[8px] font-bold tracking-[0.12em] text-center" style={{ color: safeFrame.hashtagColor || '#000000' }}>
           #UnleashYourCreativity
         </p>
-
-        <div className="mt-5 flex items-center justify-center gap-2 px-1">
+        <div className="mt-3 flex items-center justify-center gap-1.5 px-1">
           {SOCIALS.map((s, index) => (
-            <span
-              key={s.label}
-              className="flex items-center gap-1 text-[8px] font-medium whitespace-nowrap"
-              style={{ color: safeFrame.mutedInk }}
-            >
+            <span key={s.label} className="flex items-center gap-1 text-[7px] font-medium whitespace-nowrap" style={{ color: safeFrame.mutedInk }}>
               {index > 0 && <span aria-hidden="true" style={{ opacity: 0.4 }} className="mx-0.5">|</span>}
-              <span className="flex items-center gap-1">
-                <s.icon className="w-2 h-2 shrink-0" strokeWidth={1.75} />
+              <span className="flex items-center gap-0.5">
+                <s.icon className="w-1.6 h-1.6 shrink-0" strokeWidth={1.75} />
                 {s.label}
               </span>
             </span>

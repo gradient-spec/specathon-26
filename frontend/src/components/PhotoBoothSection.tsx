@@ -10,7 +10,7 @@ import { Camera } from "lucide-react";
 export default function PhotoBoothSection() {
   return (
     <section id="photobooth" className="relative py-14 md:py-20 scroll-mt-16">
-      <div className="mx-auto max-w-2xl px-6 md:px-10">
+      <div className="mx-auto max-w-xl px-6 md:px-10">
         {/* Section header */}
         <Reveal>
           <div className="text-center mb-12">
