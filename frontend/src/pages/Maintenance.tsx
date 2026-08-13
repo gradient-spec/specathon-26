@@ -14,9 +14,9 @@ export default function Maintenance() {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img 
-            src="/specathon-logo.png" 
+            src="/spec-logo-header.png" 
             alt="SPECATHON 2026" 
-            className="h-35 md:h:40 w-auto opacity-95 drop-shadow-2xl"
+            className="h-28 md:h-32 w-auto opacity-95 drop-shadow-2xl"
           />
         </div>
 
@@ -25,7 +25,7 @@ export default function Maintenance() {
           <div className="space-y-3">
             <div className="eyebrow">SPECATHON 2026</div>
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl tracking-tightest text-fg leading-tight">
-               Website is Under Maintenance
+              Website Under Maintenance
             </h1>
           </div>
 
@@ -35,7 +35,7 @@ export default function Maintenance() {
               We're currently performing system maintenance to enhance your experience.
             </p>
             <p className="text-base md:text-lg text-muted leading-relaxed">
-              In the meantime, you can continue accessing all event details, updates, and registration on our official Unstop page.
+              In the meantime, you can access all event details, updates, and registration on our official Unstop page.
             </p>
           </div>
         </div>
