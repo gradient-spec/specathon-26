@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthContext";
-import { deleteTeams, listMembersFor, listTeams, type MemberRow, type TeamRow } from "@/services/admin";
+import { deleteTeams, listAllMembers, listTeams, type MemberRow, type TeamRow } from "@/services/admin";
 import { supabase } from "@/services/supabase";
 import StatsGrid from "./StatsGrid";
 import Charts from "./Charts";
@@ -31,7 +31,8 @@ export default function Dashboard() {
     setRefreshing(true);
     try {
       const rows = await listTeams();
-      const m = await listMembersFor(rows.map((r) => r.id));
+      // Use listAllMembers() instead of listMembersFor(allTeamIds) to avoid URL-length limit
+      const m = await listAllMembers();
       setTeams(rows);
       setMembers(m);
       setLastLoaded(new Date());
@@ -122,9 +123,8 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <span
               title={live ? "Live updates connected" : "Reconnecting…"}
-              className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] ${
-                live ? "text-lumen" : "text-muted"
-              }`}
+              className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] ${live ? "text-lumen" : "text-muted"
+                }`}
             >
               {live ? <Wifi size={11} /> : <WifiOff size={11} />}
               {live ? "live" : "offline"}

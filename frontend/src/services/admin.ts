@@ -48,23 +48,102 @@ function client() {
 }
 
 export async function listTeams(): Promise<TeamRow[]> {
-  const { data, error } = await client()
-    .from("teams")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as TeamRow[];
+  // Pagination loop to handle 1,000+ teams (PostgREST's db-max-rows default)
+  const pageSize = 1000;
+  let offset = 0;
+  let allTeams: TeamRow[] = [];
+  
+  while (true) {
+    const { data, error } = await client()
+      .from("teams")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+    
+    if (error) throw error;
+    const page = (data ?? []) as TeamRow[];
+    allTeams.push(...page);
+    
+    // Stop when page has fewer than pageSize rows (indicates last page)
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+  
+  return allTeams;
+}
+
+/**
+ * Retrieve ALL members without team ID filtering.
+ * Replaces listMembersFor(allTeamIds) for dashboard load path to avoid URL-length limit.
+ * Uses pagination to handle 1,000+ members.
+ */
+export async function listAllMembers(): Promise<MemberRow[]> {
+  // Pagination loop to handle 1,000+ members (PostgREST's db-max-rows default)
+  const pageSize = 1000;
+  let offset = 0;
+  let allMembers: MemberRow[] = [];
+  
+  while (true) {
+    const { data, error } = await client()
+      .from("team_members")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    
+    if (error) throw error;
+    const page = (data ?? []) as MemberRow[];
+    allMembers.push(...page);
+    
+    // Stop when page has fewer than pageSize rows (indicates last page)
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+  
+  return allMembers;
 }
 
 export async function listMembersFor(teamIds: string[]): Promise<MemberRow[]> {
+  // Short-circuit for empty array (preserve existing behavior)
   if (teamIds.length === 0) return [];
-  const { data, error } = await client()
-    .from("team_members")
-    .select("*")
-    .in("team_id", teamIds)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as MemberRow[];
+  
+  // Batch size: 150 team IDs (safe for 8 KB URL limit with ~45% safety margin)
+  // Each UUID is ~36 chars; 150 IDs ≈ 5,450 chars total URL length
+  const batchSize = 150;
+  let allMembers: MemberRow[] = [];
+  
+  // Process team IDs in batches to avoid URL-length limit
+  for (let i = 0; i < teamIds.length; i += batchSize) {
+    const batchIds = teamIds.slice(i, i + batchSize);
+    
+    // Paginate within each batch to handle 1,000+ member result sets
+    const pageSize = 1000;
+    let offset = 0;
+    
+    while (true) {
+      const { data, error } = await client()
+        .from("team_members")
+        .select("*")
+        .in("team_id", batchIds)
+        .order("created_at", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      
+      if (error) throw error;
+      const page = (data ?? []) as MemberRow[];
+      allMembers.push(...page);
+      
+      // Stop when page has fewer than pageSize rows (indicates last page for this batch)
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    }
+  }
+  
+  // Sort across batches to preserve created_at ASC ordering
+  // (member timestamps can overlap across different team ID batches)
+  allMembers.sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+  
+  return allMembers;
 }
 
 export async function getFullTeam(id: string): Promise<FullTeam> {
@@ -90,10 +169,28 @@ export async function updateTeamNotes(id: string, notes: string, actor: string |
 }
 
 export async function deleteTeams(ids: string[], actor: string | null) {
+  // Short-circuit for empty array (preserve existing behavior)
   if (ids.length === 0) return;
-  const { error } = await client().from("teams").delete().in("id", ids);
-  if (error) throw error;
-  for (const id of ids) await logAudit(actor, "delete", "team", id, {});
+  
+  // Batch size: 150 team IDs (same rationale as listMembersFor - URL safety)
+  const batchSize = 150;
+  
+  // Process deletions in batches sequentially (fail-fast on errors)
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const batchIds = ids.slice(i, i + batchSize);
+    
+    // Delete this batch
+    const { error } = await client().from("teams").delete().in("id", batchIds);
+    
+    // Fail-fast: throw error immediately on first batch failure
+    // This surfaces partial failures rather than silently continuing
+    if (error) throw error;
+    
+    // Write audit logs for successfully deleted batch
+    for (const id of batchIds) {
+      await logAudit(actor, "delete", "team", id, {});
+    }
+  }
 }
 
 export async function logAudit(

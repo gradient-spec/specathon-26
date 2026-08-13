@@ -1,9 +1,12 @@
-import { lazy, Suspense } from "react";
+﻿import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./admin/AuthContext";
 import RequireAdmin from "./admin/RequireAdmin";
 
-const Home = lazy(() => import("./pages/Home"));
+// MAINTENANCE MODE: Public site replaced with maintenance page
+const Maintenance = lazy(() => import("./pages/Maintenance"));
+
+// Admin routes remain operational
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
 const Dashboard = lazy(() => import("./admin/Dashboard"));
 
@@ -15,10 +18,10 @@ export default function App() {
       <AuthProvider>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Public */}
-            <Route path="/" element={<Home />} />
+            {/* MAINTENANCE MODE: All public routes show maintenance page */}
+            <Route path="/" element={<Maintenance />} />
 
-            {/* Admin */}
+            {/* Admin routes - OPERATIONAL */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route
               path="/admin/dashboard"
@@ -32,7 +35,7 @@ export default function App() {
             {/* Redirect /admin → /admin/login for convenience */}
             <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
 
-            {/* Catch-all */}
+            {/* Catch-all - redirect to maintenance page */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
