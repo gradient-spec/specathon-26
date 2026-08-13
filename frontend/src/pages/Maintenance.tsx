@@ -14,7 +14,7 @@ export default function Maintenance() {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img 
-            src="/spec-logo-header.png" 
+            src="/specathon-logo.png" 
             alt="SPECATHON 2026" 
             className="h-28 md:h-32 w-auto opacity-95 drop-shadow-2xl"
           />
