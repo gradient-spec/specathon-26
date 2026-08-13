@@ -31,3 +31,6 @@ backend/registrations/
 /dist/
 /tsc-help.txt
 /tsconfig.tsbuildinfo
+
+# AI tracking file
+context.md
