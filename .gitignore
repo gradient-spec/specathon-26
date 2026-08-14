@@ -3,6 +3,7 @@ node_modules
 .DS_Store
 .vscode
 .idea
+.claude
 
 # Legacy root env files (superseded by frontend/.env and backend/.env)
 /.env

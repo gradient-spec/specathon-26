@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useMemo, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import {
@@ -24,7 +24,7 @@ type EdgeResult = {
 
 type Status =
   | { kind: "idle" }
-  | { kind: "submitting" }
+  | { kind: "submitting"; lastErr?: string }
   | { kind: "ok"; result: EdgeResult }
   | { kind: "err"; msg: string };
 
@@ -75,6 +75,13 @@ export default function Registration() {
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const turnstileRef = useRef<TurnstileInstance>(null);
+  const handleSuccessMount = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      setTimeout(() => {
+        node.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50); // slight delay to allow layout to settle after AnimatePresence wait
+    }
+  }, []);
 
   const isInternal = collegeChoice === COLLEGE_OPTIONS[0];
 
@@ -174,7 +181,7 @@ export default function Registration() {
       )
     );
 
-    setStatus({ kind: "submitting" });
+    setStatus((prev) => ({ kind: "submitting", lastErr: prev.kind === "err" ? prev.msg : undefined }));
 
     try {
       // Derive the Edge Function URL from the Supabase project URL already in env
@@ -234,7 +241,6 @@ export default function Registration() {
 
   const busy = status.kind === "submitting";
   const canSubmit = paymentAck && abstractAck;
-  const submitLabel = busy ? "Submitting Registration..." : "Lock it in";
 
   return (
     <section id="register" className="relative py-14 md:py-20">
@@ -284,11 +290,12 @@ export default function Registration() {
             <AnimatePresence mode="wait">
               {status.kind === "ok" ? (
                 <motion.div
+                  ref={handleSuccessMount}
                   key="ok"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.4 }}
-                  className="py-12 md:py-16 max-w-xl mx-auto"
+                  className="py-12 md:py-16 max-w-xl mx-auto scroll-m-24"
                 >
                   {/* Header */}
                   <div className="flex items-center gap-3 mb-6">
@@ -308,7 +315,7 @@ export default function Registration() {
                   <div className="rounded-2xl border border-plasma/40 bg-plasma/[0.05] p-5 md:p-6">
                     <div className="eyebrow mb-3">Team ID</div>
                     <div className="flex items-stretch rounded-xl border border-plasma/30 bg-plasma/[0.06] overflow-hidden">
-                      <div className="flex-1 px-5 py-4 font-mono text-xl md:text-2xl tracking-[0.16em] text-fg select-all">
+                      <div className="flex-1 px-5 py-4 font-mono text-xl md:text-2xl tracking-[0.16em] text-fg select-all break-all min-w-0">
                         {status.result.teamId}
                       </div>
                       <button
@@ -369,7 +376,7 @@ export default function Registration() {
                   onSubmit={submit}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="space-y-10"
+                  className="space-y-10 relative"
                 >
                   {/* Team */}
                   <fieldset className="space-y-6">
@@ -627,22 +634,29 @@ export default function Registration() {
                     </span>
                   </label>
 
-                  {status.kind === "err" && (
+                  {(status.kind === "err" || (status.kind === "submitting" && status.lastErr)) && (
                     <div className="flex items-start gap-3 rounded-lg border border-ember/40 bg-ember/[0.08] p-4 text-sm text-ember">
                       <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                      <span>{status.msg}</span>
+                      <span>{status.kind === "err" ? status.msg : status.lastErr}</span>
                     </div>
                   )}
 
                   <div className="flex justify-center sm:justify-start">
-                    <Turnstile
-                      ref={turnstileRef}
-                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY as string}
-                      onSuccess={(token) => setTurnstileToken(token)}
-                      onError={() => setStatus({ kind: "err", msg: "Security challenge failed. Please refresh." })}
-                      onExpire={() => setTurnstileToken("")}
-                      options={{ theme: "dark" }}
-                    />
+                    {import.meta.env.VITE_TURNSTILE_SITE_KEY ? (
+                      <Turnstile
+                        ref={turnstileRef}
+                        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY as string}
+                        onSuccess={(token) => setTurnstileToken(token)}
+                        onError={() => setStatus({ kind: "err", msg: "Security challenge failed. Please refresh." })}
+                        onExpire={() => setTurnstileToken("")}
+                        options={{ theme: "dark" }}
+                      />
+                    ) : (
+                      <div className="p-3 bg-ember/10 border border-ember/20 text-ember text-xs rounded-lg flex items-center gap-2">
+                        <AlertTriangle size={14} className="shrink-0" />
+                        <span>VITE_TURNSTILE_SITE_KEY is not configured locally.</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4 pt-4 border-t border-white/[0.06]">
@@ -655,17 +669,23 @@ export default function Registration() {
                       title={!canSubmit ? "Tick both acknowledgements above to continue" : undefined}
                       className={
                         canSubmit
-                          ? "btn-primary disabled:opacity-70 mx-auto sm:mx-0"
-                          : "inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium bg-panel/60 border border-line text-muted cursor-not-allowed shadow-none mx-auto sm:mx-0"
+                          ? "btn-primary disabled:opacity-70 mx-auto sm:mx-0 min-w-[170px] justify-center transition-all duration-300"
+                          : "inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium bg-panel/60 border border-line text-muted cursor-not-allowed shadow-none mx-auto sm:mx-0 min-w-[170px] transition-all duration-300"
                       }
                     >
                       {busy ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          {submitLabel}
-                        </>
+                        <span className="flex items-center justify-center gap-2">
+                          <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="flex items-center justify-center shrink-0"
+                          >
+                            <Loader2 size={16} className="text-current" />
+                          </motion.span>
+                          <span>Submitting...</span>
+                        </span>
                       ) : (
-                        <>{submitLabel}</>
+                        <span>Lock it in</span>
                       )}
                     </button>
                   </div>
