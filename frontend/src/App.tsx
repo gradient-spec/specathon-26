@@ -3,8 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./admin/AuthContext";
 import RequireAdmin from "./admin/RequireAdmin";
 
-// MAINTENANCE MODE: Public site replaced with maintenance page
-const Maintenance = lazy(() => import("./pages/Maintenance"));
+// Public site
+const Home = lazy(() => import("./pages/Home"));
 
 // Admin routes remain operational
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
@@ -18,8 +18,8 @@ export default function App() {
       <AuthProvider>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* MAINTENANCE MODE: All public routes show maintenance page */}
-            <Route path="/" element={<Maintenance />} />
+            {/* Public route */}
+            <Route path="/" element={<Home />} />
 
             {/* Admin routes - OPERATIONAL */}
             <Route path="/admin/login" element={<AdminLogin />} />
