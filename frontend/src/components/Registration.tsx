@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import {
   CheckCircle2, Loader2, AlertTriangle, User, Users, FileText, Copy, Check, Upload, X, Download, Info, ChevronDown,
 } from "lucide-react";
@@ -71,6 +72,9 @@ export default function Registration() {
 
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [copied, setCopied] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const isInternal = collegeChoice === COLLEGE_OPTIONS[0];
 
@@ -125,6 +129,10 @@ export default function Registration() {
       setStatus({ kind: "err", msg: "Please confirm you used the provided PPT template for your abstract submission, If not please do submit in the given template itself or else we will not evaluate your abstract strictly." });
       return;
     }
+    if (!turnstileToken) {
+      setStatus({ kind: "err", msg: "Please complete the security challenge." });
+      return;
+    }
 
     // Build FormData — one request to the Edge Function handles upload + DB insert
     const fd = new FormData();
@@ -176,16 +184,26 @@ export default function Registration() {
 
       const res = await fetch(edgeUrl, {
         method: "POST",
-        headers: { Authorization: `Bearer ${anonKey}` },
+        headers: {
+          Authorization: `Bearer ${anonKey}`,
+          "x-turnstile-token": turnstileToken,
+          "x-idempotency-key": idempotencyKey
+        },
         body: fd,
         // Do NOT set Content-Type — the browser sets it automatically
         // with the correct multipart/form-data boundary.
       });
 
-      const body = await res.json() as { success: boolean; message?: string; teamId?: string; r2Key?: string };
+      const body = await res.json().catch(() => ({})) as { success?: boolean; message?: string; teamId?: string; r2Key?: string };
 
       if (!res.ok || !body.success) {
-        throw new Error(body.message ?? `Server error (${res.status}). Please try again.`);
+        let errorMsg = body.message ?? `Server error (${res.status}). Please try again.`;
+        if (res.status === 403) errorMsg = "Security verification failed. Please refresh and try again.";
+        else if (res.status === 429) errorMsg = "Too many registration attempts. Please try again later.";
+        else if (res.status === 413) errorMsg = "Your abstract file is too large. Maximum size is 10 MB.";
+        else if (res.status === 503) errorMsg = "Registration is temporarily unavailable. Please try again later.";
+
+        throw new Error(errorMsg);
       }
 
       setStatus({
@@ -198,6 +216,8 @@ export default function Registration() {
       });
     } catch (err) {
       setStatus({ kind: "err", msg: err instanceof Error ? err.message : "Unknown error." });
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
     }
   };
 
@@ -613,6 +633,17 @@ export default function Registration() {
                       <span>{status.msg}</span>
                     </div>
                   )}
+
+                  <div className="flex justify-center sm:justify-start">
+                    <Turnstile
+                      ref={turnstileRef}
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY as string}
+                      onSuccess={(token) => setTurnstileToken(token)}
+                      onError={() => setStatus({ kind: "err", msg: "Security challenge failed. Please refresh." })}
+                      onExpire={() => setTurnstileToken("")}
+                      options={{ theme: "dark" }}
+                    />
+                  </div>
 
                   <div className="flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-4 pt-4 border-t border-white/[0.06]">
                     <p className="text-xs text-muted max-w-md mx-auto sm:mx-0">
