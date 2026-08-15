@@ -22,7 +22,7 @@ export const DOMAINS: Domain[] = [
       "Build intelligent systems that learn, reason, and automate complex tasks using data and machine learning. Create solutions that transform industries through predictive analytics, computer vision, and generative AI.",
     icon: "/icons/artificial-intelligence.png",
     accent: "text-lumen",
-    glow: "rgba(74, 203, 235, 0.55)",
+    glow: "rgba(47,147,173, 0.55)",
     pptUrl: "#",
   },
   {

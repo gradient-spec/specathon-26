@@ -143,7 +143,7 @@ const Slide = memo(function Slide({ year, src, active }: { year: string; src: st
   return (
     <div
       data-cursor
-      className={`relative h-full w-full rounded-2xl glass overflow-hidden transition-shadow duration-500 ${active ? "shadow-[0_20px_60px_-20px_rgba(74,203,235,0.5)] ring-1 ring-lumen/30" : ""
+      className={`relative h-full w-full rounded-2xl glass overflow-hidden transition-shadow duration-500 ${active ? "shadow-[0_20px_60px_-20px_rgba(47,147,173,0.5)] ring-1 ring-lumen/30" : ""
         }`}
     >
       {ok ? (

@@ -220,7 +220,7 @@ function ExportButton({
         disabled={busy}
         className={
           primary
-            ? "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-plasma border border-plasma/30 text-fg hover:border-lumen/50 hover:shadow-[0_0_16px_rgba(74,203,235,0.3)] transition-all disabled:opacity-50"
+            ? "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-plasma border border-plasma/30 text-fg hover:border-lumen/50 hover:shadow-[0_0_16px_rgba(47,147,173,0.3)] transition-all disabled:opacity-50"
             : "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-line text-fg hover:border-lumen/40 hover:bg-lumen/[0.04] transition-all disabled:opacity-50"
         }
       >

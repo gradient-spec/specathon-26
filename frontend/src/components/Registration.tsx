@@ -714,7 +714,7 @@ function CustomSelect({ value, placeholder, options, className = "", disabled, .
       <select
         value={value}
         disabled={disabled}
-        className={`w-full rounded-xl px-4 py-3 pr-10 text-sm font-body transition-all duration-300 appearance-none outline-none cursor-pointer bg-panel/40 border border-line hover:border-lumen/40 focus:border-lumen/70 focus:bg-panel/70 focus:shadow-[0_0_0_3px_rgba(74,203,235,0.12),0_0_22px_-6px_rgba(74,203,235,0.5)] ${isPlaceholder ? "text-muted/70" : "text-fg font-medium"
+        className={`w-full rounded-xl px-4 py-3 pr-10 text-sm font-body transition-all duration-300 appearance-none outline-none cursor-pointer bg-panel/40 border border-line hover:border-lumen/40 focus:border-lumen/70 focus:bg-panel/70 focus:shadow-[0_0_0_3px_rgba(47,147,173,0.12),0_0_22px_-6px_rgba(47,147,173,0.5)] ${isPlaceholder ? "text-muted/70" : "text-fg font-medium"
           } ${className}`}
         {...props}
       >

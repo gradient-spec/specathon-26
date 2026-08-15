@@ -61,7 +61,7 @@ function SuccessState({ teamId }: { teamId: string }) {
         transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 20 }}
         className="mx-auto h-20 w-20 rounded-3xl border border-lumen/30 bg-lumen/[0.08]
                    flex items-center justify-center
-                   shadow-[0_0_40px_-8px_rgba(74,203,235,0.45)]"
+                   shadow-[0_0_40px_-8px_rgba(47,147,173,0.45)]"
       >
         <CheckCircle2 size={36} className="text-lumen" />
       </motion.div>

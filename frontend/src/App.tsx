@@ -6,8 +6,12 @@ import { ToastProvider } from "./components/Toast";
 
 const Home = lazy(() => import("./pages/Home"));
 const ShortlistedTeams = lazy(() => import("./pages/ShortlistedTeams"));
-const Payment = lazy(() => import("./pages/Payment"));
-const PaymentResult = lazy(() => import("./pages/PaymentResult"));
+const ShortlistRecovery = lazy(() => import("./pages/ShortlistRecovery"));
+const ShortlistDashboard = lazy(() => import("./pages/ShortlistDashboard"));
+const ShortlistPayment = lazy(() => import("./pages/ShortlistPayment"));
+const ShortlistConfirmation = lazy(() => import("./pages/ShortlistConfirmation"));
+const ShortlistReceipt = lazy(() => import("./pages/ShortlistReceipt"));
+const ShortlistInvalid = lazy(() => import("./pages/ShortlistInvalid"));
 const PhotoBoothPage = lazy(() => import("./pages/PhotoBoothPage"));
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
 const Dashboard = lazy(() => import("./admin/Dashboard"));
@@ -24,8 +28,12 @@ export default function App() {
               {/* Public */}
               <Route path="/" element={<Home />} />
               <Route path="/shortlisted" element={<ShortlistedTeams />} />
-              <Route path="/payment" element={<Payment />} />
-              <Route path="/payment/result" element={<PaymentResult />} />
+              <Route path="/shortlist/recover" element={<ShortlistRecovery />} />
+              <Route path="/shortlist/:token" element={<ShortlistDashboard />} />
+              <Route path="/shortlist/:token/payment" element={<ShortlistPayment />} />
+              <Route path="/shortlist/:token/confirmation" element={<ShortlistConfirmation />} />
+              <Route path="/shortlist/:token/receipt" element={<ShortlistReceipt />} />
+              <Route path="/shortlist/invalid" element={<ShortlistInvalid />} />
               <Route path="/photobooth" element={<PhotoBoothPage />} />
 
               {/* Admin */}

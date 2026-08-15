@@ -350,7 +350,7 @@ function DummyPaymentDialog({
         animate={{ opacity: 1, scale: 1,    y: 0  }}
         exit={{   opacity: 0, scale: 0.96,  y: 12 }}
         transition={{ type: "spring", stiffness: 280, damping: 26 }}
-        className="relative z-10 w-full max-w-md rounded-3xl glass border border-lumen/20 p-7 shadow-[0_0_60px_-12px_rgba(74,203,235,0.3)]"
+        className="relative z-10 w-full max-w-md rounded-3xl glass border border-lumen/20 p-7 shadow-[0_0_60px_-12px_rgba(47,147,173,0.3)]"
       >
         {/* Close button */}
         <button

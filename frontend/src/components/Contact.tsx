@@ -67,7 +67,7 @@ function Card({ c }: { c: Coordinator }) {
       data-cursor
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
-      className="group relative rounded-3xl glass p-8 overflow-hidden border border-white/10 hover:border-lumen/40 hover:shadow-[0_0_30px_rgba(74,203,235,0.18)] transition-all duration-300"
+      className="group relative rounded-3xl glass p-8 overflow-hidden border border-white/10 hover:border-lumen/40 hover:shadow-[0_0_30px_rgba(47,147,173,0.18)] transition-all duration-300"
     >
       <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-lumen/10 blur-3xl opacity-40 group-hover:opacity-80 transition-opacity duration-500 pointer-events-none" />
 

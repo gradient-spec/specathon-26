@@ -14,14 +14,10 @@ export default function PhotoBooth() {
   const [tagline] = useState('');
   const [frame, setFrame] = useState(DEFAULT_FRAME);
 
-  const [webcamKey, setWebcamKey] = useState(0);
-
   const {
     webcamRef,
-    active: cameraActive,
     status: cameraStatus,
     isReady,
-    startCamera,
     handleUserMedia,
     handleUserMediaError,
     stopCamera,
@@ -31,7 +27,13 @@ export default function PhotoBooth() {
 
   const [isShareOpen, setShareOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Drives the after-capture sequence: flash -> freeze -> border glow +
+  // particles -> "hell yeah!!" bounce -> controls reveal. `photo` itself is
+  // set immediately (so the frame freezes right away); `justCaptured` and
+  // `controlsReady` just choreograph what plays on top of that freeze.
   const [justCaptured, setJustCaptured] = useState(false);
+  const [controlsReady, setControlsReady] = useState(true);
 
   const handleChangeFrame = useCallback(() => {
     setFrame((current) => {
@@ -41,37 +43,24 @@ export default function PhotoBooth() {
   }, []);
 
   const handleCapture = useCallback(() => {
-    // If camera not started yet — start it (asks permission on first use)
-    if (cameraStatus === 'idle' || cameraStatus === 'stopped') {
-      startCamera();
-      return;
-    }
-    if (cameraStatus === 'denied') {
-      showToast('🔒 Camera blocked. Click the camera icon in your browser address bar to allow access.');
-      return;
-    }
-    if (cameraStatus === 'error') {
-      showToast('⚠️ Camera unavailable on this device.');
-      return;
-    }
-    if (cameraStatus === 'requesting') {
-      showToast('⏳ Waiting for camera permission — please allow access in your browser.');
-      return;
-    }
-    // Camera is ready — capture
     const shot = capture();
     if (!shot) return;
+
+    // Releasing the tracks turns off the camera indicator as soon as the
+    // captured image takes over the frame.
     stopCamera();
     showToast('📸 Photo Captured');
+    setControlsReady(false);
     setJustCaptured(true);
+    window.setTimeout(() => setControlsReady(true), 650);
     window.setTimeout(() => setJustCaptured(false), 1300);
-  }, [cameraStatus, startCamera, capture, stopCamera, showToast]);
+  }, [capture, showToast]);
 
   const handleRetake = useCallback(() => {
     retake();
     restartCamera();
-    setWebcamKey((k) => k + 1); // force Webcam remount so hardware track restarts
     setJustCaptured(false);
+    setControlsReady(true);
   }, [retake, restartCamera]);
 
   const handleDownload = useCallback(async () => {
@@ -92,9 +81,8 @@ export default function PhotoBooth() {
   return (
     <div className="w-full flex flex-col items-center gap-8">
       <CameraCard
+        tagline={tagline}
         webcamRef={webcamRef}
-        webcamKey={webcamKey}
-        cameraActive={cameraActive}
         cameraStatus={cameraStatus}
         photo={photo}
         isFlashing={isFlashing}
@@ -105,12 +93,11 @@ export default function PhotoBooth() {
       />
 
       <ActionButtons
-        hasPhoto={Boolean(photo)}
-        cameraActive={cameraActive}
+        hasPhoto={Boolean(photo) && controlsReady}
+        cameraReady={isReady}
         onChangeFrame={handleChangeFrame}
         onCapture={handleCapture}
         onRetake={handleRetake}
-        onStopCamera={stopCamera}
         onDownload={handleDownload}
         onShare={() => setShareOpen(true)}
         isDownloading={isDownloading}

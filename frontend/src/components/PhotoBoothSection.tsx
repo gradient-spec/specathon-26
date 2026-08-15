@@ -23,7 +23,7 @@ export default function PhotoBoothSection() {
               <span className="font-serif italic text-lumen">Hackathon Moment</span>
             </h2>
             <p className="mt-5 text-muted text-sm md:text-base leading-relaxed max-w-md mx-auto">
-              Strike a pose. Pick a frame. Share the experience.
+              Strike a pose. Capture the innovation. Share the experience.
             </p>
           </div>
         </Reveal>

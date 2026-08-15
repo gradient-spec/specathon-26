@@ -1,98 +1,111 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { DoorOpen, Mic, Rocket, Users, Moon, Coffee, Snowflake, Gavel, Trophy, type LucideIcon } from "lucide-react";
 import Reveal from "./Reveal";
-import Watermark from "./Watermark";
 
-/* ── TIMELINE STEPS — 5 key milestones leading to SPECATHON 2026 */
-type Step = { day: string; title: string; note: string };
+type Slot = { time: string; title: string; note: string; icon: LucideIcon };
+type Day = { id: string; label: string; date: string; slots: Slot[] };
 
-const STEPS: Step[] = [
+const AGENDA: Day[] = [
   {
-    day: "27th July 2026",
-    title: "Registrations Start",
-    note: "Official registration portal opens for all participating teams. Form your squad, select your preferred domain track, and begin drafting your project proposal.",
+    id: "day1",
+    label: "Day 1",
+    date: "September 11, 2026",
+    slots: [
+      { time: "08:30 AM", title: "Reporting & Check-in", note: "Badges, kits, and breakfast at Gate 2.", icon: DoorOpen },
+      { time: "10:00 AM", title: "Opening Keynote", note: "Inauguration, rules, and the tone for 36 hours.", icon: Mic },
+      { time: "11:00 AM", title: "Hack Commences", note: "The clock starts. Build begins.", icon: Rocket },
+      { time: "05:00 PM", title: "Mentorship Round 1", note: "Domain mentors visit every team.", icon: Users },
+      { time: "12:00 AM", title: "Midnight Jam", note: "Energy boost, music, and midnight snacks.", icon: Moon },
+    ],
   },
   {
-    day: "20th August 2026",
-    title: "End of Registrations & Abstract Submissions",
-    note: "Final deadline to complete team registration and submit your initial project abstract. Ensure all team member details and problem statement proposals are uploaded before midnight.",
-  },
-  {
-    day: "23rd August 2026",
-    title: "Shortlisted Teams Announced",
-    note: "Evaluation of submitted abstracts concludes. The official list of shortlisted teams qualified to compete in the main hackathon edition will be published.",
-  },
-  {
-    day: "31st August 2026",
-    title: "Registration Fee Payment Deadline",
-    note: "Shortlisted teams must complete their seat confirmation and registration fee payment. Receive your official team confirmation pass and pre-hackathon guidelines.",
-  },
-  {
-    day: "11th September 2026",
-    title: "SPECATHON Begins",
-    note: "The grand 36-hour hackathon officially kicks off! Doors open for check-ins, mentor sessions, overnight building, and live judging at the campus venue.",
+    id: "day2",
+    label: "Day 2",
+    date: "September 12, 2026",
+    slots: [
+      { time: "03:00 AM", title: "Late-Night Fuel", note: "Coffee, snacks, and quiet keyboards.", icon: Coffee },
+      { time: "09:00 AM", title: "Mentorship Round 2", note: "Final guidance before the freeze.", icon: Users },
+      { time: "01:00 PM", title: "Code Freeze", note: "Commit what you have. Pencils down.", icon: Snowflake },
+      { time: "02:30 PM", title: "Grand Jury Pitching", note: "Demos to the jury. Five minutes each.", icon: Gavel },
+      { time: "05:30 PM", title: "Valedictory Ceremony", note: "Winners, awards, and a very long nap.", icon: Trophy },
+    ],
   },
 ];
 
 export default function Timeline() {
+  const [active, setActive] = useState(0);
+  const day = AGENDA[active];
+
   return (
-    <section id="timeline" className="relative py-12 md:py-18 overflow-hidden">
-      <Watermark />
-      <div className="mx-auto max-w-5xl px-6 md:px-10">
-        <div className="text-center mb-16">
-          <Reveal>
-            <div className="eyebrow inline-flex items-center gap-3">
-              <span className="font-mono text-xs uppercase tracking-[0.2em] text-lumen font-medium">
-
-              </span>
-            </div>
-            <h2 className="mt-4 font-display text-4xl md:text-5xl leading-[1.05] tracking-tightest">
-              Roadmap to <span className="font-serif italic text-lumen">SPECATHON</span>
+    <section id="timeline" className="relative py-24 md:py-32 overflow-hidden scroll-mt-16">
+      <div className="mx-auto max-w-4xl px-6 md:px-10">
+        <Reveal>
+          <div className="text-center mb-10">
+            <div className="eyebrow inline-flex items-center gap-2 mb-4">Run of show</div>
+            <h2 className="font-display font-bold text-4xl md:text-5xl leading-[1.05] tracking-tightest">
+              36-Hour <span className="text-lumen">Interactive Agenda</span>
             </h2>
-            <p className="mt-4 text-muted text-sm max-w-md mx-auto leading-relaxed">
+          </div>
+        </Reveal>
 
-            </p>
-          </Reveal>
-        </div>
+        {/* Tabs */}
+        <Reveal delay={0.06}>
+          <div className="flex items-center justify-center gap-2 mb-10">
+            {AGENDA.map((d, i) => (
+              <button
+                key={d.id}
+                onClick={() => setActive(i)}
+                className={`relative rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${
+                  active === i ? "text-void" : "text-subtle hover:text-fg"
+                }`}
+              >
+                {active === i && (
+                  <motion.span
+                    layoutId="agenda-tab"
+                    className="absolute inset-0 rounded-full bg-plasma"
+                    transition={{ type: "spring", stiffness: 300, damping: 26 }}
+                  />
+                )}
+                <span className="relative">{d.label} · {d.date.split(",")[0]}</span>
+              </button>
+            ))}
+          </div>
+        </Reveal>
 
-        <div className="relative">
-          {/* Central connector line — decorative, lives outside <ol> to keep valid HTML */}
-          <div aria-hidden="true" className="absolute left-4 md:left-1/2 top-2 bottom-2 w-px md:-translate-x-1/2 bg-gradient-to-b from-transparent via-lumen/40 to-transparent" />
-
-          <ol className="relative">
-            {STEPS.map((s, i) => {
-              const left = i % 2 === 0;
+        {/* Slots */}
+        <AnimatePresence mode="wait">
+          <motion.ol
+            key={day.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="relative"
+          >
+            <div className="absolute left-[26px] md:left-[92px] top-3 bottom-3 w-px bg-gradient-to-b from-transparent via-lumen/40 to-transparent" />
+            {day.slots.map((s) => {
+              const Icon = s.icon;
               return (
-                <li key={`${s.day}-${s.title}`} className="relative md:grid md:grid-cols-2 md:gap-x-12 pl-12 md:pl-0 pb-12 md:pb-10 last:pb-0 group">
-                  {/* Node — sits directly in <li> so absolute positioning is correct */}
-                  <span
-                    className={`absolute left-4 md:left-1/2 top-2 md:-translate-x-1/2 h-4 w-4 rounded-full z-10 transition-all duration-300 ${i === 0
-                      ? "bg-lumen border-2 border-lumen shadow-[0_0_20px_rgba(74,203,235,0.8)]"
-                      : "bg-[#0B0F17] border-2 border-lumen/70 shadow-[0_0_10px_rgba(74,203,235,0.25)]"
-                      } group-hover:bg-lumen group-hover:border-lumen group-hover:scale-125 group-hover:shadow-[0_0_28px_rgba(74,203,235,1),0_0_50px_rgba(74,203,235,0.65)]`}
-                  >
-                    <span className="absolute -inset-1 rounded-full border border-lumen/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
-                  </span>
-
-                  <Reveal delay={0.04} x={left ? -24 : 24} className={left ? "md:col-start-1" : "md:col-start-2"}>
-                    {/* Card */}
-                    <div className={left ? "md:text-right md:pr-6" : "md:pl-6"}>
-                      <div className="rounded-2xl glass p-5 md:p-6 mb-4 md:mb-0 transition-all duration-500 hover:-translate-y-1.5 hover:border-lumen/60 hover:shadow-[0_0_35px_rgba(74,203,235,0.25),0_10px_30px_-10px_rgba(0,0,0,0.5)] hover:bg-panel/80 group-hover:border-lumen/50 cursor-pointer">
-                        <div className={`flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-lumen font-semibold ${left ? "md:justify-end" : ""}`}>
-                          <span>{s.day}</span>
-                        </div>
-                        <div className="mt-2 font-display text-xl md:text-2xl tracking-tight text-fg group-hover:text-white transition-colors duration-300">
-                          {s.title}
-                        </div>
-                        <div className="mt-2 text-muted text-sm leading-relaxed group-hover:text-fg/90 transition-colors duration-300">
-                          {s.note}
-                        </div>
-                      </div>
-                    </div>
-                  </Reveal>
+                <li key={s.title} className="relative flex gap-5 md:gap-8 py-4 group">
+                  <div className="hidden md:block w-[72px] shrink-0 text-right pt-2.5">
+                    <div className="font-mono text-sm tabular-nums text-fg">{s.time}</div>
+                  </div>
+                  <div className="relative flex flex-col items-center pt-1">
+                    <span className="h-10 w-10 rounded-full bg-void border-2 border-lumen/60 group-hover:border-lumen flex items-center justify-center text-lumen shadow-[0_0_18px_-4px_rgba(47,147,173,0.6)] transition-colors z-10">
+                      <Icon size={15} />
+                    </span>
+                  </div>
+                  <div className="flex-1 rounded-2xl glass p-4 md:p-5 transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-lumen/30">
+                    <div className="md:hidden font-mono text-xs text-muted mb-1">{s.time}</div>
+                    <div className="font-display text-lg md:text-xl tracking-tight">{s.title}</div>
+                    <div className="mt-1 text-sm text-subtle leading-relaxed">{s.note}</div>
+                  </div>
                 </li>
               );
             })}
-          </ol>
-        </div>
+          </motion.ol>
+        </AnimatePresence>
       </div>
     </section>
   );

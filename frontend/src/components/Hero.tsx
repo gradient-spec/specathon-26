@@ -1,13 +1,29 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
-import { ArrowRight } from "lucide-react";
-import DateCounter from "./DateCounter";
+import { ArrowRight, Trophy, Clock } from "lucide-react";
+
+/* Countdown to the Aug 31, 2026 seat-confirmation / payment deadline. */
+const DEADLINE = new Date("2026-08-31T23:59:59+05:30").getTime();
+function useDeadline() {
+  const [t, setT] = useState(() => Math.max(0, DEADLINE - Date.now()));
+  useEffect(() => {
+    const id = setInterval(() => setT(Math.max(0, DEADLINE - Date.now())), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return {
+    days: Math.floor(t / 86_400_000),
+    hours: Math.floor((t % 86_400_000) / 3_600_000),
+    minutes: Math.floor((t % 3_600_000) / 60_000),
+    seconds: Math.floor((t % 60_000) / 1000),
+    done: t <= 0,
+  };
+}
 
 export default function Hero() {
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const { days, hours, minutes, seconds } = useDeadline();
 
-  // Kinetic reveal of the wordmark.
   useEffect(() => {
     if (!titleRef.current) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -24,22 +40,33 @@ export default function Hero() {
   return (
     <section
       id="top"
-      className="group relative min-h-[85svh] flex flex-col justify-center pt-24 pb-6 overflow-hidden noise"
+      className="group relative min-h-[92svh] flex flex-col justify-center pt-24 pb-10 overflow-hidden noise"
     >
       <div className="relative mx-auto max-w-5xl w-full px-6 md:px-10 flex flex-col items-center text-center">
-        {/* Wordmark: SPECATHON [2026 glass badge] */}
+        {/* Banner — Shortlisted Teams Announced */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5, duration: 0.6 }}
+          className="inline-flex items-center gap-2 rounded-full border border-lumen/25 bg-lumen/[0.06] px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.24em] text-lumen mb-8"
+        >
+          <Trophy size={12} />
+          Shortlisted Teams Announced
+        </motion.div>
+
+        {/* Wordmark */}
         <h1
           ref={titleRef}
-          className="hero-title font-display font-bold leading-[1.25] text-[clamp(2rem,8.5vw,6.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-4 md:flex-nowrap md:gap-x-6 py-4 px-2 overflow-visible"
+          className="hero-title font-display font-bold leading-[1.2] text-[clamp(2rem,8.5vw,6.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-4 md:flex-nowrap md:gap-x-6 py-2 px-2 overflow-visible"
           aria-label="SPECATHON 2026"
         >
-          <span className="overflow-visible inline-flex py-2 px-1" style={{ fontFamily: '"Playfair Display", ui-serif, serif', fontStyle: 'normal' }}>
+          <span className="overflow-visible inline-flex py-2 px-1" style={{ fontFamily: '"Playfair Display", ui-serif, serif' }}>
             {title.split("").map((c, i) => (
               <span
                 key={i}
                 data-char
-                className={`inline-block will-change-transform py-1 px-[2px] ${c === '.' ? 'text-lumen' : 'shimmer-text'}`}
-                style={c === '.' ? undefined : ({ "--delay": `${i * 0.15}s` } as React.CSSProperties)}
+                className="inline-block will-change-transform py-1 px-[2px] shimmer-text"
+                style={{ "--delay": `${i * 0.15}s` } as React.CSSProperties}
               >
                 {c}
               </span>
@@ -56,59 +83,45 @@ export default function Hero() {
           </motion.span>
         </h1>
 
-        {/* Tagline — placed above date badge */}
         <motion.p
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.6, duration: 0.7 }}
-          className="mt-8 font-display text-xl md:text-3xl text-fg/90 tracking-tight"
+          className="mt-6 font-display text-xl md:text-3xl text-fg/90 tracking-tight"
         >
-          <span className="text-lumen">A 36-Hour</span> National Level Hackathon
+          Shortlisted Teams <span className="text-lumen">Announced</span>
         </motion.p>
 
-        {/* Date Display Badge */}
+        {/* Seat-confirmation countdown to Aug 31 */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.8, duration: 0.6 }}
-          className="mt-6"
+          className="mt-8"
         >
-          <DateCounter
-            value="11 & 12 SEP"
-            delay={80}
-            startDelay={2800}
-            animateBy="words"
-            direction="bottom"
-          />
-        </motion.div>
-
-        {/* About — clean text without card background or title */}
-        <motion.div
-          id="about"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.95, duration: 0.6 }}
-          className="mt-8 scroll-mt-24 max-w-4xl text-center mx-auto"
-        >
-          <p className="text-fg/80 text-base md:text-lg leading-relaxed font-body">
-            Thirty-six hours, one campus, and a room full of innovators. SPECATHON is flagship national level hackathon hosted by Department of CSE(AI&ML),  St. Peter's Engineering College, Hyderabad — pick a problem, ship a working demo,
-            and defend it in front of mentors and judges.
-          </p>
+          <div className="eyebrow inline-flex items-center gap-2 mb-3 text-gold">
+            <Clock size={11} /> Seat Confirmation Deadline · Aug 31, 2026
+          </div>
+          <div className="flex items-stretch justify-center gap-2 md:gap-3">
+            <Cell label="Days" value={days} />
+            <Sep />
+            <Cell label="Hrs" value={hours} />
+            <Sep />
+            <Cell label="Min" value={minutes} />
+            <Sep />
+            <Cell label="Sec" value={seconds} />
+          </div>
         </motion.div>
 
         {/* Primary CTA */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.1, duration: 0.6 }}
+          transition={{ delay: 3.05, duration: 0.6 }}
           className="mt-10 flex justify-center items-center w-full"
         >
-          <a
-            href="#shortlisted"
-            id="hero-cta-btn"
-            className="btn-primary group/btn !px-8 !py-4 text-base"
-          >
-            View Shortlisted Teams
+          <a href="#shortlist-portal" id="hero-cta-btn" className="btn-primary group/btn !px-8 !py-4 text-base">
+            Search Team Shortlist Status
             <ArrowRight size={18} className="transition-transform group-hover/btn:translate-x-1" />
           </a>
         </motion.div>
@@ -117,4 +130,19 @@ export default function Hero() {
   );
 }
 
+function Cell({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl glass px-3 md:px-5 py-2.5 md:py-3.5 min-w-[62px] md:min-w-[84px] text-center">
+      <div className="font-mono text-3xl md:text-5xl tabular-nums tracking-tightest text-fg">
+        {String(value).padStart(2, "0")}
+      </div>
+      <div className="mt-1 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.28em] text-muted">
+        {label}
+      </div>
+    </div>
+  );
+}
 
+function Sep() {
+  return <div className="flex items-center font-mono text-2xl md:text-4xl text-lumen/60 pb-3">:</div>;
+}

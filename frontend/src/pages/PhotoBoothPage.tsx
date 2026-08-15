@@ -16,7 +16,7 @@ export default function PhotoBoothPage() {
             <span className="font-serif italic text-lumen">Hackathon Moment</span>
           </h1>
           <p className="mt-3 text-muted text-sm max-w-sm mx-auto">
-            Strike a pose. Pick a frame. Share the experience.
+            Strike a pose. Capture the innovation. Share the experience.
           </p>
         </div>
         <PhotoBooth />

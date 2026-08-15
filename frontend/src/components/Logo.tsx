@@ -48,13 +48,13 @@ function SpecMark({ size }: { size: number }) {
     >
       <defs>
         <linearGradient id="specGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#4ACBEB" />
+          <stop offset="0" stopColor="#2F93AD" />
           <stop offset="1" stopColor="#186275" />
         </linearGradient>
       </defs>
       <rect x="1" y="1" width="30" height="30" rx="8" stroke="url(#specGrad)" strokeWidth="1.5" />
       <path d="M9 22V10h10a4 4 0 010 8h-6" stroke="url(#specGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="22" cy="22" r="2" fill="#4ACBEB" />
+      <circle cx="22" cy="22" r="2" fill="#2F93AD" />
     </svg>
   );
 }

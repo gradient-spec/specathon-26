@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import type { TeamRow } from "@/services/admin";
 
-const COLORS = ["#4ACBEB", "#186275", "#CD8200", "#1A9E4A", "#7B5FC0", "#5BE8B6", "#4A90C4", "#AD0D03", "#E0A83C"];
+const COLORS = ["#2F93AD", "#186275", "#CD8200", "#1A9E4A", "#7B5FC0", "#5BE8B6", "#4A90C4", "#AD0D03", "#E0A83C"];
 
 const cardCls = "rounded-2xl glass p-5";
 
@@ -41,7 +41,7 @@ const tooltip = {
     color: "#EDEDED",
     fontSize: 12,
   },
-  cursor: { fill: "rgba(74,203,235,0.06)" },
+  cursor: { fill: "rgba(47,147,173,0.06)" },
 };
 
 export default function Charts({ teams }: { teams: TeamRow[] }) {
@@ -95,7 +95,7 @@ export default function Charts({ teams }: { teams: TeamRow[] }) {
             <XAxis dataKey="date" stroke="#829580" fontSize={11} />
             <YAxis stroke="#829580" fontSize={11} allowDecimals={false} />
             <Tooltip {...tooltip} />
-            <Line type="monotone" dataKey="count" stroke="#4ACBEB" strokeWidth={2} dot={{ fill: "#186275", r: 3 }} />
+            <Line type="monotone" dataKey="count" stroke="#2F93AD" strokeWidth={2} dot={{ fill: "#186275", r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -119,7 +119,7 @@ export default function Charts({ teams }: { teams: TeamRow[] }) {
             <XAxis dataKey="size" stroke="#829580" fontSize={11} />
             <YAxis stroke="#829580" fontSize={11} allowDecimals={false} />
             <Tooltip {...tooltip} />
-            <Bar dataKey="count" fill="#4ACBEB" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="count" fill="#2F93AD" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -136,7 +136,7 @@ export default function Charts({ teams }: { teams: TeamRow[] }) {
               paddingAngle={4}
             >
               <Cell fill="#186275" stroke="none" />
-              <Cell fill="#4ACBEB" stroke="none" />
+              <Cell fill="#2F93AD" stroke="none" />
             </Pie>
             <Tooltip {...tooltip} />
           </PieChart>

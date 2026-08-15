@@ -14,6 +14,7 @@ import povertyLogoUrl from '../assets/domains/low poverty.png';
 import innovationLogoUrl from '../assets/domains/open innovation.png';
 import mobilityLogoUrl from '../assets/domains/self-driving-car.png';
 import recycleLogoUrl from '../assets/domains/waste-management.png';
+import { Bold } from 'lucide-react';
 
 /**
  * Draws a rounded-rectangle path so we can clip / stroke / fill photo frames
