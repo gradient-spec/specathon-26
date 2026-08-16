@@ -379,8 +379,8 @@ export function exportDomainXlsx(
     }
     ws["!rows"] = [{ hpt: 22 }];
 
-    // Tab name: truncate domain to 31 chars (Excel limit)
-    const tabName = domain.slice(0, 31);
+    // Tab name: truncate domain to 31 chars (Excel limit) and replace illegal chars
+    const tabName = domain.replace(/[:\\/?*[\]]/g, "-").slice(0, 31);
     XLSX.utils.book_append_sheet(wb, ws, tabName);
   }
 
