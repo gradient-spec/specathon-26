@@ -31,9 +31,9 @@ const COORDINATORS: Coordinator[] = [
 
 export default function Contact() {
   return (
-    <section id="contact" className="relative py-14 md:py-20">
+    <section id="contact" className="relative py-8 md:py-10">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
-        <div className="mb-14 max-w-2xl">
+        <div className="mb-8 max-w-2xl">
           <Reveal>
             <div className="eyebrow flex items-center gap-3">
               <span className="font-mono text-xs uppercase tracking-[0.2em] text-lumen font-medium">

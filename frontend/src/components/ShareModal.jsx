@@ -131,7 +131,7 @@ export default function ShareModal({ isOpen, onClose, photo, tagline, frame }) {
                   className="flex flex-col items-center gap-2 py-3.5 rounded-2xl glass-button disabled:opacity-40"
                 >
                   {busyKey === platform.key ? (
-                    <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.6} />
+                    <Loader2 className="w-5 h-5 spinner-crisp" strokeWidth={1.6} />
                   ) : (
                     <platform.icon className="w-5 h-5" strokeWidth={1.6} />
                   )}
@@ -148,7 +148,7 @@ export default function ShareModal({ isOpen, onClose, photo, tagline, frame }) {
                 className="flex items-center justify-center gap-2 py-3 rounded-2xl glass-button text-sm text-slate-200 disabled:opacity-40"
               >
                 {busyKey === 'copy' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
+                  <Loader2 className="w-4 h-4 spinner-crisp" strokeWidth={1.75} />
                 ) : (
                   <Link2 className="w-4 h-4" strokeWidth={1.75} />
                 )}
@@ -161,7 +161,7 @@ export default function ShareModal({ isOpen, onClose, photo, tagline, frame }) {
                 className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-br from-indigo-glow to-violet-glow text-sm text-white disabled:opacity-40"
               >
                 {busyKey === 'download' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
+                  <Loader2 className="w-4 h-4 spinner-crisp" strokeWidth={1.75} />
                 ) : (
                   <Download className="w-4 h-4" strokeWidth={1.75} />
                 )}

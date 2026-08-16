@@ -245,6 +245,40 @@ html {
 }
 
 /* Reduced motion */
+/* Crisp, smoothly rotating loading spinner (used in the Share section). */
+@keyframes spinCrisp {
+  to { transform: rotate(360deg); }
+}
+.spinner-crisp {
+  animation: spinCrisp 0.7s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* Glowing shimmer + pulse for primary CTA buttons (V1 style). */
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: 0 0 18px -8px rgba(47,147,173,0.5); }
+  50% { box-shadow: 0 0 0 3px rgba(47,147,173,0.14), 0 0 32px -4px rgba(47,147,173,0.85); }
+}
+@keyframes ctaSweep {
+  0% { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(130%); }
+}
+.cta-shimmer {
+  position: relative;
+  overflow: hidden;
+  animation: ctaPulse 2.6s ease-in-out infinite;
+}
+.cta-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
+  transform: translateX(-130%);
+  animation: ctaSweep 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -253,6 +287,10 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+  /* Loading spinners are functional feedback — keep them turning. */
+  .spinner-crisp {
+    animation: spinCrisp 0.7s linear infinite !important;
   }
 }
 

@@ -34,6 +34,7 @@ function CornerBracket({ className }) {
  */
 export default function CameraCard({
   webcamRef,
+  cameraOn,
   cameraStatus,
   handleUserMedia,
   handleUserMediaError,
@@ -125,7 +126,7 @@ export default function CameraCard({
                   : "Couldn't reach a camera on this device."}
               </p>
             </div>
-          ) : (
+          ) : cameraOn ? (
             <Webcam
               ref={webcamRef}
               audio={false}
@@ -137,10 +138,16 @@ export default function CameraCard({
               onUserMediaError={handleUserMediaError}
               className="w-full h-full object-cover scale-[1.03]"
             />
+          ) : (
+            /* Camera OFF (default). Nothing is streaming until the user taps Capture. */
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 px-8 text-center bg-ink-950">
+              <CameraOff className="w-8 h-8" strokeWidth={1.5} />
+              <p className="text-sm leading-relaxed">
+                Camera is off. Tap <span className="text-fg font-semibold">Capture</span> to start.
+              </p>
+            </div>
           )}
         </motion.div>
-
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/5 to-black/35" />
 
         <CornerBracket className="top-3 left-3 border-t-2 border-l-2 rounded-tl-md" />
         <CornerBracket className="top-3 right-3 border-t-2 border-r-2 rounded-tr-md" />

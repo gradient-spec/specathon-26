@@ -68,7 +68,7 @@ export default function Gallery() {
   }, [go]);
 
   return (
-    <section ref={sectionRef} id="gallery" className="relative pt-0 pb-12 md:pt-0 md:pb-18 overflow-hidden">
+    <section ref={sectionRef} id="gallery" className="relative py-6 md:py-8 overflow-hidden">
       <Watermark />
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <Reveal>
@@ -79,16 +79,16 @@ export default function Gallery() {
             <h2 className="mt-6 font-display text-4xl md:text-5xl leading-[1.05] tracking-tightest">
               Moments from <span className="font-serif italic text-lumen">Past Editions</span>
             </h2>
-            <p className="mt-4 text-muted text-sm max-w-md mx-auto leading-relaxed">
+            {/* <p className="mt-4 text-muted text-sm max-w-md mx-auto leading-relaxed">
               A look back at the energy, execution, and extreme ideas that defined our previous hackathons.
-            </p>
+            </p> */}
           </div>
         </Reveal>
       </div>
 
       {/* Coverflow stage */}
       <div
-        className="relative mt-14 h-[56vw] sm:h-[48vw] md:h-[42vw] lg:h-[36vw] max-h-[430px] min-h-[220px]"
+        className="relative mt-8 h-[56vw] sm:h-[48vw] md:h-[42vw] lg:h-[36vw] max-h-[430px] min-h-[220px]"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
@@ -123,7 +123,7 @@ export default function Gallery() {
       </div>
 
       {/* Dots */}
-      <div className="mt-8 flex items-center justify-center gap-2">
+      <div className="mt-6 flex items-center justify-center gap-2">
         {ITEMS.map((it, i) => (
           <button
             key={it.year}

@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="relative border-t border-line/60 py-6 overflow-hidden">
+    <footer className="relative border-t border-line/60 py-4 overflow-hidden">
       <div className="absolute inset-x-0 -top-24 h-[100px] bg-gradient-to-b from-lumen/[0.04] to-transparent blur-3xl pointer-events-none" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 md:px-10">

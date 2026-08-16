@@ -107,13 +107,22 @@ export default function Navbar() {
               </span>
             </a>
 
-            {/* Shortlisted Teams CTA — always visible on desktop */}
-            <a
-              href="#shortlisted"
-              className="hidden md:inline-flex btn-primary !px-5 !py-2 text-[13px]"
-            >
-              Shortlisted Teams
-            </a>
+            {/* Shortlisted Teams CTA — hidden while in the Hero, slides in on scroll */}
+            <AnimatePresence>
+              {scrolled && (
+                <motion.a
+                  key="shortlist-cta"
+                  href="#shortlisted"
+                  initial={{ opacity: 0, x: 12, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 12, scale: 0.95 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  className="hidden md:inline-flex btn-primary cta-shimmer !px-5 !py-2 text-[13px]"
+                >
+                  Shortlisted Teams
+                </motion.a>
+              )}
+            </AnimatePresence>
 
             {/* Mobile menu */}
             <button aria-label="Open menu" onClick={() => setOpen(true)} className="md:hidden text-fg p-2">

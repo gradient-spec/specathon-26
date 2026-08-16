@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PanelsTopLeft, Camera, RotateCcw, Download, Share2, Loader2 } from 'lucide-react';
+import { PanelsTopLeft, Camera, RotateCcw, Download, Share2, Loader2, PowerOff } from 'lucide-react';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -66,9 +66,11 @@ function TileButton({ icon: Icon, label, onClick, disabled, busy, accent = 'viol
  */
 export default function ActionButtons({
   hasPhoto,
+  cameraOn,
   cameraReady,
   onChangeFrame,
   onCapture,
+  onTurnOff,
   onRetake,
   onDownload,
   onShare,
@@ -85,13 +87,20 @@ export default function ActionButtons({
       {hasPhoto ? (
         <TileButton icon={RotateCcw} label="Retake" onClick={onRetake} accent="violet" />
       ) : (
-        <TileButton
-          icon={Camera}
-          label="Capture"
-          onClick={onCapture}
-          disabled={!cameraReady}
-          accent="violet"
-        />
+        <>
+          {/* Capture starts the camera on first tap, then snaps once the feed
+              is live. Only disabled while the feed is spinning up. */}
+          <TileButton
+            icon={Camera}
+            label="Capture"
+            onClick={onCapture}
+            disabled={cameraOn && !cameraReady}
+            accent="violet"
+          />
+          {cameraOn && (
+            <TileButton icon={PowerOff} label="Power Off" onClick={onTurnOff} accent="cyan" />
+          )}
+        </>
       )}
       <TileButton
         icon={Download}

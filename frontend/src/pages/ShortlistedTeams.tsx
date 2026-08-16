@@ -9,7 +9,7 @@ export default function ShortlistedTeams() {
     <div className="min-h-screen bg-void text-fg flex flex-col">
       <Navbar />
 
-      <main className="flex-1 mx-auto w-full max-w-5xl px-6 md:px-10 pt-28 pb-20">
+      <main className="flex-1 mx-auto w-full max-w-5xl px-6 md:px-10 pt-24 pb-10">
         <Reveal>
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 rounded-full border border-lumen/25 bg-lumen/[0.06] px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.28em] text-lumen mb-5">

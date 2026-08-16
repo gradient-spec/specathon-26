@@ -43,7 +43,7 @@ const CountUp = memo(function CountUp({ to, duration = 1.6 }: { to: number; dura
 
 export default memo(function Stats() {
   return (
-    <section id="stats" className="relative py-10 md:py-16">
+    <section id="stats" className="relative py-6 md:py-8">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
           {STATS.map((s, i) => (

@@ -16,12 +16,13 @@ export default function PhotoBooth() {
 
   const {
     webcamRef,
+    cameraOn,
     status: cameraStatus,
     isReady,
     handleUserMedia,
     handleUserMediaError,
+    startCamera,
     stopCamera,
-    restartCamera,
   } = useCamera();
   const { photo, isFlashing, capture, retake } = useCapture(webcamRef);
 
@@ -43,25 +44,36 @@ export default function PhotoBooth() {
   }, []);
 
   const handleCapture = useCallback(() => {
+    // First tap turns the camera ON (requests permission / activates feed).
+    if (!cameraOn) {
+      startCamera();
+      return;
+    }
+    // Feed not live yet — wait for it.
+    if (!isReady) return;
+
+    // Feed is live: take the shot, then release the camera.
     const shot = capture();
     if (!shot) return;
-
-    // Releasing the tracks turns off the camera indicator as soon as the
-    // captured image takes over the frame.
     stopCamera();
     showToast('📸 Photo Captured');
     setControlsReady(false);
     setJustCaptured(true);
     window.setTimeout(() => setControlsReady(true), 650);
     window.setTimeout(() => setJustCaptured(false), 1300);
-  }, [capture, showToast]);
+  }, [cameraOn, isReady, startCamera, capture, stopCamera, showToast]);
+
+  const handleTurnOff = useCallback(() => {
+    stopCamera();
+  }, [stopCamera]);
 
   const handleRetake = useCallback(() => {
+    // Clear the photo; camera stays off until the user taps Capture again.
     retake();
-    restartCamera();
+    stopCamera();
     setJustCaptured(false);
     setControlsReady(true);
-  }, [retake, restartCamera]);
+  }, [retake, stopCamera]);
 
   const handleDownload = useCallback(async () => {
     if (!photo) return;
@@ -83,6 +95,7 @@ export default function PhotoBooth() {
       <CameraCard
         tagline={tagline}
         webcamRef={webcamRef}
+        cameraOn={cameraOn}
         cameraStatus={cameraStatus}
         photo={photo}
         isFlashing={isFlashing}
@@ -94,9 +107,11 @@ export default function PhotoBooth() {
 
       <ActionButtons
         hasPhoto={Boolean(photo) && controlsReady}
+        cameraOn={cameraOn}
         cameraReady={isReady}
         onChangeFrame={handleChangeFrame}
         onCapture={handleCapture}
+        onTurnOff={handleTurnOff}
         onRetake={handleRetake}
         onDownload={handleDownload}
         onShare={() => setShareOpen(true)}

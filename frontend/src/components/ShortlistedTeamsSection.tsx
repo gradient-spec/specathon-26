@@ -60,7 +60,7 @@ export default function ShortlistedTeamsSection({ embedded = false }: Shortliste
 
   if (embedded) {
     return (
-      <section id="shortlisted" className="relative py-14 md:py-20 scroll-mt-16">
+      <section id="shortlisted" className="relative py-8 md:py-10 scroll-mt-16">
         <div className="mx-auto max-w-5xl px-6 md:px-10">
           {content}
         </div>

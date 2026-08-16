@@ -5,6 +5,7 @@ import Loader from "@/components/Loader";
 import Cursor from "@/components/Cursor";
 import Particles from "@/components/Particles";
 import ShortlistPortal from "@/components/ShortlistPortal";
+import SeatCountdown from "@/components/SeatCountdown";
 import PhotoBoothSection from "@/components/PhotoBoothSection";
 import { useLenis } from "@/hooks/useLenis";
 
@@ -33,6 +34,10 @@ export default function Home() {
       <main className="relative">
         {/* 1 — Hero: Shortlist announcement + Aug 31 deadline countdown */}
         <Hero />
+
+        {/* Seat-confirmation countdown — relocated from the Hero, sits directly
+            above the Shortlist portal. */}
+        <SeatCountdown />
 
         {/* 2 & 3 — Shortlist Verification & Payment Portal (reveals QR Entry Pass on confirm) */}
         <ShortlistPortal />

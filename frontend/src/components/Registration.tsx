@@ -237,7 +237,7 @@ export default function Registration() {
   const submitLabel = busy ? "Submitting Registration..." : "Lock it in";
 
   return (
-    <section id="register" className="relative py-14 md:py-20">
+    <section id="register" className="relative py-8 md:py-10">
       <div className="mx-auto max-w-5xl px-6 md:px-10">
         {/* Glassmorphism announcement banner */}
         <Reveal>

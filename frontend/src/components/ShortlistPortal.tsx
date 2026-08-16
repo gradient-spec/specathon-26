@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ArrowRight, CheckCircle2, Loader2, AlertTriangle, Users, Ticket,
-  Download, CalendarPlus, MapPin, ShieldCheck, IndianRupee,
+  Download, CalendarPlus, MapPin, IndianRupee,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import Reveal from "@/components/Reveal";
+import FinalistReveal from "@/components/FinalistReveal";
 import {
   searchTeam,
   paymentService,
@@ -42,6 +43,7 @@ function metaFor(team: MockTeam) {
 export default function ShortlistPortal() {
   const [query, setQuery] = useState("");
   const [view, setView] = useState<View>({ kind: "idle" });
+  const [celebrate, setCelebrate] = useState<{ show: boolean; teamName?: string }>({ show: false });
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +57,9 @@ export default function ShortlistPortal() {
       if (team.payment_status === "paid") {
         return setView({ kind: "confirmed", team, txnId: team.transaction_id ?? "—" });
       }
+      // Finalist discovered — fire the celebration reveal.
       setView({ kind: "shortlisted", team });
+      setCelebrate({ show: true, teamName: team.team_name });
     }, 550);
   };
 
@@ -78,14 +82,14 @@ export default function ShortlistPortal() {
   };
 
   return (
-    <section id="shortlist-portal" className="relative py-20 md:py-28 scroll-mt-20">
+    <section id="shortlist-portal" className="relative py-8 md:py-10 scroll-mt-20">
       <div className="mx-auto max-w-3xl px-6 md:px-10">
         <Reveal>
-          <div className="text-center mb-10">
-            <div className="eyebrow inline-flex items-center gap-2 mb-4">
+          <div className="text-center mb-6">
+            {/* <div className="eyebrow inline-flex items-center gap-2 mb-4">
               <ShieldCheck size={12} className="text-lumen" />
               Seat Confirmation Hub
-            </div>
+            </div> */}
             <h2 className="font-display font-bold text-4xl md:text-5xl leading-[1.05] tracking-tightest">
               Verify your <span className="text-lumen">Shortlist Status</span>
             </h2>
@@ -121,7 +125,7 @@ export default function ShortlistPortal() {
         </Reveal>
 
         {/* Result */}
-        <div className="mt-8">
+        <div className="mt-6">
           <AnimatePresence mode="wait">
             {view.kind === "searching" && (
               <Panel key="searching">
@@ -179,6 +183,13 @@ export default function ShortlistPortal() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Non-confetti celebration on finalist reveal */}
+      <FinalistReveal
+        show={celebrate.show}
+        teamName={celebrate.teamName}
+        onDone={() => setCelebrate((s) => ({ ...s, show: false }))}
+      />
     </section>
   );
 }

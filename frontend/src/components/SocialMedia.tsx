@@ -72,7 +72,7 @@ const SOCIALS: SocialItem[] = [
 
 export default function SocialMedia() {
   return (
-    <section id="social" className="relative py-10 border-t border-white/[0.06] bg-transparent">
+    <section id="social" className="relative py-6 border-t border-white/[0.06] bg-transparent">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="flex flex-col md:flex-row items-center md:items-center justify-between text-center md:text-left gap-6">
           <Reveal>

@@ -1,28 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
-import { ArrowRight, Trophy, Clock } from "lucide-react";
-
-/* Countdown to the Aug 31, 2026 seat-confirmation / payment deadline. */
-const DEADLINE = new Date("2026-08-31T23:59:59+05:30").getTime();
-function useDeadline() {
-  const [t, setT] = useState(() => Math.max(0, DEADLINE - Date.now()));
-  useEffect(() => {
-    const id = setInterval(() => setT(Math.max(0, DEADLINE - Date.now())), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return {
-    days: Math.floor(t / 86_400_000),
-    hours: Math.floor((t % 86_400_000) / 3_600_000),
-    minutes: Math.floor((t % 3_600_000) / 60_000),
-    seconds: Math.floor((t % 60_000) / 1000),
-    done: t <= 0,
-  };
-}
+import { ArrowRight } from "lucide-react";
+import DateCounter from "./DateCounter";
 
 export default function Hero() {
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const { days, hours, minutes, seconds } = useDeadline();
 
   useEffect(() => {
     if (!titleRef.current) return;
@@ -43,17 +26,6 @@ export default function Hero() {
       className="group relative min-h-[92svh] flex flex-col justify-center pt-24 pb-10 overflow-hidden noise"
     >
       <div className="relative mx-auto max-w-5xl w-full px-6 md:px-10 flex flex-col items-center text-center">
-        {/* Banner — Shortlisted Teams Announced */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5, duration: 0.6 }}
-          className="inline-flex items-center gap-2 rounded-full border border-lumen/25 bg-lumen/[0.06] px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.24em] text-lumen mb-8"
-        >
-          <Trophy size={12} />
-          Shortlisted Teams Announced
-        </motion.div>
-
         {/* Wordmark */}
         <h1
           ref={titleRef}
@@ -83,44 +55,51 @@ export default function Hero() {
           </motion.span>
         </h1>
 
+
+        {/* Official event dates — restored V1 slot-counter style/position */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.8, duration: 0.6 }}
+          className="mt-7"
+        >
+          <DateCounter value="11 & 12 SEP" startDelay={2900} />
+        </motion.div>
+        {/* Tagline — organizing department line */}
         <motion.p
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.6, duration: 0.7 }}
-          className="mt-6 font-display text-xl md:text-3xl text-fg/90 tracking-tight"
+          className="mt-6 max-w-2xl font-display text-base md:text-xl text-slate-200 leading-relaxed tracking-tight"
         >
-          Shortlisted Teams <span className="text-lumen">Announced</span>
+          Registrations Closed -{" "}
+          <span className="text-plasma font-semibold">Teams Shortlisted!</span>{" "}
+        
         </motion.p>
 
-        {/* Seat-confirmation countdown to Aug 31 */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
+        {/* Message to shortlisted + unselected teams — high contrast, stands out over the watermark */}
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.8, duration: 0.6 }}
-          className="mt-8"
+          transition={{ delay: 3.0, duration: 0.6 }}
+          className="my-6 max-w-2xl text-lg md:text-xl font-medium text-slate-100 leading-relaxed"
         >
-          <div className="eyebrow inline-flex items-center gap-2 mb-3 text-gold">
-            <Clock size={11} /> Seat Confirmation Deadline · Aug 31, 2026
-          </div>
-          <div className="flex items-stretch justify-center gap-2 md:gap-3">
-            <Cell label="Days" value={days} />
-            <Sep />
-            <Cell label="Hrs" value={hours} />
-            <Sep />
-            <Cell label="Min" value={minutes} />
-            <Sep />
-            <Cell label="Sec" value={seconds} />
-          </div>
-        </motion.div>
+          Congratulations to all the{" "}
+          <span className="font-semibold bg-gradient-to-r from-lumen to-emerald-400 bg-clip-text text-transparent">
+            shortlisted teams
+          </span>{" "}
+          — you have come a long way! To all registered teams who didn't make the cut this time,
+          thank you for participating and better luck next time.
+        </motion.p>
 
         {/* Primary CTA */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.05, duration: 0.6 }}
+          transition={{ delay: 3.3, duration: 0.6 }}
           className="mt-10 flex justify-center items-center w-full"
         >
-          <a href="#shortlist-portal" id="hero-cta-btn" className="btn-primary group/btn !px-8 !py-4 text-base">
+          <a href="#shortlist-portal" id="hero-cta-btn" className="btn-primary cta-shimmer group/btn !px-8 !py-4 text-base">
             Search Team Shortlist Status
             <ArrowRight size={18} className="transition-transform group-hover/btn:translate-x-1" />
           </a>
@@ -128,21 +107,4 @@ export default function Hero() {
       </div>
     </section>
   );
-}
-
-function Cell({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl glass px-3 md:px-5 py-2.5 md:py-3.5 min-w-[62px] md:min-w-[84px] text-center">
-      <div className="font-mono text-3xl md:text-5xl tabular-nums tracking-tightest text-fg">
-        {String(value).padStart(2, "0")}
-      </div>
-      <div className="mt-1 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.28em] text-muted">
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function Sep() {
-  return <div className="flex items-center font-mono text-2xl md:text-4xl text-lumen/60 pb-3">:</div>;
 }
