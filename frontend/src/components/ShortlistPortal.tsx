@@ -1,12 +1,11 @@
-import { useMemo, useState } from "react";
+import { forwardRef, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, ArrowRight, CheckCircle2, Loader2, AlertTriangle, Users, Ticket,
-  Download, CalendarPlus, MapPin, IndianRupee,
+  ArrowRight, CheckCircle2, Loader2, Users, Ticket,
+  Download, CalendarPlus, MapPin, IndianRupee, Lock, Timer,
 } from "lucide-react";
 import jsPDF from "jspdf";
-import Reveal from "@/components/Reveal";
-import FinalistReveal from "@/components/FinalistReveal";
+import ShortlistTerminal from "@/components/ShortlistTerminal";
 import {
   searchTeam,
   paymentService,
@@ -29,9 +28,6 @@ const VENUE = "St. Peter's Engineering College, Hyderabad · Gate 2";
 
 type View =
   | { kind: "idle" }
-  | { kind: "searching" }
-  | { kind: "not_found" }
-  | { kind: "not_eligible"; team: MockTeam }
   | { kind: "shortlisted"; team: MockTeam }
   | { kind: "paying"; team: MockTeam }
   | { kind: "confirmed"; team: MockTeam; txnId: string };
@@ -41,26 +37,16 @@ function metaFor(team: MockTeam) {
 }
 
 export default function ShortlistPortal() {
-  const [query, setQuery] = useState("");
   const [view, setView] = useState<View>({ kind: "idle" });
-  const [celebrate, setCelebrate] = useState<{ show: boolean; teamName?: string }>({ show: false });
 
-  const onSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    setView({ kind: "searching" });
-    // Small delay to feel like a lookup.
-    window.setTimeout(() => {
-      const team = searchTeam(query);
-      if (!team) return setView({ kind: "not_found" });
-      if (team.shortlist_status !== "shortlisted") return setView({ kind: "not_eligible", team });
-      if (team.payment_status === "paid") {
-        return setView({ kind: "confirmed", team, txnId: team.transaction_id ?? "—" });
-      }
-      // Finalist discovered — fire the celebration reveal.
+  // Handed off from ShortlistTerminal once the verification reveal's CTA is
+  // clicked — routes straight into the existing payment / QR-pass flow.
+  const onConfirmSeat = (team: MockTeam) => {
+    if (team.payment_status === "paid") {
+      setView({ kind: "confirmed", team, txnId: team.transaction_id ?? "—" });
+    } else {
       setView({ kind: "shortlisted", team });
-      setCelebrate({ show: true, teamName: team.team_name });
-    }, 550);
+    }
   };
 
   const pay = (team: MockTeam) => {
@@ -83,91 +69,13 @@ export default function ShortlistPortal() {
 
   return (
     <section id="shortlist-portal" className="relative py-8 md:py-10 scroll-mt-20">
-      <div className="mx-auto max-w-3xl px-6 md:px-10">
-        <Reveal>
-          <div className="text-center mb-6">
-            {/* <div className="eyebrow inline-flex items-center gap-2 mb-4">
-              <ShieldCheck size={12} className="text-lumen" />
-              Seat Confirmation Hub
-            </div> */}
-            <h2 className="font-display font-bold text-4xl md:text-5xl leading-[1.05] tracking-tightest">
-              Verify your <span className="text-lumen">Shortlist Status</span>
-            </h2>
-            <p className="mt-4 text-subtle text-sm md:text-base">
-              Search with your Team Leader Email, Team Name, or Team ID to confirm your seat before the {DEADLINE_LABEL} deadline.
-            </p>
-          </div>
-        </Reveal>
+      <div className="mx-auto px-6 md:px-10">
+        {/* Verification widget — search, live "database check", congrats reveal */}
+        <ShortlistTerminal onConfirmSeat={onConfirmSeat} />
 
-        {/* Search */}
-        <Reveal delay={0.08}>
-          <form onSubmit={onSearch} className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Team Leader Email, Team Name, or Team ID"
-                className="field !pl-11"
-                aria-label="Search shortlist"
-              />
-            </div>
-            <button type="submit" className="btn-primary shrink-0 justify-center">
-              Search Status
-              <ArrowRight size={16} />
-            </button>
-          </form>
-          <p className="mt-3 text-center text-[11px] font-mono text-muted">
-            Try: <button type="button" onClick={() => setQuery("alpha@example.com")} className="text-lumen hover:underline">alpha@example.com</button>
-            {" · "}
-            <button type="button" onClick={() => setQuery("Team Nova")} className="text-lumen hover:underline">Team Nova</button> (paid)
-          </p>
-        </Reveal>
-
-        {/* Result */}
-        <div className="mt-6">
-          <AnimatePresence mode="wait">
-            {view.kind === "searching" && (
-              <Panel key="searching">
-                <div className="flex items-center justify-center gap-3 py-6 text-subtle">
-                  <Loader2 size={18} className="animate-spin text-lumen" /> Looking up your team…
-                </div>
-              </Panel>
-            )}
-
-            {view.kind === "not_found" && (
-              <Panel key="nf" tone="warn">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={18} className="text-gold mt-0.5 shrink-0" />
-                  <div>
-                    <div className="font-medium text-fg">We couldn't find that team</div>
-                    <p className="mt-1 text-sm text-subtle">
-                      Double-check your spelling, or reach the support desk:
-                      {" "}<a href="mailto:support@specathon.dev" className="text-lumen hover:underline">support@specathon.dev</a>.
-                      Student leads: M Anusha (President) · G Shubhang (Admin).
-                    </p>
-                  </div>
-                </div>
-              </Panel>
-            )}
-
-            {view.kind === "not_eligible" && (
-              <Panel key="ne" tone="warn">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={18} className="text-gold mt-0.5 shrink-0" />
-                  <div>
-                    <div className="font-medium text-fg">
-                      {view.team.team_name} — {view.team.shortlist_status === "waitlisted" ? "Waitlisted" : "Not selected this round"}
-                    </div>
-                    <p className="mt-1 text-sm text-subtle">
-                      Hang tight — waitlist movement is communicated by email. Questions?
-                      {" "}<a href="mailto:support@specathon.dev" className="text-lumen hover:underline">support@specathon.dev</a>.
-                    </p>
-                  </div>
-                </div>
-              </Panel>
-            )}
-
+        {/* Hand-off result — existing payment / QR-pass flow, unchanged */}
+        <div className="mt-6 max-w-3xl mx-auto">
+          <AnimatePresence initial={false} mode="popLayout">
             {(view.kind === "shortlisted" || view.kind === "paying") && (
               <ShortlistedCard
                 key="sl"
@@ -183,70 +91,85 @@ export default function ShortlistPortal() {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* Non-confetti celebration on finalist reveal */}
-      <FinalistReveal
-        show={celebrate.show}
-        teamName={celebrate.teamName}
-        onDone={() => setCelebrate((s) => ({ ...s, show: false }))}
-      />
     </section>
   );
 }
 
-function Panel({ children, tone }: { children: React.ReactNode; tone?: "warn" }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className={`rounded-2xl glass p-6 ${tone === "warn" ? "border-gold/30" : ""}`}
-    >
-      {children}
-    </motion.div>
-  );
-}
+/* ── State A: Shortlisted (pending payment) — premium reservation card ── */
+const RESERVATION_HOLD_MS = 24 * 60 * 60 * 1000;
+const SEATS_TOTAL = 990;
+const SEATS_RESERVED = 912;
 
-/* ── State A: Shortlisted (pending payment) ─────────────────────────── */
-function ShortlistedCard({ team, paying, onPay }: { team: MockTeam; paying: boolean; onPay: () => void }) {
+const ShortlistedCard = forwardRef<HTMLDivElement, { team: MockTeam; paying: boolean; onPay: () => void }>(
+function ShortlistedCard({ team, paying, onPay }, ref) {
   const meta = metaFor(team);
   const heads = meta.members.length;
   const fee = PER_HEAD * heads;
+
+  // Local 24h reservation-hold countdown, fixed the moment this card mounts.
+  const [holdExpiry] = useState(() => Date.now() + RESERVATION_HOLD_MS);
+  const [remaining, setRemaining] = useState(() => Math.max(0, holdExpiry - Date.now()));
+  useEffect(() => {
+    const id = setInterval(() => setRemaining(Math.max(0, holdExpiry - Date.now())), 1000);
+    return () => clearInterval(id);
+  }, [holdExpiry]);
+  const hh = String(Math.floor(remaining / 3_600_000)).padStart(2, "0");
+  const mm = String(Math.floor((remaining % 3_600_000) / 60_000)).padStart(2, "0");
+  const ss = String(Math.floor((remaining % 60_000) / 1000)).padStart(2, "0");
+  const seatPct = Math.round((SEATS_RESERVED / SEATS_TOTAL) * 100);
+
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl glass p-6 md:p-8"
+      className="relative rounded-[26px] bg-slate-900/80 backdrop-blur-xl border border-cyan-500/40 p-6 md:p-9 overflow-hidden shadow-[0_0_25px_rgba(0,242,254,0.08)]"
     >
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-success">
+      {/* faint ambient glow */}
+      <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+
+      <div className="relative flex items-center justify-between gap-4 flex-wrap">
+        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-emerald-400">
           <CheckCircle2 size={12} /> Shortlisted
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-gold">
+        <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/35 bg-cyan-500/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400">
           Payment Pending
         </div>
       </div>
 
-      <h3 className="mt-5 font-display text-2xl md:text-3xl tracking-tight">{team.team_name}</h3>
-      <div className="mt-1 text-sm text-subtle">{meta.domain} · {team.team_id}</div>
+      {/* Premium headline */}
+      <h3 className="relative mt-6 font-display font-bold text-3xl md:text-4xl tracking-tight text-white">
+        Reserve{" "}
+        <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #00F2FE, #10B981)" }}>
+          Your Spot
+        </span>
+      </h3>
+      <p className="relative mt-2 max-w-md text-sm md:text-[15px] text-slate-400 font-light leading-relaxed">
+        Your team's slot is provisionally held. Complete seat confirmation and payment to lock in your pass.
+      </p>
 
-      <div className="mt-6 grid sm:grid-cols-2 gap-5">
+      <div className="relative mt-6 pt-5 border-t border-slate-800">
+        <div className="font-display text-xl md:text-2xl tracking-tight text-fg">{team.team_name}</div>
+        <div className="mt-1 text-sm text-subtle">{meta.domain} · {team.team_id}</div>
+      </div>
+
+      <div className="relative mt-6 grid sm:grid-cols-2 gap-5">
         <div>
           <div className="eyebrow mb-2 flex items-center gap-1.5"><Users size={11} /> Team Members</div>
           <ul className="space-y-1 text-sm text-fg/90">
             {meta.members.map((m) => <li key={m}>{m}</li>)}
           </ul>
         </div>
-        <div className="rounded-xl border border-line bg-panel/40 p-4">
+        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
           <div className="eyebrow mb-2">Fee Breakdown</div>
           <div className="flex items-center justify-between text-sm text-subtle">
             <span>₹{PER_HEAD} × {heads} members</span>
             <span className="font-mono text-fg">₹{fee}</span>
           </div>
-          <div className="mt-3 pt-3 border-t border-line flex items-center justify-between">
+          <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between">
             <span className="text-sm text-subtle">Total due</span>
             <span className="font-mono text-2xl text-fg inline-flex items-center"><IndianRupee size={18} />{fee}</span>
           </div>
@@ -254,19 +177,44 @@ function ShortlistedCard({ team, paying, onPay }: { team: MockTeam; paying: bool
         </div>
       </div>
 
+      {/* Primary CTA — cyan-to-emerald gradient with pulsing glow */}
       <button
         onClick={onPay}
         disabled={paying}
-        className="btn-primary w-full justify-center mt-7 disabled:opacity-70 text-base !py-3.5"
+        className="cta-shimmer-cyan relative w-full mt-8 rounded-full px-6 py-4 text-base font-bold flex items-center justify-center gap-2 text-slate-950 disabled:opacity-70 transition-transform active:scale-[0.99] bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400"
       >
-        {paying ? <><Loader2 size={16} className="animate-spin" /> Processing payment…</> : <>Proceed to Pay & Lock Seat</>}
+        {paying ? (
+          <><Loader2 size={16} className="animate-spin" /> Processing payment…</>
+        ) : (
+          <>Proceed to Payment &amp; Confirm Seat <ArrowRight size={16} /></>
+        )}
       </button>
+
+      {/* Urgency indicators */}
+      <div className="relative mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/[0.06] px-2.5 py-1 text-cyan-400 font-mono text-sm">
+          <Timer size={12} /> Slot held for {hh}:{mm}:{ss}
+        </div>
+        <div className="flex items-center gap-2 sm:w-40">
+          <div className="h-1 flex-1 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400"
+              style={{ width: `${seatPct}%` }}
+            />
+          </div>
+          <span className="font-mono text-[10px] text-slate-500 shrink-0">{SEATS_RESERVED}/{SEATS_TOTAL}</span>
+        </div>
+      </div>
+      <div className="relative mt-2 flex items-center gap-1.5 text-[10px] text-slate-600">
+        <Lock size={10} /> Secure checkout · seat held until timer expires
+      </div>
     </motion.div>
   );
-}
+});
 
 /* ── State B: Confirmed → Module 3 QR Entry Pass ────────────────────── */
-function ConfirmedPass({ team, txnId }: { team: MockTeam; txnId: string }) {
+const ConfirmedPass = forwardRef<HTMLDivElement, { team: MockTeam; txnId: string }>(
+function ConfirmedPass({ team, txnId }, ref) {
   const meta = metaFor(team);
   const qrPayload = useMemo(
     () => `SPECATHON2026|${team.team_id}|${team.team_name}|${txnId}`,
@@ -317,6 +265,7 @@ function ConfirmedPass({ team, txnId }: { team: MockTeam; txnId: string }) {
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -378,7 +327,7 @@ function ConfirmedPass({ team, txnId }: { team: MockTeam; txnId: string }) {
       </div>
     </motion.div>
   );
-}
+});
 
 function Row({ k, v, icon }: { k: string; v: string; icon?: React.ReactNode }) {
   return (

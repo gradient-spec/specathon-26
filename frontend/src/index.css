@@ -279,6 +279,46 @@ html {
   pointer-events: none;
 }
 
+/* Cyber-glass variant — "Reserve Your Spot" action card CTA. Electric cyan
+   glow pulse around the border, cyan/emerald palette only. */
+@keyframes ctaPulseCyan {
+  0%, 100% { box-shadow: 0 0 20px rgba(0,242,254,0.4); }
+  50% { box-shadow: 0 0 0 3px rgba(0,242,254,0.18), 0 0 36px -2px rgba(16,185,129,0.65); }
+}
+.cta-shimmer-cyan {
+  position: relative;
+  overflow: hidden;
+  animation: ctaPulseCyan 2.6s ease-in-out infinite;
+}
+.cta-shimmer-cyan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.35) 50%, transparent 80%);
+  transform: translateX(-130%);
+  animation: ctaSweep 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Shortlist verification terminal — blinking cursor + contained scanline. */
+@keyframes blinkCursor {
+  0%, 45% { opacity: 1; }
+  46%, 100% { opacity: 0; }
+}
+.terminal-cursor {
+  display: inline-block;
+  animation: blinkCursor 1s steps(1) infinite;
+}
+@keyframes scanSweepY {
+  0% { transform: translateY(-100%); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+.scan-sweep {
+  animation: scanSweepY 2.4s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
