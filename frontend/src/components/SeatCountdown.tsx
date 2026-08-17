@@ -50,7 +50,7 @@ export default function SeatCountdown() {
   const { days, hours, minutes } = useDeadline();
 
   return (
-    <section className="relative pt-12 pb-6 md:pt-16 md:pb-8">
+    <section className="relative pt-10 pb-5 md:pt-12 md:pb-6">
 
       <div
         className="
@@ -69,14 +69,15 @@ export default function SeatCountdown() {
         <Reveal>
           <div
             className="
-              mb-5
+              mb-4
               font-sans
-              text-[10px]
+              text-[9px]
               font-medium
               uppercase
-              tracking-[0.42em]
+              tracking-[0.38em]
               text-cyan-400/70
-              md:text-[11px]
+              md:mb-4
+              md:text-[10px]
             "
           >
             Seat Confirmation Deadline
@@ -91,7 +92,7 @@ export default function SeatCountdown() {
         <motion.div
           initial={{
             opacity: 0,
-            y: 16,
+            y: 14,
           }}
           whileInView={{
             opacity: 1,
@@ -108,23 +109,25 @@ export default function SeatCountdown() {
           className="
             relative
             w-full
-            max-w-3xl
+            max-w-2xl
           "
         >
 
-          {/* GLASSMORPHIC BOX */}
+          {/* =================================================
+              GLASSMORPHIC BOX
+          ================================================= */}
 
           <div
             className="
               relative
               overflow-hidden
-              rounded-[18px]
+              rounded-[16px]
               border
               border-cyan-400/30
               bg-slate-900/20
               backdrop-blur-xl
-              shadow-[0_0_30px_rgba(0,210,235,0.07)]
-              md:rounded-[20px]
+              shadow-[0_0_24px_rgba(0,210,235,0.06)]
+              md:rounded-[18px]
             "
           >
 
@@ -135,7 +138,7 @@ export default function SeatCountdown() {
                 pointer-events-none
                 absolute
                 inset-0
-                bg-white/[0.015]
+                bg-white/[0.012]
               "
             />
 
@@ -151,13 +154,15 @@ export default function SeatCountdown() {
                 h-px
                 bg-gradient-to-r
                 from-transparent
-                via-cyan-400/60
+                via-cyan-400/55
                 to-transparent
               "
             />
 
 
-            {/* CORNER ACCENTS */}
+            {/* =================================================
+                CORNER ACCENTS
+            ================================================= */}
 
             <div
               className="
@@ -165,11 +170,11 @@ export default function SeatCountdown() {
                 absolute
                 left-0
                 top-0
-                h-4
-                w-4
+                h-3
+                w-3
                 border-l
                 border-t
-                border-cyan-300/50
+                border-cyan-300/45
               "
             />
 
@@ -179,11 +184,11 @@ export default function SeatCountdown() {
                 absolute
                 right-0
                 top-0
-                h-4
-                w-4
+                h-3
+                w-3
                 border-r
                 border-t
-                border-cyan-300/50
+                border-cyan-300/45
               "
             />
 
@@ -193,11 +198,11 @@ export default function SeatCountdown() {
                 absolute
                 bottom-0
                 left-0
-                h-4
-                w-4
+                h-3
+                w-3
                 border-b
                 border-l
-                border-cyan-300/40
+                border-cyan-300/35
               "
             />
 
@@ -207,24 +212,26 @@ export default function SeatCountdown() {
                 absolute
                 bottom-0
                 right-0
-                h-4
-                w-4
+                h-3
+                w-3
                 border-b
                 border-r
-                border-cyan-300/40
+                border-cyan-300/35
               "
             />
 
 
-            {/* CONTENT */}
+            {/* =================================================
+                CONTENT
+            ================================================= */}
 
             <div
               className="
                 relative
-                px-5
-                py-5
-                md:px-8
-                md:py-6
+                px-4
+                py-4
+                md:px-6
+                md:py-5
               "
             >
 
@@ -232,22 +239,24 @@ export default function SeatCountdown() {
 
               <div
                 className="
-                  mb-4
+                  mb-3
                   font-sans
-                  text-[9px]
+                  text-[8px]
                   font-medium
                   uppercase
-                  tracking-[0.38em]
-                  text-cyan-300/80
-                  md:mb-5
-                  md:text-[10px]
+                  tracking-[0.34em]
+                  text-cyan-300/75
+                  md:mb-4
+                  md:text-[9px]
                 "
               >
                 TIME REMAINING
               </div>
 
 
-              {/* COUNTDOWN ROW */}
+              {/* =================================================
+                  COUNTDOWN ROW
+              ================================================= */}
 
               <div
                 className="
@@ -316,15 +325,15 @@ function TimeUnit({
       "
     >
 
-      {/* LARGE DIGITAL NUMBER */}
+      {/* DIGITAL NUMBER */}
 
       <div
         className="
           flex
           items-center
           justify-center
-          gap-[5px]
-          md:gap-[8px]
+          gap-[4px]
+          md:gap-[6px]
         "
       >
 
@@ -344,15 +353,15 @@ function TimeUnit({
 
       <div
         className="
-          mt-2
+          mt-1.5
           font-sans
-          text-[8px]
+          text-[7px]
           font-medium
           uppercase
-          tracking-[0.30em]
+          tracking-[0.28em]
           text-cyan-300/60
-          md:mt-3
-          md:text-[9px]
+          md:mt-2
+          md:text-[8px]
         "
       >
         {label}
@@ -364,7 +373,7 @@ function TimeUnit({
 
 
 /* =======================================================
-   COLON
+   COLON SEPARATOR
 ======================================================= */
 
 function Separator() {
@@ -373,27 +382,27 @@ function Separator() {
     <div
       className="
         flex
-        h-[58px]
-        w-[22px]
+        h-[46px]
+        w-[18px]
         items-center
         justify-center
-        pb-3
-        md:h-[88px]
-        md:w-[34px]
+        pb-2
+        md:h-[68px]
+        md:w-[26px]
       "
     >
 
       <span
         className="
-          text-3xl
+          text-2xl
           font-light
           leading-none
-          text-cyan-400/70
-          md:text-5xl
+          text-cyan-400/65
+          md:text-4xl
         "
         style={{
           textShadow:
-            "0 0 6px rgba(0,210,235,0.65), 0 0 16px rgba(0,210,235,0.30)",
+            "0 0 5px rgba(0,210,235,0.55), 0 0 13px rgba(0,210,235,0.20)",
         }}
       >
         :
@@ -526,10 +535,10 @@ function DigitalDigit({
 
       className="
         relative
-        h-[58px]
-        w-[35px]
-        md:h-[88px]
-        md:w-[52px]
+        h-[46px]
+        w-[28px]
+        md:h-[68px]
+        md:w-[40px]
       "
     >
 
@@ -538,13 +547,13 @@ function DigitalDigit({
       <Segment
         active={activeSegments.includes("a")}
         className="
-          left-[5px]
-          right-[5px]
+          left-[4px]
+          right-[4px]
           top-0
-          h-[5px]
-          md:left-[8px]
-          md:right-[8px]
-          md:h-[7px]
+          h-[4px]
+          md:left-[6px]
+          md:right-[6px]
+          md:h-[6px]
         "
       />
 
@@ -555,12 +564,12 @@ function DigitalDigit({
         active={activeSegments.includes("b")}
         className="
           right-0
-          top-[5px]
-          h-[21px]
-          w-[5px]
-          md:top-[8px]
-          md:h-[34px]
-          md:w-[7px]
+          top-[4px]
+          h-[17px]
+          w-[4px]
+          md:top-[6px]
+          md:h-[26px]
+          md:w-[6px]
         "
       />
 
@@ -570,13 +579,13 @@ function DigitalDigit({
       <Segment
         active={activeSegments.includes("c")}
         className="
-          bottom-[5px]
+          bottom-[4px]
           right-0
-          h-[21px]
-          w-[5px]
-          md:bottom-[8px]
-          md:h-[34px]
-          md:w-[7px]
+          h-[17px]
+          w-[4px]
+          md:bottom-[6px]
+          md:h-[26px]
+          md:w-[6px]
         "
       />
 
@@ -587,12 +596,12 @@ function DigitalDigit({
         active={activeSegments.includes("d")}
         className="
           bottom-0
-          left-[5px]
-          right-[5px]
-          h-[5px]
-          md:left-[8px]
-          md:right-[8px]
-          md:h-[7px]
+          left-[4px]
+          right-[4px]
+          h-[4px]
+          md:left-[6px]
+          md:right-[6px]
+          md:h-[6px]
         "
       />
 
@@ -602,13 +611,13 @@ function DigitalDigit({
       <Segment
         active={activeSegments.includes("e")}
         className="
-          bottom-[5px]
+          bottom-[4px]
           left-0
-          h-[21px]
-          w-[5px]
-          md:bottom-[8px]
-          md:h-[34px]
-          md:w-[7px]
+          h-[17px]
+          w-[4px]
+          md:bottom-[6px]
+          md:h-[26px]
+          md:w-[6px]
         "
       />
 
@@ -619,12 +628,12 @@ function DigitalDigit({
         active={activeSegments.includes("f")}
         className="
           left-0
-          top-[5px]
-          h-[21px]
-          w-[5px]
-          md:top-[8px]
-          md:h-[34px]
-          md:w-[7px]
+          top-[4px]
+          h-[17px]
+          w-[4px]
+          md:top-[6px]
+          md:h-[26px]
+          md:w-[6px]
         "
       />
 
@@ -634,14 +643,14 @@ function DigitalDigit({
       <Segment
         active={activeSegments.includes("g")}
         className="
-          left-[5px]
-          right-[5px]
+          left-[4px]
+          right-[4px]
           top-1/2
-          h-[5px]
+          h-[4px]
           -translate-y-1/2
-          md:left-[8px]
-          md:right-[8px]
-          md:h-[7px]
+          md:left-[6px]
+          md:right-[6px]
+          md:h-[6px]
         "
       />
 
@@ -686,10 +695,10 @@ function Segment({
 
               boxShadow:
                 `
-                0 0 4px rgba(34,211,238,0.95),
-                0 0 10px rgba(34,211,238,0.70),
-                0 0 22px rgba(34,211,238,0.38),
-                0 0 38px rgba(34,211,238,0.16)
+                0 0 3px rgba(34,211,238,0.90),
+                0 0 8px rgba(34,211,238,0.60),
+                0 0 17px rgba(34,211,238,0.32),
+                0 0 28px rgba(34,211,238,0.12)
                 `,
             }
           : {

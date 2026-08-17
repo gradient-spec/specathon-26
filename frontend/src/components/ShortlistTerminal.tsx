@@ -92,7 +92,7 @@ export default function ShortlistTerminal({
     <motion.div
       layout
       transition={{ layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } }}
-      className="relative mx-auto max-w-[460px] rounded-[22px] bg-slate-950/40 backdrop-blur-2xl border border-cyan-400/25 shadow-[0_0_40px_-14px_rgba(0,242,254,0.2)] overflow-hidden"
+      className="relative mx-auto max-w-[520px] rounded-[22px] bg-slate-950/40 backdrop-blur-2xl border border-cyan-400/25 shadow-[0_0_40px_-14px_rgba(0,242,254,0.2)] overflow-hidden"
     >
       {/* faint top sheen */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
@@ -105,7 +105,7 @@ export default function ShortlistTerminal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="p-6 md:p-8"
+            className="p-7 md:p-9"
           >
             <div className="text-center">
               <h2
@@ -114,12 +114,12 @@ export default function ShortlistTerminal({
               >
                 ARE YOU IN?
               </h2>
-              <p className="mt-2.5 text-sm text-slate-400 leading-relaxed">
+              <p className="mt-3 text-sm text-slate-400 leading-relaxed">
                 Check whether your team has been shortlisted for SPECATHON 2026.
               </p>
             </div>
 
-            <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3">
+            <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
               <div className="relative">
                 <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -127,18 +127,18 @@ export default function ShortlistTerminal({
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Enter Team ID, Team Lead Name or Registered Email"
                   aria-label="Search shortlist"
-                  className="w-full rounded-xl bg-slate-900/50 border border-cyan-500/20 pl-11 pr-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/60 focus:shadow-[0_0_0_3px_rgba(0,242,254,0.1)] transition-all"
+                  className="w-full rounded-xl bg-slate-900/50 border border-cyan-500/20 pl-11 pr-4 py-3.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/60 focus:shadow-[0_0_0_3px_rgba(0,242,254,0.1)] transition-all"
                 />
               </div>
               <button
                 type="submit"
-                className="cta-shimmer-cyan w-full rounded-xl py-3.5 text-sm font-bold flex items-center justify-center gap-2 text-slate-950 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 transition-all"
+                className="cta-shimmer-cyan w-full rounded-xl py-4 text-sm font-bold flex items-center justify-center gap-2 text-slate-950 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 transition-all"
               >
                 CHECK SHORTLIST STATUS <ArrowRight size={15} />
               </button>
             </form>
 
-            <p className="mt-3 text-center text-[11px] font-mono text-slate-500">
+            <p className="mt-4 text-center text-[11px] font-mono text-slate-500">
               Try:{" "}
               <button type="button" onClick={() => { setQuery("alpha@example.com"); runCheck("alpha@example.com"); }} className="text-cyan-400 hover:underline">
                 alpha@example.com
@@ -159,7 +159,7 @@ export default function ShortlistTerminal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="relative p-5 md:p-6"
+            className="relative p-6 md:p-7"
           >
             {/* subtle vertical scanline, contained to this card */}
             <div className="pointer-events-none absolute inset-x-0 top-0 h-16 scan-sweep bg-gradient-to-b from-cyan-400/10 via-cyan-400/0 to-transparent" />
@@ -223,7 +223,7 @@ const ResultView = forwardRef<HTMLDivElement, {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="p-6 md:p-8 text-center"
+        className="p-7 md:p-9 text-center"
       >
         <HelpCircle size={26} className="mx-auto text-slate-500" />
         <div className="mt-3 font-display text-lg text-white">No record found</div>
@@ -247,7 +247,7 @@ const ResultView = forwardRef<HTMLDivElement, {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="p-6 md:p-8 text-center"
+        className="p-7 md:p-9 text-center"
       >
         <HelpCircle size={26} className="mx-auto text-amber-400/80" />
         <div className="mt-3 font-display text-lg text-white">
@@ -274,7 +274,7 @@ const ResultView = forwardRef<HTMLDivElement, {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="relative p-6 md:p-8 text-center overflow-hidden"
+      className="relative p-7 md:p-9 text-center overflow-hidden"
     >
       {/* one-time soft glow pulse at reveal */}
       <motion.div
