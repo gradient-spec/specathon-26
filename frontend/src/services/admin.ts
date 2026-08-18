@@ -4,7 +4,8 @@ import type { Status } from "../utils/constants";
 export type TeamRow = {
   id: string;
   reg_code: string | null;
-  created_at: string;
+  created_at:          string;
+  auth_id:             string | null;
   team_name: string;
   team_size: number;
   domain: string;
@@ -37,7 +38,8 @@ export type MemberRow = {
   department: string | null;
   email: string | null;
   role: string | null;
-  created_at: string;
+  created_at:          string;
+  auth_id:             string | null;
 };
 
 export type FullTeam = TeamRow & { members: MemberRow[] };
@@ -186,6 +188,7 @@ export type ShortlistedTeamFull = {
   payment_notes:       string | null;
   paid_at:             string | null;
   created_at:          string;
+  auth_id:             string | null;
 };
 
 export type PaymentEvent = {
@@ -198,6 +201,7 @@ export type PaymentEvent = {
   payload:             Record<string, unknown>;
   signature_verified:  boolean | null;
   created_at:          string;
+  auth_id:             string | null;
 };
 
 export async function listShortlistedTeams(): Promise<ShortlistedTeamFull[]> {
@@ -388,3 +392,86 @@ export async function downloadAllAbstracts(
   a.click();
   URL.revokeObjectURL(url);
 }
+
+
+/**
+ * Provisions credentials for a shortlisted team by invoking the provision-team-credentials Edge Function.
+ */
+export async function provisionTeamCredentials(
+  teamId: string,
+  accessToken: string
+): Promise<{ success: boolean; teamId?: string; password?: string; message?: string }> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/provision-team-credentials`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamId }),
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to provision credentials (${res.status}).`);
+  }
+  return body;
+}
+
+// --- Spin Wheel Services ---
+
+export type WheelConfig = {
+  id: number;
+  is_enabled: boolean;
+  current_mode: "TEST" | "LIVE";
+  prize_1_name: string;
+  prize_2_name: string;
+  better_luck_a_name: string;
+  better_luck_b_name: string;
+  dummy_1_name: string;
+  dummy_2_name: string;
+  dummy_3_name: string;
+  dummy_4_name: string;
+};
+
+export type SpinAttempt = {
+  id: string;
+  shortlisted_team_id: string;
+  auth_id: string;
+  mode: "TEST" | "LIVE";
+  result: "PRIZE_1" | "PRIZE_2" | "BETTER_LUCK_A" | "BETTER_LUCK_B";
+  created_at: string;
+  team?: {
+    team_id: string;
+    team_name: string;
+  };
+};
+
+export async function getWheelConfig(): Promise<WheelConfig> {
+  const { data, error } = await client().from("wheel_config").select("*").eq("id", 1).single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateWheelConfig(updates: Partial<Omit<WheelConfig, "id">>): Promise<void> {
+  const { error } = await client().from("wheel_config").update(updates).eq("id", 1);
+  if (error) throw error;
+}
+
+export async function listSpinAttempts(): Promise<SpinAttempt[]> {
+  const { data, error } = await client()
+    .from("spin_attempts")
+    .select(`
+      *,
+      team:shortlisted_teams(team_id, team_name)
+    `)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+
+
+

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Loader2, AlertCircle, RefreshCcw, Search, X,
+  Loader2, AlertCircle, RefreshCcw, Search, X, Copy,
   Users, CreditCard, CheckCircle2, XCircle, Clock,
   ChevronRight, ArrowDownRight, StickyNote,
 } from "lucide-react";
@@ -9,9 +9,11 @@ import {
   listShortlistedTeams,
   listPaymentEventsForTeam,
   updatePaymentNotes,
+  provisionTeamCredentials,
   type ShortlistedTeamFull,
   type PaymentEvent,
 } from "@/services/admin";
+import { useAuth } from "./AuthContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Status badge
@@ -71,6 +73,11 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
   const [state, setState] = useState<FetchState>({ kind: "loading" });
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ShortlistedTeamFull | null>(null);
+  
+  const { session } = useAuth();
+  const [provisioningId, setProvisioningId] = useState<string | null>(null);
+  const [credentialsModal, setCredentialsModal] = useState<{ teamId: string, password: string } | null>(null);
+  const [copyStatus, setCopyStatus] = useState(false);
 
   const load = useCallback(async () => {
     setState({ kind: "loading" });
@@ -101,6 +108,32 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
   // Summary counts
   const counts = { PAID: 0, FAILED: 0, PENDING: 0 };
   for (const t of teams) counts[t.payment_status]++;
+
+  const handleProvision = async (team: ShortlistedTeamFull) => {
+    if (!session) return;
+    setProvisioningId(team.team_id);
+    try {
+      const res = await provisionTeamCredentials(team.team_id, session.access_token);
+      if (res.success && res.password) {
+        setCredentialsModal({ teamId: team.team_id, password: res.password });
+        setState(prev => prev.kind === "ok" ? {
+          ...prev,
+          teams: prev.teams.map(t => t.id === team.id ? { ...t, auth_id: "provisioned" } : t)
+        } : prev);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to provision");
+    } finally {
+      setProvisioningId(null);
+    }
+  };
+
+  const copyCreds = () => {
+    if (!credentialsModal) return;
+    navigator.clipboard.writeText(`Team ID: ${credentialsModal.teamId}\nPassword: ${credentialsModal.password}`);
+    setCopyStatus(true);
+    setTimeout(() => setCopyStatus(false), 2000);
+  };
 
   return (
     <div className="space-y-6">
@@ -202,7 +235,7 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
             <table className="w-full text-sm" aria-label="Payment records">
               <thead>
                 <tr className="border-b border-line bg-panel/60">
-                  {["Team ID", "Team Name", "Team Lead", "Size", "Amount", "Status", "Paid At", ""].map((h) => (
+                  {["Team ID", "Team Name", "Team Lead", "Size", "Amount", "Status", "Paid At", "Provisioning", ""].map((h) => (
                     <th key={h} scope="col"
                       className="px-4 py-3.5 text-left text-[10px] font-mono uppercase tracking-[0.24em] text-muted font-medium first:pl-5 last:pr-5 last:text-right">
                       {h}
@@ -237,6 +270,20 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                         : "—"
                       }
                     </td>
+                    <td className="px-4 py-3.5">
+                      {team.auth_id ? (
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-lumen/60 px-2 py-1 bg-lumen/10 rounded">Provisioned</span>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleProvision(team); }}
+                          disabled={provisioningId === team.team_id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-plasma/15 border border-plasma/30 text-[10px] uppercase tracking-wider text-fg hover:bg-plasma/25 transition-all disabled:opacity-50"
+                        >
+                          {provisioningId === team.team_id ? <Loader2 size={10} className="animate-spin" /> : null}
+                          Provision
+                        </button>
+                      )}
+                    </td>
                     <td className="pr-5 py-3.5 text-right">
                       <button
                         onClick={() => setSelected(team)}
@@ -266,18 +313,83 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-sm text-fg">₹{team.amount.toLocaleString("en-IN")}</span>
-                  <button
-                    onClick={() => setSelected(team)}
-                    className="inline-flex items-center gap-1 text-xs text-muted hover:text-lumen transition-colors"
-                  >
-                    View Details <ChevronRight size={12} />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {team.auth_id ? (
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-lumen/60 px-2 py-1 bg-lumen/10 rounded">Provisioned</span>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleProvision(team); }}
+                        disabled={provisioningId === team.team_id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-plasma/15 border border-plasma/30 text-[10px] uppercase tracking-wider text-fg hover:bg-plasma/25 transition-all disabled:opacity-50"
+                      >
+                        {provisioningId === team.team_id ? <Loader2 size={10} className="animate-spin" /> : null}
+                        Provision
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setSelected(team)}
+                      className="inline-flex items-center gap-1 text-xs text-muted hover:text-lumen transition-colors"
+                    >
+                      View Details <ChevronRight size={12} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </>
       )}
+
+      {/* Credentials Modal */}
+      <AnimatePresence>
+        {credentialsModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+              onClick={() => setCredentialsModal(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm rounded-2xl border border-line bg-panel p-6 shadow-2xl"
+            >
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-display tracking-tight text-fg">Credentials Generated</h3>
+                  <p className="text-sm text-muted mt-1">Please copy these securely. They will not be shown again.</p>
+                </div>
+                <button
+                  onClick={() => setCredentialsModal(null)}
+                  className="p-1 rounded hover:bg-white/5 text-muted hover:text-fg transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-4 font-mono text-sm">
+                <div>
+                  <div className="text-xs text-muted uppercase tracking-widest mb-1">Team ID</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-lumen">{credentialsModal.teamId}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted uppercase tracking-widest mb-1">Password</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-fg">{credentialsModal.password}</div>
+                </div>
+              </div>
+
+              <button
+                onClick={copyCreds}
+                className="mt-6 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-lumen text-void font-medium hover:bg-lumen/90 transition-colors"
+              >
+                {copyStatus ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                {copyStatus ? "Copied!" : "Copy Credentials"}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Details drawer */}
       <AnimatePresence>

@@ -2,32 +2,24 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload, CreditCard } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthContext";
-import { deleteTeams, listMembersFor, listTeams, type MemberRow, type TeamRow } from "@/services/admin";
+import { deleteTeams } from "@/services/admin";
 import { supabase } from "@/services/supabase";
-import StatsGrid from "./StatsGrid";
-import Charts from "./Charts";
-import RegistrationsTable, { applyFilters, emptyFilters, type Filters } from "./RegistrationsTable";
-import RegistrationDrawer from "./RegistrationDrawer";
-import ExportBar from "./ExportBar";
 import ConfirmDialog from "./ConfirmDialog";
 import ShortlistImport from "./ShortlistImport";
 import PaymentDashboard from "./PaymentDashboard";
+import SpinWheelDashboard from "./SpinWheelDashboard";
 
-type View = "registrations" | "import" | "payments";
+type View = "registrations" | "import" | "payments" | "spinwheel";
 
 export default function Dashboard() {
   const { email, signOut } = useAuth();
-  const [teams, setTeams] = useState<TeamRow[]>([]);
-  const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastLoaded, setLastLoaded] = useState<Date | null>(null);
   const [live, setLive] = useState(false);
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [selected, setSelected] = useState<string[]>([]);
-  const [viewId, setViewId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ ids: string[] } | null>(null);
-  const [view, setView] = useState<View>("registrations");
+  const [view, setView] = useState<View>("import");
   // Timestamp bumped after every successful CSV import.
   // PaymentDashboard watches this to re-fetch automatically.
   const [lastImport, setLastImport] = useState(0);
@@ -38,10 +30,6 @@ export default function Dashboard() {
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const rows = await listTeams();
-      const m = await listMembersFor(rows.map((r) => r.id));
-      setTeams(rows);
-      setMembers(m);
       setLastLoaded(new Date());
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load registrations.");
@@ -108,8 +96,6 @@ export default function Dashboard() {
     }
   };
 
-  const filteredForExport = applyFilters(teams, filters);
-
   return (
     <div className="min-h-screen bg-void text-fg">
       <Toaster theme="dark" position="top-right" richColors closeButton />
@@ -155,6 +141,12 @@ export default function Dashboard() {
               >
                 <CreditCard size={11} />
                 Payments
+              </button>
+              <button
+                onClick={() => setView("spinwheel")}
+                className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all "}
+              >
+                Spin Wheel
               </button>
             </div>
           </div>
@@ -223,55 +215,30 @@ export default function Dashboard() {
               }`}
           >
             <CreditCard size={11} />
-            Payments
-          </button>
+                Payments
+              </button>
+              <button
+                onClick={() => setView("spinwheel")}
+                className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all "}
+              >
+                Spin Wheel
+              </button>
         </div>
 
         {view === "import" ? (
           <ShortlistImport onImported={() => setLastImport(Date.now())} />
         ) : view === "payments" ? (
           <PaymentDashboard lastImport={lastImport} />
+        ) : view === "spinwheel" ? (
+          <SpinWheelDashboard />
         ) : loading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 size={22} className="animate-spin text-plasma" />
           </div>
-        ) : (
-          <>
-            <section>
-              <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
-                <div>
-                  <div className="eyebrow">Overview</div>
-                  <h1 className="font-display text-3xl md:text-4xl tracking-tightest mt-2">
-                    {teams.length} team{teams.length === 1 ? "" : "s"} registered
-                  </h1>
-                </div>
-                <ExportBar rows={filteredForExport} />
-              </div>
-              <StatsGrid teams={teams} members={members} />
-            </section>
-
-            <section>
-              <div className="eyebrow mb-4">Analytics</div>
-              <Charts teams={teams} />
-            </section>
-
-            <section>
-              <div className="eyebrow mb-4">Registrations</div>
-              <RegistrationsTable
-                teams={teams}
-                filters={filters}
-                setFilters={setFilters}
-                selected={selected}
-                setSelected={setSelected}
-                onView={setViewId}
-                onDelete={(ids) => setConfirm({ ids })}
-              />
-            </section>
-          </>
-        )}
+        ) : null}
       </main>
 
-      <RegistrationDrawer id={viewId} onClose={() => setViewId(null)} onUpdated={load} />
+      
 
       <ConfirmDialog
         open={!!confirm}
@@ -285,3 +252,11 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
