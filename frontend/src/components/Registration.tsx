@@ -201,11 +201,12 @@ export default function Registration() {
         // with the correct multipart/form-data boundary.
       });
 
-      const body = await res.json().catch(() => ({})) as { success?: boolean; message?: string; teamId?: string; r2Key?: string };
+      const body = await res.json().catch(() => ({})) as { success?: boolean; message?: string; teamId?: string; r2Key?: string; code?: string };
 
       if (!res.ok || !body.success) {
         let errorMsg = body.message ?? `Server error (${res.status}). Please try again.`;
-        if (res.status === 403) errorMsg = "Security verification failed. Please refresh and try again.";
+        if (body.code === "REGISTRATIONS_CLOSED") errorMsg = body.message || "Registrations are closed. New registrations are no longer being accepted.";
+        else if (res.status === 403) errorMsg = "Security verification failed. Please refresh and try again.";
         else if (res.status === 429) errorMsg = "Too many registration attempts. Please try again later.";
         else if (res.status === 413) errorMsg = "Your abstract file is too large. Maximum size is 10 MB.";
         else if (res.status === 503) errorMsg = "Registration is temporarily unavailable. Please try again later.";
@@ -241,6 +242,22 @@ export default function Registration() {
 
   const busy = status.kind === "submitting";
   const canSubmit = paymentAck && abstractAck;
+
+  const forceClose = true as boolean;
+  if (forceClose) {
+    return (
+      <section id="register" className="relative py-14 md:py-20">
+        <div className="mx-auto max-w-3xl px-6 md:px-10">
+          <div className="rounded-2xl glass border-lumen/20 p-8 md:p-12 text-center">
+            <h2 className="text-3xl md:text-4xl font-display mb-4 text-fg">Registrations Closed</h2>
+            <p className="text-[15px] md:text-base text-muted leading-relaxed">
+              Registrations are closed. The shortlisting is in progress. The Shortlisted teams will be intimated via mail. The payment process starts from August 23rd.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="register" className="relative py-14 md:py-20">
