@@ -465,10 +465,6 @@ export async function generateBrandedCard(photoDataUrl, tagline, frame = DEFAULT
   canvas.height = CARD_HEIGHT;
   const ctx = canvas.getContext('2d');
 
-  // --- Outer background (to avoid transparent checkered corners in download) ---
-  ctx.fillStyle = '#0B0C0E'; // matches the app's premium dark background
-  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-
   // --- Paper background ---
   // The download matches the live card's rounded corners (cardRadius = 74).
   // To avoid any transparent outline antialiasing artifact, we draw a rounded rectangle path fill directly.

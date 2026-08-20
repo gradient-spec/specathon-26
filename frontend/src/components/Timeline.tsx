@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Reveal from "./Reveal";
 
-type Slot = { time: string; title: string; note: string };
+type Slot = { time: string; title: string; note?: string };
 type Day = { id: string; label: string; date: string; slots: Slot[] };
 
 const AGENDA: Day[] = [
@@ -11,11 +11,15 @@ const AGENDA: Day[] = [
     label: "Day 1",
     date: "September 11, 2026",
     slots: [
-      { time: "08:30 AM", title: "Reporting & Check-in", note: "Badges, kits, and breakfast at Gate 2." },
-      { time: "10:00 AM", title: "Opening Keynote", note: "Inauguration, rules, and the tone for 36 hours." },
-      { time: "11:00 AM", title: "Hack Commences", note: "The clock starts. Build begins." },
-      { time: "05:00 PM", title: "Mentorship Round 1", note: "Domain mentors visit every team." },
-      { time: "12:00 AM", title: "Midnight Jam", note: "Energy boost, music, and midnight snacks." },
+      { time: "8:30 AM", title: "Reporting at Campus" },
+      { time: "9:30 AM", title: "Opening Ceremony" },
+      { time: "10:30 AM", title: "Hackathon Begins" },
+      { time: "11:30 AM", title: "Round 1 Evaluation" },
+      { time: "1:30 PM – 2:30 PM", title: "Lunch" },
+      { time: "5:30 PM", title: "Snacks" },
+      { time: "8:00 PM – 9:00 PM", title: "Dinner" },
+      { time: "9:30 PM – 11:30 PM", title: "Mentorship / Internal Evaluation" },
+      { time: "12:00 AM – 1:00 AM", title: "Campfire with jamming session" },
     ],
   },
   {
@@ -23,11 +27,12 @@ const AGENDA: Day[] = [
     label: "Day 2",
     date: "September 12, 2026",
     slots: [
-      { time: "03:00 AM", title: "Late-Night Fuel", note: "Coffee, snacks, and quiet keyboards." },
-      { time: "09:00 AM", title: "Mentorship Round 2", note: "Final guidance before the freeze." },
-      { time: "01:00 PM", title: "Code Freeze", note: "Commit what you have. Pencils down." },
-      { time: "02:30 PM", title: "Grand Jury Pitching", note: "Demos to the jury. Five minutes each." },
-      { time: "05:30 PM", title: "Valedictory Ceremony", note: "Winners, awards, and a very long nap." },
+      { time: "6:00 AM", title: "Fresh up" },
+      { time: "7:30 AM – 8:30 AM", title: "Breakfast" },
+      { time: "10:00 AM – 1:00 PM", title: "Round 2 Evaluation" },
+      { time: "1:00 PM – 2:00 PM", title: "Lunch" },
+      { time: "2:30 PM", title: "Final Evaluation" },
+      { time: "4:30 PM", title: "Closing Ceremony / End" },
     ],
   },
 ];
@@ -39,14 +44,18 @@ export default function Timeline() {
   return (
     <section id="timeline" className="relative py-8 md:py-10 overflow-hidden scroll-mt-16">
       <div className="mx-auto max-w-3xl px-6 md:px-10">
-        <Reveal>
-          <div className="text-center mb-6">
-            {/* <div className="eyebrow inline-flex items-center gap-2 mb-4">Run of show</div> */}
-            <h2 className="font-display font-bold text-4xl md:text-5xl leading-[1.05] tracking-tightest">
-              36-Hour <span className="text-lumen">Interactive Agenda</span>
-            </h2>
-          </div>
-        </Reveal>
+<Reveal>
+  <div className="text-center mb-6">
+    {/* <div className="eyebrow inline-flex items-center gap-2 mb-4">Run of show</div> */}
+    <h2 className="font-display font-bold text-4xl md:text-5xl leading-[1.05] tracking-tightest">
+      Your{" "}
+      <span className="text-lumen italic">
+                Specathon 2026
+              </span>
+       {" "} Timeline
+    </h2>
+  </div>
+</Reveal>
 
         {/* Tabs */}
         <Reveal delay={0.06}>
@@ -85,12 +94,12 @@ export default function Timeline() {
             {/* Rail */}
             <div className="absolute left-[7px] top-3 bottom-3 w-px bg-gradient-to-b from-transparent via-lumen/40 to-transparent" />
 
-            {day.slots.map((s) => (
-              <li key={s.title} className="relative pl-9 md:pl-12 pb-4 last:pb-0 group">
+            {day.slots.map((s, i) => (
+              <li key={`${s.time}-${s.title}-${i}`} className="relative pl-9 md:pl-12 pb-4 last:pb-0 group">
                 {/* Node dot */}
                 <span className="absolute left-[7px] top-[22px] -translate-x-1/2 h-3 w-3 rounded-full bg-void border-2 border-lumen/70 group-hover:border-lumen shadow-[0_0_14px_-3px_rgba(47,147,173,0.75)] transition-colors z-10" />
 
-                <div className="rounded-2xl glass px-5 py-4 md:px-6 md:py-5 transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-lumen/30">
+                <div className="card-team px-5 py-4 md:px-6 md:py-5 transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-cyan-400/40">
                   <div className="flex items-baseline justify-between gap-4">
                     <h3 className="font-display text-lg md:text-xl tracking-tight leading-snug">
                       {s.title}
@@ -99,7 +108,7 @@ export default function Timeline() {
                       {s.time}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-subtle leading-relaxed">{s.note}</p>
+                  {s.note && <p className="mt-2 text-sm text-subtle leading-relaxed">{s.note}</p>}
                 </div>
               </li>
             ))}

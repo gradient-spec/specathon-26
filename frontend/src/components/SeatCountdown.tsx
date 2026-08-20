@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Reveal from "./Reveal";
 
@@ -7,7 +7,7 @@ import Reveal from "./Reveal";
 ======================================================= */
 
 const DEADLINE = new Date(
-  "2026-08-31T23:59:59+05:30"
+  "2026-09-11T23:59:59+05:30"
 ).getTime();
 
 
@@ -38,6 +38,10 @@ function useDeadline() {
     minutes: Math.floor(
       (t % 3_600_000) / 60_000
     ),
+
+    seconds: Math.floor(
+      (t % 60_000) / 1000
+    ),
   };
 }
 
@@ -47,10 +51,15 @@ function useDeadline() {
 ======================================================= */
 
 export default function SeatCountdown() {
-  const { days, hours, minutes } = useDeadline();
+  const {
+    days,
+    hours,
+    minutes,
+    seconds,
+  } = useDeadline();
 
   return (
-    <section className="relative pt-10 pb-5 md:pt-12 md:pb-6">
+    <section className="relative pt-14 pb-8 md:pt-12 md:pb-6">
 
       <div
         className="
@@ -64,30 +73,36 @@ export default function SeatCountdown() {
         "
       >
 
-        {/* DEADLINE LABEL */}
+        {/* =================================================
+            DEADLINE LABEL
+        ================================================= */}
 
-        <Reveal>
-          <div
-            className="
-              mb-4
-              font-sans
-              text-[9px]
-              font-medium
-              uppercase
-              tracking-[0.38em]
-              text-cyan-400/70
-              md:mb-4
-              md:text-[10px]
-            "
-          >
-            Seat Confirmation Deadline
-            &nbsp;&nbsp;·&nbsp;&nbsp;
-            Aug 31, 2026
-          </div>
-        </Reveal>
+<Reveal>
+  <div
+    className="
+      mb-10
+      font-playfair
+      text-base
+      tracking-wide
+      md:mb-5
+      md:text-lg
+    "
+  >
+    <span className="italic text-white">
+      Clock's Ticking
+    </span>
 
+    <span className="mx-2 text-slate-500">-</span>
 
-        {/* COUNTDOWN */}
+    <span className="italic text-cyan-400">
+      September 11th 2026
+    </span>
+  </div>
+</Reveal>
+
+        {/* =================================================
+            COUNTDOWN CONTAINER
+        ================================================= */}
 
         <motion.div
           initial={{
@@ -131,7 +146,7 @@ export default function SeatCountdown() {
             "
           >
 
-            {/* SUBTLE GLASS TINT */}
+            {/* GLASS TINT */}
 
             <div
               className="
@@ -261,8 +276,9 @@ export default function SeatCountdown() {
               <div
                 className="
                   flex
-                  items-center
+                  items-start
                   justify-center
+                  gap-0
                 "
               >
 
@@ -283,6 +299,13 @@ export default function SeatCountdown() {
                 <TimeUnit
                   label="Minutes"
                   value={minutes}
+                />
+
+                <Separator />
+
+                <TimeUnit
+                  label="Seconds"
+                  value={seconds}
                 />
 
               </div>
@@ -325,22 +348,22 @@ function TimeUnit({
       "
     >
 
-      {/* DIGITAL NUMBER */}
+      {/* FLIP CLOCK DIGITS */}
 
       <div
         className="
           flex
           items-center
           justify-center
-          gap-[4px]
-          md:gap-[6px]
+          gap-[3px]
+          md:gap-[5px]
         "
       >
 
         {valueString
           .split("")
           .map((digit, index) => (
-            <DigitalDigit
+            <FlipDigit
               key={`${label}-${index}`}
               digit={digit}
             />
@@ -383,26 +406,26 @@ function Separator() {
       className="
         flex
         h-[46px]
-        w-[18px]
+        w-[12px]
         items-center
         justify-center
         pb-2
         md:h-[68px]
-        md:w-[26px]
+        md:w-[18px]
       "
     >
 
       <span
         className="
-          text-2xl
+          text-xl
           font-light
           leading-none
-          text-cyan-400/65
-          md:text-4xl
+          text-cyan-400/60
+          md:text-3xl
         "
         style={{
           textShadow:
-            "0 0 5px rgba(0,210,235,0.55), 0 0 13px rgba(0,210,235,0.20)",
+            "0 0 5px rgba(0,210,235,0.45), 0 0 13px rgba(0,210,235,0.15)",
         }}
       >
         :
@@ -414,125 +437,36 @@ function Separator() {
 
 
 /* =======================================================
-   7-SEGMENT CONFIGURATION
+   FLIP DIGIT
 ======================================================= */
 
-const SEGMENTS: Record<string, string[]> = {
-
-  "0": [
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f",
-  ],
-
-  "1": [
-    "b",
-    "c",
-  ],
-
-  "2": [
-    "a",
-    "b",
-    "g",
-    "e",
-    "d",
-  ],
-
-  "3": [
-    "a",
-    "b",
-    "c",
-    "d",
-    "g",
-  ],
-
-  "4": [
-    "f",
-    "g",
-    "b",
-    "c",
-  ],
-
-  "5": [
-    "a",
-    "f",
-    "g",
-    "c",
-    "d",
-  ],
-
-  "6": [
-    "a",
-    "f",
-    "g",
-    "e",
-    "c",
-    "d",
-  ],
-
-  "7": [
-    "a",
-    "b",
-    "c",
-  ],
-
-  "8": [
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f",
-    "g",
-  ],
-
-  "9": [
-    "a",
-    "b",
-    "c",
-    "d",
-    "f",
-    "g",
-  ],
-
-};
-
-
-/* =======================================================
-   DIGITAL DIGIT
-======================================================= */
-
-function DigitalDigit({
+function FlipDigit({
   digit,
 }: {
   digit: string;
 }) {
 
-  const activeSegments =
-    SEGMENTS[digit] || [];
+  const previousDigit = useRef(digit);
+
+  const [oldDigit, setOldDigit] = useState(digit);
+  const [isFlipping, setIsFlipping] = useState(false);
+
+  useEffect(() => {
+
+    if (digit === previousDigit.current) {
+      return;
+    }
+
+    setOldDigit(previousDigit.current);
+    setIsFlipping(true);
+
+    previousDigit.current = digit;
+
+  }, [digit]);
+
 
   return (
-    <motion.div
-      key={digit}
-
-      initial={{
-        opacity: 0.45,
-        scale: 0.97,
-      }}
-
-      animate={{
-        opacity: 1,
-        scale: 1,
-      }}
-
-      transition={{
-        duration: 0.3,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-
+    <div
       className="
         relative
         h-[46px]
@@ -540,172 +474,341 @@ function DigitalDigit({
         md:h-[68px]
         md:w-[40px]
       "
+      style={{
+        perspective: "700px",
+      }}
     >
 
-      {/* A — TOP */}
+      {/* =================================================
+          MAIN CARD
+      ================================================= */}
 
-      <Segment
-        active={activeSegments.includes("a")}
+      <div
         className="
-          left-[4px]
-          right-[4px]
-          top-0
-          h-[4px]
-          md:left-[6px]
-          md:right-[6px]
-          md:h-[6px]
+          absolute
+          inset-0
+          overflow-hidden
+          rounded-[4px]
+          border
+          border-slate-700/80
+          bg-slate-950/95
+          shadow-[0_4px_10px_rgba(0,0,0,0.35)]
+          md:rounded-[5px]
+        "
+      >
+
+        {/* TOP HALF */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            top-0
+            h-1/2
+            overflow-hidden
+            rounded-t-[4px]
+            border-b
+            border-black/50
+            bg-gradient-to-b
+            from-slate-800
+            via-slate-900
+            to-slate-950
+            md:rounded-t-[5px]
+          "
+        >
+
+          <DigitText
+            digit={isFlipping ? oldDigit : digit}
+            position="top"
+          />
+
+        </div>
+
+
+        {/* BOTTOM HALF */}
+
+        <div
+          className="
+            absolute
+            inset-x-0
+            bottom-0
+            h-1/2
+            overflow-hidden
+            rounded-b-[4px]
+            bg-gradient-to-b
+            from-slate-950
+            via-slate-900
+            to-slate-800
+            md:rounded-b-[5px]
+          "
+        >
+
+          <DigitText
+            digit={digit}
+            position="bottom"
+          />
+
+        </div>
+
+
+        {/* =================================================
+            CENTER SPLIT
+        ================================================= */}
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            inset-x-0
+            top-1/2
+            z-30
+            h-px
+            -translate-y-1/2
+            bg-black/90
+            shadow-[0_1px_2px_rgba(255,255,255,0.06)]
+          "
+        />
+
+
+        {/* =================================================
+            CENTER HIGHLIGHT
+        ================================================= */}
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            inset-x-0
+            top-1/2
+            z-40
+            h-px
+            -translate-y-[1px]
+            bg-cyan-400/10
+          "
+        />
+
+      </div>
+
+
+      {/* =================================================
+          FLIPPING TOP PANEL
+      ================================================= */}
+
+      {isFlipping && (
+        <>
+          <motion.div
+            key={`top-${oldDigit}-${digit}`}
+            initial={{
+              rotateX: 0,
+            }}
+            animate={{
+              rotateX: -90,
+            }}
+            transition={{
+              duration: 0.22,
+              ease: [0.4, 0, 1, 1],
+            }}
+            onAnimationComplete={() => {
+              setTimeout(() => {
+                setIsFlipping(false);
+              }, 90);
+            }}
+            className="
+              absolute
+              inset-x-0
+              top-0
+              z-50
+              h-1/2
+              origin-bottom
+              overflow-hidden
+              rounded-t-[4px]
+              border
+              border-slate-700/80
+              bg-gradient-to-b
+              from-slate-700
+              via-slate-800
+              to-slate-950
+              shadow-[0_5px_12px_rgba(0,0,0,0.45)]
+              md:rounded-t-[5px]
+            "
+            style={{
+              backfaceVisibility: "hidden",
+              transformStyle: "preserve-3d",
+            }}
+          >
+
+            <DigitText
+              digit={oldDigit}
+              position="top"
+            />
+
+          </motion.div>
+
+
+          {/* =================================================
+              NEW TOP PANEL
+          ================================================= */}
+
+          <motion.div
+            key={`new-top-${digit}-${oldDigit}`}
+            initial={{
+              rotateX: 90,
+            }}
+            animate={{
+              rotateX: 0,
+            }}
+            transition={{
+              delay: 0.19,
+              duration: 0.20,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="
+              absolute
+              inset-x-0
+              top-0
+              z-40
+              h-1/2
+              origin-bottom
+              overflow-hidden
+              rounded-t-[4px]
+              border
+              border-slate-700/80
+              bg-gradient-to-b
+              from-slate-800
+              via-slate-900
+              to-slate-950
+              md:rounded-t-[5px]
+            "
+            style={{
+              backfaceVisibility: "hidden",
+              transformStyle: "preserve-3d",
+            }}
+          >
+
+            <DigitText
+              digit={digit}
+              position="top"
+            />
+
+          </motion.div>
+
+
+          {/* =================================================
+              NEW BOTTOM FLAP
+          ================================================= */}
+
+          <motion.div
+            key={`bottom-${digit}-${oldDigit}`}
+            initial={{
+              rotateX: 90,
+            }}
+            animate={{
+              rotateX: 0,
+            }}
+            transition={{
+              delay: 0.19,
+              duration: 0.20,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="
+              absolute
+              inset-x-0
+              bottom-0
+              z-30
+              h-1/2
+              origin-top
+              overflow-hidden
+              rounded-b-[4px]
+              border
+              border-slate-700/80
+              bg-gradient-to-b
+              from-slate-950
+              via-slate-900
+              to-slate-800
+              md:rounded-b-[5px]
+            "
+            style={{
+              backfaceVisibility: "hidden",
+              transformStyle: "preserve-3d",
+            }}
+          >
+
+            <DigitText
+              digit={digit}
+              position="bottom"
+            />
+
+          </motion.div>
+        </>
+      )}
+
+
+      {/* =================================================
+          SUBTLE OUTER CYAN REFLECTION
+      ================================================= */}
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          z-[60]
+          rounded-[4px]
+          border
+          border-cyan-400/[0.10]
+          shadow-[inset_0_0_10px_rgba(0,210,235,0.035)]
+          md:rounded-[5px]
         "
       />
 
-
-      {/* B — UPPER RIGHT */}
-
-      <Segment
-        active={activeSegments.includes("b")}
-        className="
-          right-0
-          top-[4px]
-          h-[17px]
-          w-[4px]
-          md:top-[6px]
-          md:h-[26px]
-          md:w-[6px]
-        "
-      />
-
-
-      {/* C — LOWER RIGHT */}
-
-      <Segment
-        active={activeSegments.includes("c")}
-        className="
-          bottom-[4px]
-          right-0
-          h-[17px]
-          w-[4px]
-          md:bottom-[6px]
-          md:h-[26px]
-          md:w-[6px]
-        "
-      />
-
-
-      {/* D — BOTTOM */}
-
-      <Segment
-        active={activeSegments.includes("d")}
-        className="
-          bottom-0
-          left-[4px]
-          right-[4px]
-          h-[4px]
-          md:left-[6px]
-          md:right-[6px]
-          md:h-[6px]
-        "
-      />
-
-
-      {/* E — LOWER LEFT */}
-
-      <Segment
-        active={activeSegments.includes("e")}
-        className="
-          bottom-[4px]
-          left-0
-          h-[17px]
-          w-[4px]
-          md:bottom-[6px]
-          md:h-[26px]
-          md:w-[6px]
-        "
-      />
-
-
-      {/* F — UPPER LEFT */}
-
-      <Segment
-        active={activeSegments.includes("f")}
-        className="
-          left-0
-          top-[4px]
-          h-[17px]
-          w-[4px]
-          md:top-[6px]
-          md:h-[26px]
-          md:w-[6px]
-        "
-      />
-
-
-      {/* G — MIDDLE */}
-
-      <Segment
-        active={activeSegments.includes("g")}
-        className="
-          left-[4px]
-          right-[4px]
-          top-1/2
-          h-[4px]
-          -translate-y-1/2
-          md:left-[6px]
-          md:right-[6px]
-          md:h-[6px]
-        "
-      />
-
-    </motion.div>
+    </div>
   );
 }
 
 
 /* =======================================================
-   GLOWING SEGMENT
+   DIGIT TEXT
 ======================================================= */
 
-function Segment({
-  active,
-  className,
+function DigitText({
+  digit,
+  position,
 }: {
-  active: boolean;
-  className: string;
+  digit: string;
+  position: "top" | "bottom";
 }) {
 
   return (
-    <motion.span
+    <div
       className={`
         absolute
-        rounded-[2px]
-        ${className}
+        left-0
+        flex
+        w-full
+        items-center
+        justify-center
+        font-sans
+        text-[32px]
+        font-medium
+        leading-none
+        tracking-[-0.04em]
+        text-slate-200
+        md:text-[48px]
+
+        ${
+          position === "top"
+            ? "top-0 h-[200%]"
+            : "bottom-0 h-[200%]"
+        }
       `}
-
-      animate={{
-        opacity: active ? 1 : 0.16,
+      style={{
+        textShadow: `
+          0 0 5px rgba(34,211,238,0.20),
+          0 0 12px rgba(34,211,238,0.08)
+        `,
       }}
-
-      transition={{
-        duration: 0.25,
-      }}
-
-      style={
-        active
-          ? {
-              background:
-                "linear-gradient(90deg, rgba(34,211,238,0.72), rgba(103,232,249,0.92), rgba(34,211,238,0.72))",
-
-              boxShadow:
-                `
-                0 0 3px rgba(34,211,238,0.90),
-                0 0 8px rgba(34,211,238,0.60),
-                0 0 17px rgba(34,211,238,0.32),
-                0 0 28px rgba(34,211,238,0.12)
-                `,
-            }
-          : {
-              background:
-                "rgba(8,47,73,0.30)",
-            }
-      }
-    />
+    >
+      {digit}
+    </div>
   );
 }

@@ -87,7 +87,7 @@ export function TeamAuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setIsTeam(false);
     setTeamId(null);
-    window.location.replace("/");
+    window.location.replace("/team/login");
   };
 
   return (

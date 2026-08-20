@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { Loader2, XCircle, ArrowLeft, AlertCircle } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { Loader2, AlertCircle, Home, RotateCcw } from "lucide-react";
+import TeamPortalLayout from "@/components/TeamPortalLayout";
 import Reveal from "@/components/Reveal";
 import { useTeamAuth } from "@/hooks/TeamAuthContext";
 import { teamSupabase as supabase } from "@/services/supabase";
@@ -10,11 +9,14 @@ import { teamSupabase as supabase } from "@/services/supabase";
 type TeamData = {
   team_id: string;
   team_name: string;
+  contact: string | null;
+  team_size: number;
+  amount: number | null;
   payment_status: "PENDING" | "PAID" | "FAILED";
 };
 
 export default function TeamPaymentFailed() {
-  const { session, isTeam, loading: authLoading } = useTeamAuth();
+  const { session, isTeam, teamId, loading: authLoading } = useTeamAuth();
   
   const [data, setData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,9 +32,11 @@ export default function TeamPaymentFailed() {
     (async () => {
       try {
         if (!supabase) throw new Error("Supabase client not initialized.");
+        if (!teamId) throw new Error("Team identity not resolved.");
         const { data: teamData, error: fetchError } = await supabase
           .from("shortlisted_teams")
-          .select("team_id, team_name, payment_status")
+          .select("team_id, team_name, contact, team_size, amount, payment_status")
+          .eq("team_id", teamId)
           .single();
 
         if (fetchError) throw fetchError;
@@ -50,17 +54,15 @@ export default function TeamPaymentFailed() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, session, isTeam]);
+  }, [authLoading, session, isTeam, teamId]);
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-void flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+      <TeamPortalLayout>
+        <div className="flex-1 flex items-center justify-center">
           <Loader2 className="animate-spin text-lumen" size={32} />
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </TeamPortalLayout>
     );
   }
 
@@ -70,63 +72,79 @@ export default function TeamPaymentFailed() {
   }
 
   return (
-    <div className="min-h-screen bg-void flex flex-col relative noise overflow-hidden">
-      <div className="absolute inset-0 bg-grid [background-size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)] pointer-events-none" />
-      <Navbar />
-
-      <main className="flex-1 pt-32 pb-20 px-6 relative z-10 flex justify-center items-center">
-        <div className="w-full max-w-lg">
+    <TeamPortalLayout>
+      <div className="flex-1 flex justify-center items-center px-6 pt-16 pb-4">
+        <div className="w-full max-w-xl">
           <Reveal>
-            <div className="glass rounded-2xl p-8 md:p-10 border-ember/20 bg-ember/[0.02]">
-              <div className="flex justify-center mb-8">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-ember/20 blur-xl rounded-full" />
-                  <div className="h-20 w-20 rounded-full bg-ember/10 border border-ember/30 flex items-center justify-center relative z-10">
-                    <XCircle size={40} className="text-ember" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-center mb-8">
-                <div className="eyebrow text-ember mb-3">Payment Return</div>
-                <h1 className="font-display text-3xl tracking-tight mb-4">Payment Attempt Unsuccessful</h1>
-                <p className="text-muted text-base">
-                  We couldn't confirm this payment attempt.
+            <div className="card-team border-red-500/50 shadow-[0_0_45px_-10px_rgba(239,68,68,0.45)] p-8 md:p-10">
+              <div className="text-center mb-6">
+                <h1 className="font-display text-2xl tracking-tight">Payment Summary</h1>
+                <p className="text-red-400 text-sm font-medium mt-2">
+                  Please try again
                 </p>
               </div>
 
               {data && (
-                <div className="bg-surface/50 border border-line rounded-xl p-5 mb-8">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-muted">Team ID</span>
-                    <span className="font-mono text-lumen">{data.team_id}</span>
+                <div className="bg-surface/50 border border-line rounded-xl p-4 mb-6 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted">Team ID</span>
+                    <span className="font-mono text-sm text-lumen">{data.team_id}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted">Team Name</span>
-                    <span className="text-fg">{data.team_name}</span>
+                    <span className="text-xs text-muted">Team Name</span>
+                    <span className="text-sm text-fg">{data.team_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted">Team Size</span>
+                    <span className="text-sm text-fg">{data.team_size} Members</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted">Team Lead Contact</span>
+                    <span className="text-sm text-fg break-all">{data.contact ?? "—"}</span>
+                  </div>
+
+                  <div className="mt-2 rounded-lg border border-red-500/25 bg-red-500/[0.06] px-4 py-3">
+                    <span className="text-xs text-muted block mb-1">Amount</span>
+                    <span className="font-mono text-lg text-red-400 font-semibold">
+                      {data.amount != null ? `₹${data.amount}` : "—"}
+                    </span>
                   </div>
                 </div>
               )}
 
-              <div className="bg-surface/50 border border-line rounded-xl p-4 flex gap-3 mb-8">
-                <AlertCircle size={20} className="text-muted shrink-0 mt-0.5" />
-                <div className="text-sm text-muted">
+              <div className="bg-surface/50 border border-line rounded-xl p-4 flex gap-3 mb-6">
+                <AlertCircle size={18} className="text-muted shrink-0 mt-0.5" />
+                <div className="text-xs text-muted">
                   Your final payment status will be reflected once the payment is verified in the SPECATHON payment system.
                 </div>
               </div>
 
-              <div className="flex justify-center">
-                <Link to="/team/payment" className="btn-secondary">
-                  <ArrowLeft size={18} />
-                  Return to Dashboard
+              <div className="flex flex-col sm:flex-row sm:justify-center gap-3">
+                <button
+                  type="button"
+                  className="btn-primary justify-center"
+                  onClick={() => {
+                    window.location.href = "https://smartpay.easebuzz.in/164413/764b0bbbb16b4e9295588536353e7e7b";
+                  }}
+                >
+                  Retry Payment
+                  <RotateCcw size={16} />
+                </button>
+
+                <Link to="/" className="btn-ghost justify-center">
+                  <Home size={16} />
+                  Return to Home Page
                 </Link>
               </div>
+
+              <p className="mt-4 text-center text-xs text-muted">
+                If any queries, contact our{" "}
+                <Link to="/#contact" className="text-cyan-400 hover:underline">Organizers</Link>.
+              </p>
             </div>
           </Reveal>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </TeamPortalLayout>
   );
 }
