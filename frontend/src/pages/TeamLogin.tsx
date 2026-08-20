@@ -85,7 +85,13 @@ export default function TeamLogin() {
                 placeholder="        "
               />
                         <div className="flex justify-center mt-2">
-            <Turnstile siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY} onSuccess={setTurnstileToken} />
+            {import.meta.env.VITE_TURNSTILE_SITE_KEY ? (
+  <Turnstile siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY as string} onSuccess={setTurnstileToken} />
+) : (
+  <div className="flex h-[65px] items-center justify-center rounded-lg border border-dashed border-ember/30 bg-ember/5 text-sm text-ember w-full">
+    <span>VITE_TURNSTILE_SITE_KEY is not configured locally.</span>
+  </div>
+)}
           </div>
           <button
                 type="button"
