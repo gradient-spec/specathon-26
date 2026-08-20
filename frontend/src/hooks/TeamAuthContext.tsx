@@ -7,7 +7,7 @@ type TeamAuthState = {
   loading: boolean;
   isTeam: boolean;
   teamId: string | null;
-  signInTeam: (teamId: string, password: string) => Promise<void>;
+  signInTeam: (teamId: string, password: string, turnstileToken: string) => Promise<void>;
   signOutTeam: () => Promise<void>;
 };
 
@@ -63,11 +63,22 @@ export function TeamAuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }
 
-  const signInTeam = async (id: string, password: string) => {
+  const signInTeam = async (id: string, password: string, turnstileToken: string) => {
     if (!supabase) throw new Error("Supabase not configured.");
-    const syntheticEmail = `${id.toLowerCase()}@teams.specathon.in`;
-    const { error } = await supabase.auth.signInWithPassword({ email: syntheticEmail, password });
-    if (error) throw error;
+    const { data, error } = await supabase.functions.invoke('team-login', {
+      body: { teamId: id, password, turnstileToken }
+    });
+    if (error) throw new Error(error.message);
+    if (data?.error) throw new Error(data.error);
+    if (data?.session) {
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+      if (sessionError) throw sessionError;
+    } else {
+      throw new Error("Invalid server response.");
+    }
   };
 
   const signOutTeam = async () => {

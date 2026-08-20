@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, Users, LogIn, Eye, EyeOff } from "lucide-react";
 import { useTeamAuth } from "@/hooks/TeamAuthContext";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function TeamLogin() {
   const { signInTeam, session, isTeam, teamId, loading } = useTeamAuth();
@@ -12,6 +13,7 @@ export default function TeamLogin() {
   const [show, setShow] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   // If already logged in as a team, redirect to their shortlist dashboard
   if (!loading && session && isTeam && teamId) {
@@ -23,7 +25,8 @@ export default function TeamLogin() {
     setErr(null);
     setBusy(true);
     try {
-      await signInTeam(teamIdInput.trim(), password);
+      if (!turnstileToken) throw new Error("Please complete the security check.");
+      await signInTeam(teamIdInput.trim(), password, turnstileToken);
       // Wait for session state to update naturally, but we can preemptively route:
       nav(`/team/payment`, { replace: true });
     } catch (e) {
@@ -81,7 +84,10 @@ export default function TeamLogin() {
                 className="field pr-11"
                 placeholder="        "
               />
-              <button
+                        <div className="flex justify-center mt-2">
+            <Turnstile siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY} onSuccess={setTurnstileToken} />
+          </div>
+          <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
                 aria-label={show ? "Hide password" : "Show password"}
