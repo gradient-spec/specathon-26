@@ -58,21 +58,16 @@ export default function CameraCard({
       initial={{ opacity: 0, y: 14, rotate: CARD_TILT }}
       animate={{ opacity: 1, y: 0, rotate: CARD_TILT, scale: justCaptured ? 1.006 : 1 }}
       transition={{ duration: 0.7, ease: EASE }}
-      className="relative w-full max-w-[350px] rounded-[24px] px-3.5 pt-3 pb-4 sm:px-4 sm:pt-3.5 sm:pb-5 transition-colors duration-500"
+      className="relative z-10 w-full max-w-[350px] rounded-[24px] px-3.5 pt-3 pb-4 sm:px-4 sm:pt-3.5 sm:pb-5 transition-colors duration-500"
       style={{
         backgroundColor: safeFrame.paper,
+        opacity: 1,
         color: safeFrame.ink,
         boxShadow:
           '0 30px 60px -20px rgba(0,0,0,0.6), 0 10px 24px -12px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(0,0,0,0.04)',
       }}
     >
       <div className="grain-overlay rounded-[24px]" />
-
-      {/* A clean strip of tape pinning the print down */}
-      <div
-        className="absolute -top-3 left-1/2 -translate-x-1/2 w-20 h-7 bg-white/50 border border-white/70 backdrop-blur-[1px] shadow-sm"
-        style={{ transform: 'translateX(-50%)' }}
-      />
 
       {/* Logos - printed on the paper, top of the card */}
       <div className="relative z-10 flex items-center justify-between mb-2.5 px-1 pt-1">

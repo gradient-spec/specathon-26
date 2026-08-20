@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { Loader2, Users, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { Loader2, CreditCard, CheckCircle2, AlertCircle, Home } from "lucide-react";
+import TeamPortalLayout from "@/components/TeamPortalLayout";
 import Reveal from "@/components/Reveal";
+import TeamLogoutButton from "@/components/TeamLogoutButton";
 import { useTeamAuth } from "@/hooks/TeamAuthContext";
 import { teamSupabase as supabase } from "@/services/supabase";
 
@@ -18,7 +18,7 @@ type TeamData = {
 };
 
 export default function TeamDashboard() {
-  const { session, isTeam, loading: authLoading } = useTeamAuth();
+  const { session, isTeam, teamId, loading: authLoading } = useTeamAuth();
   
   const [data, setData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,9 +35,11 @@ export default function TeamDashboard() {
     (async () => {
       try {
         if (!supabase) throw new Error("Supabase client not initialized.");
+        if (!teamId) throw new Error("Team identity not resolved.");
         const { data: teamData, error: fetchError } = await supabase
           .from("shortlisted_teams")
           .select("team_id, team_name, team_lead_name, team_size, amount, payment_status")
+          .eq("team_id", teamId)
           .single();
 
         if (fetchError) throw fetchError;
@@ -58,17 +60,15 @@ export default function TeamDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, session, isTeam]);
+  }, [authLoading, session, isTeam, teamId]);
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-void flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+      <TeamPortalLayout>
+        <div className="flex-1 flex items-center justify-center">
           <Loader2 className="animate-spin text-lumen" size={32} />
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </TeamPortalLayout>
     );
   }
 
@@ -78,147 +78,135 @@ export default function TeamDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-void flex flex-col relative noise overflow-hidden">
-      <div className="absolute inset-0 bg-grid [background-size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)] pointer-events-none" />
-      <Navbar />
-
-      <main className="flex-1 pt-32 pb-20 px-6 relative z-10 flex justify-center">
-        <div className="w-full max-w-3xl">
+    <TeamPortalLayout>
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-4">
+        <div className="w-full max-w-5xl">
           <Reveal>
-            <div className="flex items-center gap-3 mb-10">
-              <div className="h-12 w-12 rounded-xl bg-lumen/15 border border-lumen/30 flex items-center justify-center">
-                <Users size={20} className="text-lumen" />
+            <div className="card-team p-10 md:p-12">
+              <div className="mb-7">
+                <h1 className="font-display text-xl md:text-2xl tracking-tightest text-center md:text-left">Team Portal</h1>
               </div>
-              <div>
-                <h1 className="font-display text-3xl tracking-tightest">Team Portal</h1>
-                <p className="text-muted text-sm mt-1">Manage your team's payment and registration</p>
-              </div>
-            </div>
-          </Reveal>
 
-          {error ? (
-            <Reveal delay={0.1}>
-              <div className="glass rounded-2xl p-8 border-ember/30 bg-ember/[0.05]">
-                <div className="flex items-start gap-4">
-                  <AlertCircle className="text-ember shrink-0 mt-1" size={24} />
+              {error ? (
+                <div className="flex items-start gap-3 rounded-xl border border-ember/30 bg-ember/[0.05] p-5">
+                  <AlertCircle className="text-ember shrink-0 mt-0.5" size={22} />
                   <div>
-                    <h3 className="text-lg font-medium text-ember">Failed to load data</h3>
-                    <p className="text-ember/80 mt-1">{error}</p>
-                    <p className="text-sm text-ember/60 mt-4">
+                    <h3 className="text-base font-medium text-ember">Failed to load data</h3>
+                    <p className="text-ember/80 text-sm mt-1">{error}</p>
+                    <p className="text-xs text-ember/60 mt-2">
                       Please ensure your team is provisioned and contact support if this persists.
                     </p>
                   </div>
                 </div>
-              </div>
-            </Reveal>
-          ) : data ? (
-            <div className="space-y-6">
-              <Reveal delay={0.1}>
-                <div className="glass rounded-2xl p-6 md:p-8">
-                  <h2 className="text-xl font-medium text-fg mb-6">Team Details</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
-                    <div>
-                      <div className="eyebrow mb-1">Team ID</div>
-                      <div className="text-lg font-mono text-lumen">{data.team_id}</div>
-                    </div>
-                    <div>
-                      <div className="eyebrow mb-1">Team Name</div>
-                      <div className="text-lg text-fg">{data.team_name}</div>
-                    </div>
-                    <div>
-                      <div className="eyebrow mb-1">Team Lead</div>
-                      <div className="text-lg text-fg">{data.team_lead_name}</div>
-                    </div>
-                    <div>
-                      <div className="eyebrow mb-1">Team Size</div>
-                      <div className="text-lg text-fg">{data.team_size} Members</div>
-                    </div>
-                  </div>
-                </div>
-              </Reveal>
-
-              <Reveal delay={0.2}>
-                <div className="glass rounded-2xl p-6 md:p-8">
-                  <h2 className="text-xl font-medium text-fg mb-6">Payment Status</h2>
-                  
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-surface/30 rounded-xl p-6 border border-line">
-                    <div>
-                      <div className="eyebrow mb-1">Amount Due</div>
-                      <div className="font-display text-4xl text-lumen">
-                        {data.amount != null ? `₹${data.amount}` : "Pending Calculation"}
+              ) : data ? (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xs uppercase tracking-[0.2em] text-muted mb-4">Team Details</h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-8">
+                      <div>
+                        <div className="eyebrow !text-[11px] mb-1">Team ID</div>
+                        <div className="text-base font-mono text-lumen">{data.team_id}</div>
+                      </div>
+                      <div>
+                        <div className="eyebrow !text-[11px] mb-1">Team Name</div>
+                        <div className="text-base text-fg">{data.team_name}</div>
+                      </div>
+                      <div>
+                        <div className="eyebrow !text-[11px] mb-1">Team Lead</div>
+                        <div className="text-base text-fg">{data.team_lead_name}</div>
+                      </div>
+                      <div>
+                        <div className="eyebrow !text-[11px] mb-1">Team Size</div>
+                        <div className="text-base text-fg">{data.team_size} Members</div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="h-px w-full md:h-16 md:w-px bg-line" />
+                  <div className="h-px bg-line" />
 
-                    <div className="flex-1">
-                      {data.payment_status === "PENDING" && (
-                        <div>
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-4">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                            Payment Required
-                          </div>
-                          <button
-                            type="button"
-                            className="btn-primary w-full justify-center"
-                            onClick={() => {
-                              // Placeholder action
-                              window.location.href = "https://smartpay.easebuzz.in/164413/95d992d915e94ec8893b2ab6cce3477e";
-                            }}
-                          >
-                            <CreditCard size={18} />
-                            Proceed to Payment →
-                          </button>
+                  <div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 bg-surface/30 rounded-xl p-5 md:p-6 border border-line">
+                      <div className="text-right md:text-left">
+                        <div className="eyebrow !text-[11px] mb-1">Amount Due</div>
+                        <div className="font-display text-3xl text-lumen">
+                          {data.amount != null ? `₹${data.amount}` : "Pending Calculation"}
                         </div>
-                      )}
+                      </div>
 
-                      {data.payment_status === "PAID" && (
-                        <div>
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald/10 border border-emerald/20 text-emerald text-sm font-medium mb-3">
-                            <CheckCircle2 size={16} />
-                            PAYMENT CONFIRMED
-                          </div>
-                          <p className="text-sm text-muted">
-                            Your team's payment has already been recorded. No further action is required.
-                          </p>
-                          <Link to="/team/spin" className="btn-primary w-full justify-center mt-4">
-                            Access Spin Wheel
-                          </Link>
-                        </div>
-                      )}
+                      <div className="h-px w-full md:h-14 md:w-px bg-line" />
 
-                      {data.payment_status === "FAILED" && (
-                        <div>
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/10 border border-ember/20 text-ember text-sm font-medium mb-4">
-                            <AlertCircle size={16} />
-                            Payment Failed
+                      <div className="flex-1">
+                        {data.payment_status === "PENDING" && (
+                          <div>
+                            <button
+                              type="button"
+                              className="btn-primary w-full justify-center"
+                              onClick={() => {
+                                // Placeholder action
+                                window.location.href = "https://smartpay.easebuzz.in/164413/764b0bbbb16b4e9295588536353e7e7b";
+                              }}
+                            >
+                              <CreditCard size={16} />
+                              Proceed to Payment →
+                            </button>
                           </div>
-                          <p className="text-sm text-ember/80 mb-4">
-                            Your previous payment attempt was unsuccessful. Please try again.
-                          </p>
-                          <button
-                            type="button"
-                            className="btn-primary w-full justify-center"
-                            onClick={() => {
-                              window.location.href = "https://smartpay.easebuzz.in/164413/95d992d915e94ec8893b2ab6cce3477e";
-                            }}
-                          >
-                            <CreditCard size={18} />
-                            Retry Payment →
-                          </button>
-                        </div>
-                      )}
+                        )}
+
+                        {data.payment_status === "PAID" && (
+                          <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald/10 border border-emerald/20 text-emerald text-xs font-medium mb-2">
+                              <CheckCircle2 size={14} />
+                              PAYMENT CONFIRMED
+                            </div>
+                            <p className="text-xs text-muted">
+                              Your team's payment has already been recorded. No further action is required.
+                            </p>
+                            <Link to="/team/spin" className="btn-primary w-full justify-center mt-3">
+                              Access Spin Wheel
+                            </Link>
+                          </div>
+                        )}
+
+                        {data.payment_status === "FAILED" && (
+                          <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ember/10 border border-ember/20 text-ember text-xs font-medium mb-3">
+                              <AlertCircle size={14} />
+                              Payment Failed
+                            </div>
+                            <p className="text-xs text-ember/80 mb-3">
+                              Your previous payment attempt was unsuccessful. Please try again.
+                            </p>
+                            <button
+                              type="button"
+                              className="btn-primary w-full justify-center"
+                              onClick={() => {
+                                window.location.href = "https://smartpay.easebuzz.in/164413/764b0bbbb16b4e9295588536353e7e7b";
+                              }}
+                            >
+                              <CreditCard size={16} />
+                              Retry Payment →
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </Reveal>
+              ) : null}
             </div>
-          ) : null}
-        </div>
-      </main>
+          </Reveal>
 
-      <Footer />
-    </div>
+          {/* Below the card — Return to Home (left) / Logout (right), same line on desktop */}
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <Link to="/" className="btn-ghost justify-center shrink-0 !text-xs !py-1.5 !px-3">
+              <Home size={13} />
+              Return to Home
+            </Link>
+            <TeamLogoutButton />
+          </div>
+        </div>
+      </div>
+    </TeamPortalLayout>
   );
 }
 

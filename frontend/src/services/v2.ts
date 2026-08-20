@@ -62,6 +62,41 @@ export async function fetchShortlistedTeams(
   return body.teams ?? [];
 }
 
+// ── shortlisted-teams: exact Team ID lookup (public shortlist search) ──────────
+
+export type ShortlistLookupResult =
+  | { state: "shortlisted"; team: ShortlistedTeam }
+  | { state: "not_shortlisted" }
+  | { state: "not_registered" };
+
+/**
+ * Looks up a single Team ID against the real shortlisted_teams /
+ * teams tables (via the shortlisted-teams Edge Function's teamId= mode).
+ * Never returns payment_status, payment_notes, paid_at, amount or contact —
+ * those columns are not selected by the Edge Function at all.
+ */
+export async function checkShortlistStatus(teamId: string): Promise<ShortlistLookupResult> {
+  const url = new URL(edgeUrl("shortlisted-teams"));
+  url.searchParams.set("teamId", teamId.trim());
+
+  const res  = await fetch(url.toString(), { method: "GET", headers: headers() });
+  const body = await res.json() as {
+    success: boolean;
+    state?: "shortlisted" | "not_shortlisted" | "not_registered";
+    team?: ShortlistedTeam;
+    message?: string;
+  };
+
+  if (!res.ok || !body.success || !body.state) {
+    throw new Error(body.message ?? `Lookup failed (${res.status}).`);
+  }
+
+  if (body.state === "shortlisted" && body.team) {
+    return { state: "shortlisted", team: body.team };
+  }
+  return { state: body.state === "shortlisted" ? "not_registered" : body.state };
+}
+
 // ── validate-team ─────────────────────────────────────────────────────────────
 
 export type ValidatedTeam = {

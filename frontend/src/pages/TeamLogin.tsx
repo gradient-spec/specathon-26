@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, Users, LogIn, Eye, EyeOff } from "lucide-react";
 import { useTeamAuth } from "@/hooks/TeamAuthContext";
+import TeamPortalLayout from "@/components/TeamPortalLayout";
 
 export default function TeamLogin() {
   const { signInTeam, session, isTeam, teamId, loading } = useTeamAuth();
@@ -34,11 +35,8 @@ export default function TeamLogin() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-void px-6 noise overflow-hidden">
-      <div className="absolute inset-0 bg-grid [background-size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)] pointer-events-none" />
-      <div className="absolute -top-40 -left-40 h-[400px] w-[400px] rounded-full bg-plasma/20 blur-[120px] pointer-events-none animate-float" />
-      <div className="absolute -bottom-40 -right-40 h-[400px] w-[400px] rounded-full bg-lumen/10 blur-[120px] pointer-events-none animate-float [animation-delay:2s]" />
-
+    <TeamPortalLayout>
+      <div className="flex-1 flex items-center justify-center px-6 pt-16">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -50,7 +48,7 @@ export default function TeamLogin() {
             <Users size={16} className="text-lumen" />
           </div>
           <div>
-            <div className="eyebrow">SPECATHON  Team Portal</div>
+            <div className="eyebrow">SPECATHON Team Portal</div>
             <div className="font-display text-2xl tracking-tightest">Team Login</div>
           </div>
         </div>
@@ -109,7 +107,8 @@ export default function TeamLogin() {
         </form>
 
       </motion.div>
-    </div>
+      </div>
+    </TeamPortalLayout>
   );
 }
 

@@ -72,25 +72,28 @@ export default function Hero() {
           transition={{ delay: 2.6, duration: 0.7 }}
           className="mt-6 max-w-2xl font-display text-base md:text-xl text-slate-200 leading-relaxed tracking-tight"
         >
-          Registrations Closed -{" "}
-          <span className="text-plasma font-semibold">Teams Shortlisted!</span>{" "}
-        
+          Registrations Closed{" "}
+          <span className="text-slate-400">·</span>{" "}
+          <span className="text-plasma font-bold">The Shortlist Is Live</span>
         </motion.p>
 
         {/* Message to shortlisted + unselected teams — high contrast, stands out over the watermark */}
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.0, duration: 0.6 }}
-          className="my-6 max-w-2xl text-lg md:text-xl font-medium text-slate-100 leading-relaxed"
-        >
-          Congratulations to all the{" "}
-          <span className="font-semibold bg-gradient-to-r from-lumen to-emerald-400 bg-clip-text text-transparent">
-            shortlisted teams
-          </span>{" "}
-          — you have come a long way! To all registered teams who didn't make the cut this time,
-          thank you for participating and better luck next time.
-        </motion.p>
+  <motion.p
+  initial={{ opacity: 0, y: 12 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 3.0, duration: 0.6 }}
+  className="my-6 max-w-2xl text-lg md:text-xl font-medium text-slate-100 leading-relaxed"
+>
+  Congratulations to all the teams who made the cut—you’ve earned your place among the brightest ideas at{" "}
+  <span className="font-playfair text-[#2997B3]">
+    SPECATHON 2026
+  </span>
+  . To everyone who didn’t make the list this time, keep going. Your idea still has the power to make an impact.
+
+  {/* <span className="font-playfair">
+    Keep creating. Keep challenging. Keep believing.
+  </span> */}
+</motion.p>
 
         {/* Primary CTA */}
         <motion.div

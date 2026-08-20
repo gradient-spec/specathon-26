@@ -179,6 +179,14 @@ html {
   .glass {
     @apply bg-panel/60 backdrop-blur-xl border border-line/70;
   }
+  /* Team Portal card surface — dark glass with a thin cyan outline and a
+     soft cyan glow, so the homepage starry background is subtly visible
+     through it. Shared across /team/payment, /team/payment/success and
+     /team/payment/failed for one consistent card language. */
+  .card-team {
+    @apply bg-slate-950/40 backdrop-blur-2xl border border-cyan-400/20 rounded-2xl;
+    box-shadow: 0 0 40px -18px rgba(0, 242, 254, 0.18);
+  }
   .hairline {
     @apply border-t border-line/70;
   }

@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, CheckCircle2, Loader2, Users, Ticket,
@@ -11,6 +12,7 @@ import {
   paymentService,
   type MockTeam,
 } from "@/services/mockShortlist";
+import type { ShortlistedTeam } from "@/services/v2";
 
 /* Display metadata (domain + members) keyed to the mock teams. The mock's
    `amount` already equals ₹400 × team size, so the on-screen breakdown and the
@@ -38,15 +40,15 @@ function metaFor(team: MockTeam) {
 
 export default function ShortlistPortal() {
   const [view, setView] = useState<View>({ kind: "idle" });
+  const navigate = useNavigate();
 
   // Handed off from ShortlistTerminal once the verification reveal's CTA is
-  // clicked — routes straight into the existing payment / QR-pass flow.
-  const onConfirmSeat = (team: MockTeam) => {
-    if (team.payment_status === "paid") {
-      setView({ kind: "confirmed", team, txnId: team.transaction_id ?? "—" });
-    } else {
-      setView({ kind: "shortlisted", team });
-    }
+  // clicked. The public search no longer has access to payment_status (it's
+  // not exposed by the real shortlisted-teams data source), so every
+  // confirmed seat routes to Team Login — payment state is only known once
+  // the team authenticates.
+  const onConfirmSeat = (_team: ShortlistedTeam) => {
+    navigate("/team/login");
   };
 
   const pay = (team: MockTeam) => {
@@ -68,7 +70,7 @@ export default function ShortlistPortal() {
   };
 
   return (
-    <section id="shortlist-portal" className="relative py-8 md:py-10 scroll-mt-20">
+    <section id="shortlist-portal" className="relative py-12 md:py-10 scroll-mt-20">
       <div className="mx-auto px-6 md:px-10">
         {/* Verification widget — search, live "database check", congrats reveal */}
         <ShortlistTerminal onConfirmSeat={onConfirmSeat} />

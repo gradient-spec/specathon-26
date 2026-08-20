@@ -22,6 +22,7 @@
     "specathon-2026": "file:"
   },
   "devDependencies": {
+    "supabase": "^2.114.0",
     "vitest": "^4.1.10"
   }
 }

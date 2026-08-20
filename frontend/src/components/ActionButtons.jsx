@@ -30,8 +30,8 @@ function TileButton({ icon: Icon, label, onClick, disabled, busy, accent = 'viol
       whileTap={disabled ? {} : { scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 400, damping: 24 }}
       className={`
-        relative overflow-hidden flex flex-col items-center justify-center gap-1.5
-        w-[84px] h-[76px] sm:w-[100px] sm:h-[86px] rounded-2xl border-[1.5px]
+        relative overflow-hidden flex flex-col items-center justify-center gap-1
+        w-[62px] h-[58px] sm:w-[74px] sm:h-[66px] rounded-xl border-[1.5px]
         bg-white/[0.03] backdrop-blur-md transition-colors duration-300 cursor-pointer
         disabled:opacity-30 disabled:cursor-not-allowed
         focus-visible:outline-none
@@ -49,9 +49,9 @@ function TileButton({ icon: Icon, label, onClick, disabled, busy, accent = 'viol
         />
       ))}
       {busy ? (
-        <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.75} />
+        <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
       ) : (
-        <Icon className="w-5 h-5" strokeWidth={1.75} />
+        <Icon className="w-4 h-4" strokeWidth={1.75} />
       )}
       <span className="text-[10px] tracking-[0.1em] uppercase text-slate-300">{label}</span>
     </motion.button>
@@ -81,7 +81,7 @@ export default function ActionButtons({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2, ease: EASE }}
-      className="flex items-center justify-center gap-3 sm:gap-4"
+      className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 w-full"
     >
       <TileButton icon={PanelsTopLeft} label="Frame" onClick={onChangeFrame} accent="violet" />
       {hasPhoto ? (

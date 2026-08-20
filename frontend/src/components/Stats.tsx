@@ -4,9 +4,9 @@ import Reveal from "./Reveal";
 
 /* Highlights — count-up metrics that animate when the section enters view. */
 const STATS = [
-  { prefix: "", to: 50, suffix: "K+", label: "Impressions on Unstop" },
+  { prefix: "", to: 80, suffix: "K+", label: "Impressions on Unstop" },
   { prefix: "", to: 60, suffix: "K", label: "Prize Pool" },
-  { prefix: "", to: 500, suffix: "+", label: "Participants" },
+  { prefix: "", to: 1, suffix: "K+", label: "Abstracts Received" },
   { prefix: "", to: 5, suffix: "+", label: "Years of Legacy" },
 ];
 
@@ -45,6 +45,14 @@ export default memo(function Stats() {
   return (
     <section id="stats" className="relative py-6 md:py-8">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
+        <Reveal>
+          <div className="text-center mb-8 md:mb-10">
+            {/* <div className="eyebrow inline-flex items-center gap-2">SPECATHON 2026 · Current Edition</div> */}
+            <h2 className="mt-6 font-display text-4xl md:text-5xl leading-[1.05] tracking-tightest">
+              Stats for <span className="font-serif italic text-lumen">Specathon 2026</span>
+            </h2>
+          </div>
+        </Reveal>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
           {STATS.map((s, i) => (
             <Reveal key={s.label} delay={i * 0.08}>

@@ -83,9 +83,6 @@ export default function SocialMedia() {
               <h3 className="mt-1 font-display text-2xl md:text-3xl tracking-tight">
                 Social Media Handles
               </h3>
-              <p className="mt-1 text-muted text-xs md:text-sm">
-                Stay updated with official announcements, event photos, and competition results.
-              </p>
             </div>
           </Reveal>
 

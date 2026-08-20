@@ -49,8 +49,63 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // ?q=<search>  — optional, case-insensitive partial match on team_id or
   //                team_name. Absent or empty string returns all teams.
 
-  const url   = new URL(req.url);
-  const query = url.searchParams.get("q")?.trim() ?? "";
+  const url    = new URL(req.url);
+  const query  = url.searchParams.get("q")?.trim() ?? "";
+  const teamId = url.searchParams.get("teamId")?.trim() ?? "";
+
+  // ── Exact Team ID lookup (public shortlist search) ────────────────────────
+  // Distinguishes three states the caller cannot tell apart from a plain
+  // "not found": an invalid/unregistered Team ID, a real but not-yet-
+  // shortlisted registration, and a confirmed shortlisted team. Only the
+  // three approved public fields are ever selected — payment_status,
+  // payment_notes, paid_at, amount and contact are never queried here, so
+  // they cannot leak even by accident.
+  //
+  // Known limitation: "registered" is checked against public.teams, which
+  // only contains WEBSITE-channel registrations. Unstop-sourced teams that
+  // were not shortlisted have no record in this database at all, so they
+  // will be reported as "not_registered" rather than "not_shortlisted".
+  if (teamId.length > 0) {
+    try {
+      const db = createServiceClient();
+
+      const { data: shortlisted, error: shortlistError } = await db
+        .from("shortlisted_teams")
+        .select("team_id, team_name, team_lead_name")
+        .eq("team_id", teamId)
+        .maybeSingle();
+
+      if (shortlistError) {
+        console.error("[shortlisted-teams] DB error (shortlist lookup):", shortlistError);
+        return json({ success: false, message: "Failed to look up team." }, 500);
+      }
+
+      if (shortlisted) {
+        return json({ success: true, state: "shortlisted", team: shortlisted });
+      }
+
+      const { data: registered, error: teamsError } = await db
+        .from("teams")
+        .select("id")
+        .eq("reg_code", teamId)
+        .maybeSingle();
+
+      if (teamsError) {
+        console.error("[shortlisted-teams] DB error (registered lookup):", teamsError);
+        return json({ success: false, message: "Failed to look up team." }, 500);
+      }
+
+      if (registered) {
+        return json({ success: true, state: "not_shortlisted" });
+      }
+
+      return json({ success: true, state: "not_registered" });
+
+    } catch (err) {
+      console.error("[shortlisted-teams] Unexpected error:", err);
+      return json({ success: false, message: "Internal server error." }, 500);
+    }
+  }
 
   // ── Query shortlisted_teams ───────────────────────────────────────────────
   // Select ONLY the three approved public fields.
