@@ -5,7 +5,6 @@ import {
   ArrowRight,
   HelpCircle,
   RotateCcw,
-  Circle,
 } from "lucide-react";
 import {
   checkShortlistStatus,
@@ -293,22 +292,10 @@ export default function ShortlistTerminal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="relative p-8 md:p-10"
+            className="relative px-8 pb-8 pt-5 md:px-10 md:pb-10 md:pt-6"
           >
             {/* Scanline */}
             <div className="pointer-events-none absolute inset-x-0 top-0 h-16 scan-sweep bg-gradient-to-b from-cyan-400/10 via-cyan-400/0 to-transparent" />
-
-            {/* Terminal chrome */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Circle
-                  size={7}
-                  className="fill-cyan-400 text-cyan-400 animate-pulse"
-                />
-              </div>
-            </div>
-
-            <div className="h-px bg-slate-800 mb-4" />
 
             {/* Log lines */}
             <div className="font-mono text-[12.5px] leading-[1.9] min-h-[132px]">
