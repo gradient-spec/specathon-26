@@ -78,7 +78,7 @@ export default function TeamPaymentFailed() {
           <Reveal>
             <div className="card-team border-red-500/50 shadow-[0_0_45px_-10px_rgba(239,68,68,0.45)] p-8 md:p-10">
               <div className="text-center mb-6">
-                <h1 className="font-display text-2xl tracking-tight">Payment Summary</h1>
+                <h1 className="font-display text-2xl tracking-tight">Payment Unsuccessful</h1>
                 <p className="text-red-400 text-sm font-medium mt-2">
                   Please try again
                 </p>
