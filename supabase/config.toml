@@ -45,3 +45,7 @@ enabled    = true
 verify_jwt = true
 import_map = "./functions/sync-sheet/deno.json"
 entrypoint = "./functions/sync-sheet/index.ts"
+
+[functions.team-login]
+enabled    = true
+verify_jwt = false

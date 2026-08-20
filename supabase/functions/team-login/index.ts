@@ -3,7 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Redis } from "https://esm.sh/@upstash/redis@1.20.0";
 import { Ratelimit } from "https://esm.sh/@upstash/ratelimit@0.4.3";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
-import { encodeHex } from "https://deno.land/std@0.200.0/encoding/hex.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +12,7 @@ const corsHeaders = {
 async function hashString(str: string): Promise<string> {
   const data = new TextEncoder().encode(str + (Deno.env.get("IP_SALT") || "default_salt"));
   const hash = await crypto.subtle.digest("SHA-256", data);
-  return encodeHex(hash);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 
