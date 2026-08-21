@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Logo } from "./Logo";
 
 const links: { id: string; label: string }[] = [
@@ -270,16 +270,6 @@ export default function Navbar({
                 </motion.a>
               )}
             </AnimatePresence>
-
-            {!hideShortlist && (
-              <button
-                aria-label="Open menu"
-                onClick={() => setOpen(true)}
-                className="md:hidden text-fg p-2"
-              >
-                <Menu size={20} />
-              </button>
-            )}
           </div>
         </div>
       </motion.header>

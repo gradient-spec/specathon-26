@@ -13,6 +13,7 @@ import {
   type MockTeam,
 } from "@/services/mockShortlist";
 import type { ShortlistedTeam } from "@/services/v2";
+import { useTeamAuth } from "@/hooks/TeamAuthContext";
 
 /* Display metadata (domain + members) keyed to the mock teams. The mock's
    `amount` already equals ₹400 × team size, so the on-screen breakdown and the
@@ -41,14 +42,30 @@ function metaFor(team: MockTeam) {
 export default function ShortlistPortal() {
   const [view, setView] = useState<View>({ kind: "idle" });
   const navigate = useNavigate();
+  const { teamId: authenticatedTeamId, signOutTeam } = useTeamAuth();
 
   // Handed off from ShortlistTerminal once the verification reveal's CTA is
   // clicked. The public search no longer has access to payment_status (it's
   // not exposed by the real shortlisted-teams data source), so every
   // confirmed seat routes to Team Login — payment state is only known once
   // the team authenticates.
-  const onConfirmSeat = (_team: ShortlistedTeam) => {
-    navigate("/team/login");
+  //
+  // BUG FIX: the "currently authenticated team" and the "currently
+  // searched/selected team" are different concepts and must never be
+  // conflated. TeamLogin redirects an already-authenticated session
+  // straight to /team/payment without re-checking which team was just
+  // searched — so if a user is still signed in as e.g. TEST-002, searches
+  // for TEST-003, and clicks "Confirm Your Seat", navigating to
+  // /team/login alone would silently reuse the stale TEST-002 session
+  // instead of prompting for TEST-003. Sign out that stale session first
+  // whenever the selected team differs from the authenticated one, so the
+  // login form always applies to the team the user just selected.
+  const onConfirmSeat = async (team: ShortlistedTeam) => {
+    if (authenticatedTeamId && authenticatedTeamId !== team.team_id) {
+      await signOutTeam(); // performs its own redirect to /team/login
+      return;
+    }
+    navigate("/team/login", { state: { teamId: team.team_id } });
   };
 
   const pay = (team: MockTeam) => {

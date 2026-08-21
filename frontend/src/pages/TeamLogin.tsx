@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, Users, LogIn, Eye, EyeOff } from "lucide-react";
 import { useTeamAuth } from "@/hooks/TeamAuthContext";
@@ -9,7 +9,12 @@ import Particles from "@/components/Particles";
 export default function TeamLogin() {
   const { signInTeam, session, isTeam, teamId, loading } = useTeamAuth();
   const nav = useNavigate();
-  const [teamIdInput, setTeamIdInput] = useState("");
+  const location = useLocation();
+  // The shortlist "Confirm Your Seat" flow passes the just-selected team's
+  // ID here via route state, so the login form always applies to the team
+  // the user actually chose rather than whatever was last typed/left over.
+  const preselectedTeamId = (location.state as { teamId?: string } | null)?.teamId ?? "";
+  const [teamIdInput, setTeamIdInput] = useState(preselectedTeamId);
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -76,6 +81,11 @@ export default function TeamLogin() {
 
           <label className="block">
             <span className="eyebrow mb-2 block">Password</span>
+            {/* Relative wrapper scoped to ONLY the input, so the absolutely
+                positioned eye-toggle button centers on the input row itself
+                (previously the Turnstile widget lived inside this same
+                wrapper, which pushed the button's vertical center down to
+                the middle of input+widget combined instead of the input). */}
             <div className="relative">
               <input
                 required
@@ -86,16 +96,7 @@ export default function TeamLogin() {
                 className="field pr-11"
                 placeholder="        "
               />
-                        <div className="flex justify-center mt-2">
-            {import.meta.env.VITE_TURNSTILE_SITE_KEY ? (
-  <Turnstile siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY as string} onSuccess={setTurnstileToken} />
-) : (
-  <div className="flex h-[65px] items-center justify-center rounded-lg border border-dashed border-ember/30 bg-ember/5 text-sm text-ember w-full">
-    <span>VITE_TURNSTILE_SITE_KEY is not configured locally.</span>
-  </div>
-)}
-          </div>
-          <button
+              <button
                 type="button"
                 onClick={() => setShow((s) => !s)}
                 aria-label={show ? "Hide password" : "Show password"}
@@ -103,6 +104,16 @@ export default function TeamLogin() {
               >
                 {show ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
+            </div>
+
+            <div className="flex justify-center mt-2">
+              {import.meta.env.VITE_TURNSTILE_SITE_KEY ? (
+                <Turnstile siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY as string} onSuccess={setTurnstileToken} />
+              ) : (
+                <div className="flex h-[65px] items-center justify-center rounded-lg border border-dashed border-ember/30 bg-ember/5 text-sm text-ember w-full">
+                  <span>VITE_TURNSTILE_SITE_KEY is not configured locally.</span>
+                </div>
+              )}
             </div>
           </label>
 

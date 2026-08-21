@@ -80,7 +80,7 @@ export default function TeamPaymentSuccess() {
 
   return (
     <TeamPortalLayout>
-      <div className="flex-1 flex items-center justify-center px-6 pt-24 md:pt-16 pb-4">
+      <div className="flex-1 flex items-center justify-center px-6 pt-28 md:pt-16 pb-4">
         {/* 30% payment summary / 30% spin wheel / 40% intentionally empty */}
         {/*
           30/30/40 is an overall-screen-occupancy target, not three equal
