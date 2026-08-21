@@ -77,6 +77,11 @@ export default function TeamDashboard() {
     return <Navigate to="/team/login" replace />;
   }
 
+  // If the team has already paid, redirect them directly to the success page
+  if (data?.payment_status === "PAID") {
+    return <Navigate to="/team/payment/f82b7c4a1e9d3a2f" replace />;
+  }
+
   return (
     <TeamPortalLayout>
       <div className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-4">
@@ -149,21 +154,6 @@ export default function TeamDashboard() {
                               <CreditCard size={16} />
                               Proceed to Payment →
                             </button>
-                          </div>
-                        )}
-
-                        {data.payment_status === "PAID" && (
-                          <div>
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald/10 border border-emerald/20 text-emerald text-xs font-medium mb-2">
-                              <CheckCircle2 size={14} />
-                              PAYMENT CONFIRMED
-                            </div>
-                            <p className="text-xs text-muted">
-                              Your team's payment has already been recorded. No further action is required.
-                            </p>
-                            <Link to="/team/spin" className="btn-primary w-full justify-center mt-3">
-                              Access Spin Wheel
-                            </Link>
                           </div>
                         )}
 
