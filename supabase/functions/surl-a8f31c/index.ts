@@ -90,6 +90,30 @@ serve(async (req) => {
       user_agent: userAgent
     });
 
+    const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+    const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+    if (telegramBotToken && telegramChatId) {
+      const name = formData.get("firstname")?.toString() || "A team";
+      const udf1 = formData.get("udf1")?.toString();
+      const teamStr = udf1 ? ` (*Team ID:* \`${udf1}\`)` : "";
+      
+      const message = `🎉 *New Payment Received!* 🎉\n\n${name}${teamStr} has successfully completed their payment.\n\n*Amount:* ₹${(amount ? amount / 100 : 0)}\n*Txn ID:* \`${txnid}\``;
+      
+      try {
+        await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: message,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (err) {
+        console.error("Failed to send telegram notification", err);
+      }
+    }
+
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://specathon.in";
     const redirectUrl = `${frontendUrl}/team/payment/f82b7c4a1e9d3a2f`;
 
