@@ -43,7 +43,10 @@ export default function App() {
                 <Route path="/photobooth" element={<PhotoBoothPage />} />
 
                 {/* Team Authentication */}
-                <Route path="/team/login" element={<TeamLogin />} />`n                <Route path="/team/payment" element={<TeamDashboard />} />`n                <Route path="/team/payment/success" element={<TeamPaymentSuccess />} />`n                <Route path="/team/payment/failed" element={<TeamPaymentFailed />} />
+                <Route path="/team/login" element={<TeamLogin />} />
+                <Route path="/team/payment" element={<TeamDashboard />} />
+                <Route path="/team/payment/f82b7c4a1e9d3a2f" element={<TeamPaymentSuccess />} />
+                <Route path="/team/payment/x1y2z3a4b5c6d7e8" element={<TeamPaymentFailed />} />
 
                 {/* Admin */}
                 <Route path="/admin/login" element={<AdminLogin />} />

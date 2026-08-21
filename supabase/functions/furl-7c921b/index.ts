@@ -91,7 +91,7 @@ serve(async (req) => {
     });
 
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://specathon.in";
-    const redirectUrl = `${frontendUrl}/team/payment/failed`;
+    const redirectUrl = `${frontendUrl}/team/payment/x1y2z3a4b5c6d7e8`;
 
     const html = `
       <!DOCTYPE html>
