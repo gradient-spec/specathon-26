@@ -10,6 +10,7 @@ import {
   listPaymentEventsForTeam,
   updatePaymentNotes,
   provisionTeamCredentials,
+  markPaymentAsPaid,
   type ShortlistedTeamFull,
   type PaymentEvent,
 } from "@/services/admin";
@@ -412,6 +413,19 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
               // Also update the selected team so the current drawer reflects the save
               setSelected(prev => prev && prev.id === id ? { ...prev, payment_notes: notes || null } : prev);
             }}
+            onStatusUpdated={(id) => {
+              setState(prev =>
+                prev.kind === "ok"
+                  ? {
+                    ...prev,
+                    teams: prev.teams.map(t =>
+                      t.id === id ? { ...t, payment_status: "PAID", paid_at: new Date().toISOString() } : t
+                    ),
+                  }
+                  : prev
+              );
+              setSelected(prev => prev && prev.id === id ? { ...prev, payment_status: "PAID", paid_at: new Date().toISOString() } : prev);
+            }}
           />
         )}
       </AnimatePresence>
@@ -427,10 +441,12 @@ function PaymentDetailsDrawer({
   team,
   onClose,
   onNotesUpdated,
+  onStatusUpdated,
 }: {
   team: ShortlistedTeamFull;
   onClose: () => void;
   onNotesUpdated: (id: string, notes: string) => void;
+  onStatusUpdated: (id: string) => void;
 }) {
   const [events, setEvents] = useState<PaymentEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -463,6 +479,16 @@ function PaymentDetailsDrawer({
   };
 
   const handleReset = () => { setNotes(savedNotes); setSaveState("idle"); };
+
+  const handleMarkPaid = async () => {
+    if (!confirm("Are you sure you want to mark this team's payment as PAID manually?")) return;
+    try {
+      await markPaymentAsPaid(team.id);
+      onStatusUpdated(team.id);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to mark as paid");
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -562,7 +588,17 @@ function PaymentDetailsDrawer({
               </div>
               <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
                 <dt className="text-xs text-muted uppercase tracking-[0.18em] font-mono">Status</dt>
-                <dd><StatusBadge status={team.payment_status} /></dd>
+                <dd className="flex items-center gap-3">
+                  <StatusBadge status={team.payment_status} />
+                  {team.payment_status !== "PAID" && (
+                    <button
+                      onClick={handleMarkPaid}
+                      className="text-[10px] uppercase font-mono tracking-wider px-2 py-1 bg-plasma/15 border border-plasma/30 text-fg rounded hover:bg-plasma/25 transition-all"
+                    >
+                      Mark Paid
+                    </button>
+                  )}
+                </dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-xs text-muted uppercase tracking-[0.18em] font-mono">Paid At</dt>

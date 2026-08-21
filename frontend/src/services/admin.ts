@@ -242,6 +242,16 @@ export async function updatePaymentNotes(
   if (error) throw error;
 }
 
+export async function markPaymentAsPaid(
+  id: string
+): Promise<void> {
+  const { error } = await client()
+    .from("shortlisted_teams")
+    .update({ payment_status: "PAID", paid_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function logAudit(
   actor: string | null,
   action: string,

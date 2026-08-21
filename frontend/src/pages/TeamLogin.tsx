@@ -128,7 +128,7 @@ export default function TeamLogin() {
             disabled={busy}
             className="btn-primary w-full justify-center disabled:opacity-70"
           >
-            {busy ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
+            {busy ? <Loader2 size={16} className="spinner-crisp" /> : <LogIn size={16} />}
             {busy ? "Authenticating" : "Continue"}
           </button>
         </form>
