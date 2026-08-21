@@ -132,8 +132,8 @@ export default function TeamPaymentSuccess() {
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex gap-3 mb-6">
                 <Info size={18} className="text-blue-400 shrink-0 mt-0.5" />
                 <div className="text-xs text-blue-100/80">
-                  <span className="font-medium text-yellow-400 block mb-1">Awaiting Payment Verification</span>
-                  Your payment confirmation will be reflected once the payment is verified in the SPECATHON payment system.
+                  <span className="font-medium text-yellow-400 block mb-1">Awaiting Payment Verification</span>.
+                  Your payment confirmation will be sent via mail within 24 hours. Make sure to check your mail on a daily basis.
                 </div>
               </div>
 
