@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { Loader2, CreditCard, CheckCircle2, AlertCircle, Home } from "lucide-react";
+import { Loader2, CreditCard, AlertCircle, Home } from "lucide-react";
 import TeamPortalLayout from "@/components/TeamPortalLayout";
 import Reveal from "@/components/Reveal";
 import TeamLogoutButton from "@/components/TeamLogoutButton";

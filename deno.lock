@@ -1,0 +1,58 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts": "https://esm.sh/@supabase/functions-js@2.112.3/src/edge-runtime.d.ts"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:framer-motion@13",
+        "npm:lucide-react@^1.29.0",
+        "npm:react-webcam@^7.2.0",
+        "npm:supabase@^2.114.0",
+        "npm:vitest@^4.1.10"
+      ]
+    },
+    "members": {
+      "backend": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@supabase/supabase-js@^2.110.8"
+          ]
+        }
+      },
+      "frontend": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@marsidev/react-turnstile@^1.6.0",
+            "npm:@studio-freight/lenis@^1.0.42",
+            "npm:@supabase/supabase-js@^2.45.4",
+            "npm:@types/react-dom@^18.3.0",
+            "npm:@types/react@^18.3.10",
+            "npm:@vitejs/plugin-react@^4.3.1",
+            "npm:autoprefixer@^10.4.20",
+            "npm:framer-motion@^11.5.4",
+            "npm:gsap@^3.12.5",
+            "npm:jspdf-autotable@^5.0.8",
+            "npm:jspdf@^4.2.1",
+            "npm:lucide-react@0.451",
+            "npm:ogl@^1.0.11",
+            "npm:postcss@^8.4.47",
+            "npm:react-dom@^18.3.1",
+            "npm:react-router-dom@^6.26.2",
+            "npm:react-slot-counter@^3.3.3",
+            "npm:react-webcam@^7.2.0",
+            "npm:react@^18.3.1",
+            "npm:recharts@^2.13.0",
+            "npm:shadcn@^3.8.3",
+            "npm:sonner@^1.5.0",
+            "npm:tailwindcss@^3.4.13",
+            "npm:typescript@^6.0.3",
+            "npm:vite@^8.1.5",
+            "npm:xlsx@~0.18.5"
+          ]
+        }
+      }
+    }
+  }
+}

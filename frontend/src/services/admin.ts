@@ -545,6 +545,39 @@ export async function listSpinAttempts(): Promise<SpinAttempt[]> {
   return data;
 }
 
+export type DeleteTeamRecordResult = {
+  success: boolean;
+  results?: {
+    DELETED: string[];
+    SKIPPED_PAYMENT_EVENTS: string[];
+    FAILED: { teamId: string; error: string }[];
+  };
+  message?: string;
+};
 
+/**
+ * Deletes team records safely via the delete-team-record Edge Function.
+ * Only deletes V2 operational/test records. Preserves V1 and payment_events.
+ */
+export async function deleteTeamRecords(
+  teamIds: string[],
+  accessToken: string
+): Promise<DeleteTeamRecordResult> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/delete-team-record`;
 
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamIds })
+  });
 
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to delete team records (${res.status}).`);
+  }
+  return body as DeleteTeamRecordResult;
+}

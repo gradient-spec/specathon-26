@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2, AlertCircle, RefreshCcw, Search, X, Copy,
   Users, CreditCard, CheckCircle2, XCircle, Clock,
-  ChevronRight, ArrowDownRight, StickyNote,
+  ChevronRight, ArrowDownRight, StickyNote, Trash2,
 } from "lucide-react";
 import {
   listShortlistedTeams,
@@ -13,6 +13,7 @@ import {
   bulkProvisionCredentials,
   getTeamCredential,
   markPaymentAsPaid,
+  deleteTeamRecords,
   type ShortlistedTeamFull,
   type PaymentEvent,
   type BulkProvisionResult,
@@ -158,6 +159,37 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
     }
   };
 
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+  const handleBulkDeleteTests = async () => {
+    if (!session || !confirm("Are you sure you want to bulk-delete all TEST-* and SPC2026-* records that have no payment events?")) return;
+    
+    // Find matching teams that are not PAID
+    const testTeams = state.kind === "ok" ? state.teams.filter(t => 
+      (t.team_id.startsWith("TEST-") || t.team_id.startsWith("SPC2026-")) &&
+      t.payment_status !== "PAID"
+    ) : [];
+    
+    if (testTeams.length === 0) {
+      alert("No matching test records found to delete.");
+      return;
+    }
+
+    setBulkDeleteLoading(true);
+    try {
+      const res = await deleteTeamRecords(testTeams.map(t => t.team_id), session.access_token);
+      let msg = `Deleted: ${res.results?.DELETED.length || 0}\n`;
+      if (res.results?.FAILED.length) msg += `Failed: ${res.results.FAILED.length}\n`;
+      if (res.results?.SKIPPED_PAYMENT_EVENTS.length) msg += `Skipped (Payment Events): ${res.results.SKIPPED_PAYMENT_EVENTS.length}\n`;
+      alert(msg);
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Bulk delete failed");
+    } finally {
+      setBulkDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
 
@@ -172,6 +204,14 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
           </h2>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={handleBulkDeleteTests}
+            disabled={bulkDeleteLoading || state.kind === "loading"}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-ember/30 bg-ember/10 text-ember text-xs hover:bg-ember/20 transition-colors disabled:opacity-50"
+          >
+            {bulkDeleteLoading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+            Cleanup Tests
+          </button>
           <button
             onClick={handleBulkProvision}
             disabled={bulkLoading || state.kind === "loading"}
@@ -467,6 +507,13 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
               );
               setSelected(prev => prev && prev.id === id ? { ...prev, payment_status: "PAID", paid_at: new Date().toISOString() } : prev);
             }}
+            onTeamDeleted={(id) => {
+              setState(prev => prev.kind === "ok" ? {
+                ...prev,
+                teams: prev.teams.filter(t => t.id !== id)
+              } : prev);
+              setSelected(null);
+            }}
           />
         )}
       </AnimatePresence>
@@ -483,11 +530,13 @@ function PaymentDetailsDrawer({
   onClose,
   onNotesUpdated,
   onStatusUpdated,
+  onTeamDeleted,
 }: {
   team: ShortlistedTeamFull;
   onClose: () => void;
   onNotesUpdated: (id: string, notes: string) => void;
   onStatusUpdated: (id: string) => void;
+  onTeamDeleted: (id: string) => void;
 }) {
   const [events, setEvents] = useState<PaymentEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -528,6 +577,28 @@ function PaymentDetailsDrawer({
       onStatusUpdated(team.id);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to mark as paid");
+    }
+  };
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { session } = useAuth();
+  
+  const handleDeleteTeam = async () => {
+    if (!session || !confirm("Are you absolutely sure you want to delete this team's operational data?\nThis cannot be undone.")) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteTeamRecords([team.team_id], session.access_token);
+      if (res.results?.DELETED.includes(team.team_id)) {
+        onTeamDeleted(team.id);
+      } else if (res.results?.SKIPPED_PAYMENT_EVENTS.includes(team.team_id)) {
+        alert("Cannot delete team with existing payment events.");
+      } else if (res.results?.FAILED.length) {
+        alert("Deletion failed: " + res.results.FAILED[0].error);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Deletion failed");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -800,6 +871,27 @@ function PaymentDetailsDrawer({
                   Reset
                 </button>
               </div>
+            </div>
+          </section>
+
+          {/* Danger Zone */}
+          <section className="mt-8 pt-8 border-t border-line pb-8">
+            <div className="eyebrow flex items-center gap-2 mb-4 text-ember">
+              <AlertCircle size={11} /> Danger Zone
+            </div>
+            <div className="p-4 rounded-xl border border-ember/30 bg-ember/10 flex flex-col items-start gap-3">
+              <p className="text-sm text-ember/80">
+                Permanently delete this team's V2 registration, credentials, and Auth user. 
+                <br />This will be aborted if the team has real payment records.
+              </p>
+              <button
+                onClick={handleDeleteTeam}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-ember text-void text-xs font-medium hover:bg-ember/90 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Delete Team Data
+              </button>
             </div>
           </section>
 
