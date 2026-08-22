@@ -106,6 +106,7 @@ export type ShortlistedTeamRow = {
   team_name: string;
   team_lead_name: string;
   contact: string;
+  email: string;
   team_size: number;
   amount: number;
   payment_status: "PENDING";
