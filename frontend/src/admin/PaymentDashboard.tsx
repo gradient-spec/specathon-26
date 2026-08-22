@@ -14,12 +14,13 @@ import {
   getTeamCredential,
   markPaymentAsPaid,
   deleteTeamRecords,
+  sendShortlistedEmail,
   type ShortlistedTeamFull,
   type PaymentEvent,
   type BulkProvisionResult,
 } from "@/services/admin";
 import { useAuth } from "./AuthContext";
-import { Eye } from "lucide-react";
+import { Eye, Mail, CheckCircle2 as CheckCircle2Icon } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Status badge
@@ -87,6 +88,27 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
   
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<BulkProvisionResult | null>(null);
+
+  const [confirmEmailTeam, setConfirmEmailTeam] = useState<ShortlistedTeamFull | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  // Track which teams have been sent an email in this session
+  const [sentEmails, setSentEmails] = useState<Set<string>>(new Set());
+
+  const handleSendEmail = async () => {
+    if (!confirmEmailTeam || !session) return;
+    setSendingEmail(true);
+    try {
+      const res = await sendShortlistedEmail(confirmEmailTeam.team_id, session.access_token);
+      if (res.success) {
+        setSentEmails(prev => new Set(prev).add(confirmEmailTeam.team_id));
+        setConfirmEmailTeam(null);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to send email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setState({ kind: "loading" });
@@ -308,7 +330,7 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
             <table className="w-full text-sm" aria-label="Payment records">
               <thead>
                 <tr className="border-b border-line bg-panel/60">
-                  {["Team ID", "Team Name", "Team Lead", "Size", "Amount", "Status", "Paid At", "Provisioning", ""].map((h) => (
+                  {["Team ID", "Team Name", "Team Lead", "Size", "Amount", "Status", "Paid At", "Provisioning", "Email", ""].map((h) => (
                     <th key={h} scope="col"
                       className="px-4 py-3.5 text-left text-[10px] font-mono uppercase tracking-[0.24em] text-muted font-medium first:pl-5 last:pr-5 last:text-right">
                       {h}
@@ -357,6 +379,13 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                         </button>
                       )}
                     </td>
+                    <td className="px-4 py-3.5">
+                      <SendEmailButton 
+                        team={team} 
+                        isSent={sentEmails.has(team.team_id)} 
+                        onClick={() => setConfirmEmailTeam(team)} 
+                      />
+                    </td>
                     <td className="pr-5 py-3.5 text-right">
                       <button
                         onClick={() => setSelected(team)}
@@ -399,6 +428,11 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                         Provision
                       </button>
                     )}
+                    <SendEmailButton 
+                      team={team} 
+                      isSent={sentEmails.has(team.team_id)} 
+                      onClick={() => setConfirmEmailTeam(team)} 
+                    />
                     <button
                       onClick={() => setSelected(team)}
                       className="inline-flex items-center gap-1 text-xs text-muted hover:text-lumen transition-colors"
@@ -459,6 +493,71 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                 {copyStatus ? <CheckCircle2 size={16} /> : <Copy size={16} />}
                 {copyStatus ? "Copied!" : "Copy Credentials"}
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Send Email Confirmation Modal */}
+      <AnimatePresence>
+        {confirmEmailTeam && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+              onClick={() => !sendingEmail && setConfirmEmailTeam(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm rounded-2xl border border-line bg-panel p-6 shadow-2xl"
+            >
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-display tracking-tight text-fg">Send shortlisted email?</h3>
+                </div>
+                <button
+                  disabled={sendingEmail}
+                  onClick={() => setConfirmEmailTeam(null)}
+                  className="p-1 rounded hover:bg-white/5 text-muted hover:text-fg transition-colors disabled:opacity-50"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-4 font-mono text-sm mb-6">
+                <div>
+                  <div className="text-xs text-muted uppercase tracking-widest mb-1">To</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-fg">{confirmEmailTeam.email}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted uppercase tracking-widest mb-1">Team Name</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-lumen">{confirmEmailTeam.team_name}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted uppercase tracking-widest mb-1">Team ID</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-fg">{confirmEmailTeam.team_id}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  disabled={sendingEmail}
+                  onClick={() => setConfirmEmailTeam(null)}
+                  className="px-4 py-2 rounded-xl border border-line text-sm text-subtle hover:bg-panel/60 hover:text-fg transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={sendingEmail}
+                  onClick={handleSendEmail}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-void font-medium bg-plasma hover:bg-plasma/90 transition-all disabled:opacity-50"
+                >
+                  {sendingEmail ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                  {sendingEmail ? "Sending..." : "Send Email"}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -961,6 +1060,72 @@ function CredentialCell({ team }: { team: ShortlistedTeamFull }) {
     >
       {state === "loading" ? <Loader2 size={10} className="animate-spin" /> : <Eye size={10} />}
       Show Password
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Send Email Button
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SendEmailButton({ 
+  team, 
+  isSent, 
+  onClick 
+}: { 
+  team: ShortlistedTeamFull; 
+  isSent: boolean; 
+  onClick: () => void 
+}) {
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Check eligibility locally based on properties we already have
+  const hasEmail = Boolean(team.email?.trim());
+  
+  // Checking for V2 credentials: team.auth_id is set when they are provisioned 
+  // and team.team_id doesn't start with "LEGACY".
+  // Note: the backend actually determines existence, but we do our best here.
+  const isLegacy = team.team_id.toUpperCase().startsWith("LEGACY");
+  const hasCredential = team.auth_id && !isLegacy;
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!hasEmail) {
+      setErrorMsg("Email address missing.");
+      setTimeout(() => setErrorMsg(null), 3000);
+      return;
+    }
+    
+    if (!hasCredential) {
+      setErrorMsg("Credentials not found. Provision credentials for this team first.");
+      setTimeout(() => setErrorMsg(null), 3000);
+      return;
+    }
+    
+    onClick();
+  };
+
+  if (errorMsg) {
+    return <span className="text-[10px] uppercase font-mono tracking-wider text-ember">{errorMsg}</span>;
+  }
+
+  if (isSent) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-lumen/10 text-[10px] uppercase font-mono tracking-wider text-lumen">
+        <CheckCircle2Icon size={10} /> Sent
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={!hasEmail || !hasCredential}
+      className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-plasma/30 bg-plasma/10 text-[10px] uppercase font-mono tracking-wider text-plasma hover:bg-plasma/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+    >
+      <Mail size={10} />
+      Send Email
     </button>
   );
 }

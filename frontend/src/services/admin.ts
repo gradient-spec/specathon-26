@@ -183,7 +183,9 @@ export type ShortlistedTeamFull = {
   team_name:           string;
   team_lead_name:      string;
   contact:             string;
+  email:               string | null;
   team_size:           number;
+
   amount:              number;
   payment_status:      "PENDING" | "FAILED" | "PAID";
   payment_notes:       string | null;
@@ -543,6 +545,26 @@ export async function listSpinAttempts(): Promise<SpinAttempt[]> {
     `)
     .order("created_at", { ascending: false });
   if (error) throw error;
+  return data;
+}
+
+export async function sendShortlistedEmail(teamId: string, token: string): Promise<{
+  success: boolean;
+  message?: string;
+}> {
+  const { data, error } = await client().functions.invoke("send-shortlisted-email", {
+    body: { team_id: teamId },
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to invoke send-shortlisted-email function");
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || "Failed to send email");
+  }
+
   return data;
 }
 
