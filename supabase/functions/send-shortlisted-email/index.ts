@@ -1,35 +1,12 @@
 import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@^2";
 import { decryptPassword } from "../_shared/crypto.ts";
+import { generateShortlistedEmail, sendEmailViaResend } from "../_shared/email.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
-};
-
-const DEFAULT_SHORTLISTED_EMAIL_TEMPLATE = {
-  subject: "Congratulations! {{team_name}} has been shortlisted for SPECATHON 2026",
-  html: `<p>Hello {{team_lead_name}},</p>
-<p><br></p>
-<p>Congratulations!</p>
-<p><br></p>
-<p>Your team, <strong>{{team_name}}</strong>, has been shortlisted for SPECATHON 2026.</p>
-<p><br></p>
-<p>Team ID: <strong>{{team_id}}</strong></p>
-<p><br></p>
-<p>Your team credentials are:</p>
-<p><br></p>
-<p>Username: <strong>{{username}}</strong><br>
-Password: <strong>{{password}}</strong></p>
-<p><br></p>
-<p>Please keep these credentials safe. They will be required for the next stage of the SPECATHON process.</p>
-<p><br></p>
-<p>We look forward to seeing your team at SPECATHON 2026.</p>
-<p><br></p>
-<p>Regards,<br>
-SPECATHON 2026<br>
-Gradient Technical Club</p>`
 };
 
 function json(body: unknown, status = 200): Response {
@@ -74,6 +51,12 @@ Deno.serve(async (req: Request) => {
   const token = extractBearer(req);
   if (!token) return json({ success: false, message: "Missing or invalid token." }, 401);
 
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.error("[send-shortlisted-email] Missing RESEND_API_KEY.");
+    return json({ success: false, message: "Email service is not configured." }, 500);
+  }
+
   try {
     const { team_id } = await req.json();
     if (!team_id || typeof team_id !== "string") {
@@ -94,23 +77,35 @@ Deno.serve(async (req: Request) => {
 
     const serviceClient = createServiceClient();
 
-    // 2. Load shortlisted team details
-    const { data: teamRow, error: teamErr } = await serviceClient
+    // 2. ATOMIC CLAIM
+    const { data: claimedRow, error: claimErr } = await serviceClient
       .from("shortlisted_teams")
-      .select("team_id, team_name, team_lead_name, email")
+      .update({ shortlisted_email_status: "SENDING", shortlisted_email_error: null })
       .eq("team_id", team_id)
+      .in("shortlisted_email_status", ["NOT_SENT", "FAILED"])
+      .not("email", "is", null)
+      .select("team_id, team_name, team_lead_name, email")
       .maybeSingle();
 
-    if (teamErr) {
-      console.error(`[send-shortlisted-email] DB lookup failed for team ${team_id}:`, teamErr);
-      return json({ success: false, message: "Database lookup failed." }, 500);
+    if (claimErr) {
+      console.error(`[send-shortlisted-email] Atomic claim error for ${team_id}:`, claimErr);
+      return json({ success: false, message: "Database claim failed." }, 500);
     }
-    if (!teamRow) {
-      return json({ success: false, message: "Team not found in shortlisted_teams." }, 404);
+
+    if (!claimedRow) {
+      // It was either already sent, sending, doesn't exist, or has no email
+      return json({ success: false, message: "Team not eligible for email sending or already in progress." }, 400);
     }
-    if (!teamRow.email) {
-      return json({ success: false, message: "Team has no email address configured." }, 400);
-    }
+
+    // Function to handle failure securely
+    const markFailed = async (errMsg: string, safeMsg: string) => {
+      console.error(`[send-shortlisted-email] Failing team ${team_id}: ${errMsg}`);
+      await serviceClient
+        .from("shortlisted_teams")
+        .update({ shortlisted_email_status: "FAILED", shortlisted_email_error: safeMsg })
+        .eq("team_id", team_id);
+      return json({ success: false, message: safeMsg }, 500);
+    };
 
     // 3. Load encrypted credential
     const { data: secretRow, error: secretErr } = await serviceClient
@@ -120,11 +115,10 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (secretErr) {
-      console.error(`[send-shortlisted-email] Error fetching secret for ${team_id}:`, secretErr);
-      return json({ success: false, message: "Database lookup failed." }, 500);
+      return markFailed(secretErr.message, "Database lookup failed for credentials.");
     }
     if (!secretRow || !secretRow.encrypted_password) {
-      return json({ success: false, message: "Credentials not found. Provision credentials for this team first." }, 404);
+      return markFailed("Credentials not found", "Credentials not found. Provision credentials for this team first.");
     }
 
     // 4. Decrypt password securely server-side
@@ -132,59 +126,38 @@ Deno.serve(async (req: Request) => {
     try {
       decryptedPassword = await decryptPassword(secretRow.encrypted_password);
     } catch (err: any) {
-      console.error(`[send-shortlisted-email] Decryption failed for ${team_id}:`, err);
-      return json({ success: false, message: "Failed to decrypt credential." }, 500);
+      return markFailed(err.message, "Failed to decrypt credential.");
     }
 
-    // Username convention based on provisioning implementation
-    const username = teamRow.team_id;
+    const username = claimedRow.team_id;
 
-    // 5. Build the final email strings
-    let { subject, html } = DEFAULT_SHORTLISTED_EMAIL_TEMPLATE;
-    
-    const replacements: Record<string, string> = {
-      "{{team_lead_name}}": teamRow.team_lead_name,
-      "{{team_name}}": teamRow.team_name,
-      "{{team_id}}": teamRow.team_id,
+    // 5. Generate email
+    const { subject, html } = generateShortlistedEmail({
+      "{{team_lead_name}}": claimedRow.team_lead_name,
+      "{{team_name}}": claimedRow.team_name,
+      "{{team_id}}": claimedRow.team_id,
       "{{username}}": username,
       "{{password}}": decryptedPassword
-    };
-
-    for (const [tokenStr, val] of Object.entries(replacements)) {
-      // replace all instances
-      subject = subject.split(tokenStr).join(val);
-      html = html.split(tokenStr).join(val);
-    }
-
-    // 6. Call Resend API directly
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      console.error("[send-shortlisted-email] Missing RESEND_API_KEY environment variable.");
-      return json({ success: false, message: "Email service is not configured." }, 500);
-    }
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        from: "SPECATHON <noreply@gradientclub.in>",
-        to: [teamRow.email],
-        subject: subject,
-        html: html
-      })
     });
 
-    const resendData = await res.json();
-
-    if (!res.ok) {
-      console.error(`[send-shortlisted-email] Resend API error: ${res.status}`, resendData);
-      return json({ success: false, message: "Failed to send email via provider." }, 502);
+    // 6. Send email
+    let resendData;
+    try {
+      resendData = await sendEmailViaResend(resendApiKey, [claimedRow.email], subject, html);
+    } catch (err: any) {
+      return markFailed(err.message, "Failed to send email via provider.");
     }
 
-    // Return ONLY safe metadata
+    // 7. Update to SENT
+    await serviceClient
+      .from("shortlisted_teams")
+      .update({
+        shortlisted_email_status: "SENT",
+        shortlisted_email_sent_at: new Date().toISOString(),
+        shortlisted_email_message_id: resendData.id || "unknown"
+      })
+      .eq("team_id", team_id);
+
     return json({
       success: true,
       message: "Shortlisted email sent successfully."

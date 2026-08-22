@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
-import { Mail, RefreshCcw, Eye, Edit3, Save } from "lucide-react";
+import { Mail, RefreshCcw, Eye, Edit3, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const DEFAULT_SUBJECT = "Congratulations! {{team_name}} has been shortlisted for SPECATHON 2026";
@@ -109,8 +109,16 @@ export default function EmailComposer() {
         </div>
         <p className="mt-2 text-sm text-muted leading-relaxed max-w-2xl">
           Design the email sent to teams when they are shortlisted. Use variables
-          to dynamically insert team details. 
+          to dynamically insert team details.
         </p>
+
+        <div className="mt-4 p-3 rounded-xl border border-gold/30 bg-gold/10 flex gap-3 max-w-2xl">
+          <AlertCircle size={16} className="text-gold shrink-0 mt-0.5" />
+          <div className="text-sm text-gold/90">
+            <p className="font-medium">Preview Only (Step 3B)</p>
+            <p className="mt-1 opacity-90">The Email Composer remains a preview/local-draft in Step 3B. Actual template persistence and server-side retrieval will be implemented in a later Email Template Persistence step. Emails sent now will use the safe default template.</p>
+          </div>
+        </div>
       </div>
 
       {/* Editor / Preview Toggle */}
@@ -167,9 +175,9 @@ export default function EmailComposer() {
                 ))}
               </div>
             </div>
-            
-            {/* 
-              We use a wrapper with styling overrides because react-quill's default snow theme 
+
+            {/*
+              We use a wrapper with styling overrides because react-quill's default snow theme
               assumes a light background and light borders.
             */}
             <div className="rounded-xl border border-line bg-white text-black overflow-hidden [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-line [&_.ql-container]:border-none [&_.ql-editor]:min-h-[300px] [&_.ql-editor]:text-sm">
@@ -202,9 +210,9 @@ export default function EmailComposer() {
           </div>
           {/* Mock Email Body */}
           <div className="p-8 bg-white text-black">
-            <div 
+            <div
               className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: renderPreview(body) }} 
+              dangerouslySetInnerHTML={{ __html: renderPreview(body) }}
             />
           </div>
         </div>

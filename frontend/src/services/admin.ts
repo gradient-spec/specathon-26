@@ -177,21 +177,24 @@ export async function syncSheetForTeams(teamIds: string[]): Promise<void> {
 // ── V2: Payment Dashboard ─────────────────────────────────────────────────
 
 export type ShortlistedTeamFull = {
-  id:                  string;
-  team_id:             string;
-  registration_source: string;
-  team_name:           string;
-  team_lead_name:      string;
-  contact:             string;
-  email:               string | null;
-  team_size:           number;
-
-  amount:              number;
-  payment_status:      "PENDING" | "FAILED" | "PAID";
-  payment_notes:       string | null;
-  paid_at:             string | null;
-  created_at:          string;
-  auth_id:             string | null;
+  id:                           string;
+  team_id:                      string;
+  registration_source:          string;
+  team_name:                    string;
+  team_lead_name:               string;
+  contact:                      string;
+  email:                        string | null;
+  team_size:                    number;
+  amount:                       number;
+  payment_status:               "PENDING" | "FAILED" | "PAID";
+  payment_notes:                string | null;
+  paid_at:                      string | null;
+  created_at:                   string;
+  auth_id:                      string | null;
+  shortlisted_email_status:     "NOT_SENT" | "SENDING" | "SENT" | "FAILED";
+  shortlisted_email_sent_at:    string | null;
+  shortlisted_email_message_id: string | null;
+  shortlisted_email_error:      string | null;
 };
 
 export type PaymentEvent = {
@@ -567,6 +570,33 @@ export async function sendShortlistedEmail(teamId: string, token: string): Promi
 
   return data;
 }
+
+export type BulkEmailResult = {
+  success: boolean;
+  total: number;
+  sent: number;
+  failed: number;
+  results: { team_id: string; success: boolean; error?: string }[];
+  message?: string;
+};
+
+export async function sendBulkShortlistedEmails(teamIds: string[], token: string): Promise<BulkEmailResult> {
+  const { data, error } = await client().functions.invoke("send-shortlisted-emails", {
+    body: { team_ids: teamIds },
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to invoke send-shortlisted-emails function");
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || "Failed to send bulk emails");
+  }
+
+  return data as BulkEmailResult;
+}
+
 
 export type DeleteTeamRecordResult = {
   success: boolean;

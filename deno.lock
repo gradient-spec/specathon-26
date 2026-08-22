@@ -39,6 +39,7 @@
             "npm:ogl@^1.0.11",
             "npm:postcss@^8.4.47",
             "npm:react-dom@^18.3.1",
+            "npm:react-quill-new@^3.8.3",
             "npm:react-router-dom@^6.26.2",
             "npm:react-slot-counter@^3.3.3",
             "npm:react-webcam@^7.2.0",

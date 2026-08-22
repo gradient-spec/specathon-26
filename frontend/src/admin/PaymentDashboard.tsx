@@ -18,6 +18,7 @@ import {
   type ShortlistedTeamFull,
   type PaymentEvent,
   type BulkProvisionResult,
+  type BulkEmailResult,
 } from "@/services/admin";
 import { useAuth } from "./AuthContext";
 import { Eye, Mail, CheckCircle2 as CheckCircle2Icon } from "lucide-react";
@@ -80,12 +81,12 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
   const [state, setState] = useState<FetchState>({ kind: "loading" });
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ShortlistedTeamFull | null>(null);
-  
+
   const { session } = useAuth();
   const [provisioningId, setProvisioningId] = useState<string | null>(null);
   const [credentialsModal, setCredentialsModal] = useState<{ teamId: string, password: string } | null>(null);
   const [copyStatus, setCopyStatus] = useState(false);
-  
+
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<BulkProvisionResult | null>(null);
 
@@ -109,6 +110,83 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
       setSendingEmail(false);
     }
   };
+
+  // Bulk Email State
+  const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
+  const [bulkEmailSending, setBulkEmailSending] = useState(false);
+  const [bulkEmailProgress, setBulkEmailProgress] = useState<{ current: number; total: number; batchCurrent: number; batchTotal: number } | null>(null);
+  const [bulkEmailResult, setBulkEmailResult] = useState<BulkEmailResult | null>(null);
+
+  const getEligibleTeams = () => {
+    if (state.kind !== "ok") return [];
+    return state.teams.filter(t =>
+      t.email &&
+      t.auth_id &&
+      !t.team_id.toUpperCase().startsWith("LEGACY") &&
+      t.shortlisted_email_status !== "SENT" &&
+      t.shortlisted_email_status !== "SENDING"
+    );
+  };
+
+  const handleSelectAll = () => {
+    const eligible = getEligibleTeams();
+    if (selectedTeams.size === eligible.length && eligible.length > 0) {
+      setSelectedTeams(new Set());
+    } else {
+      setSelectedTeams(new Set(eligible.map(t => t.team_id)));
+    }
+  };
+
+  const handleBulkSendEmail = async () => {
+    if (!session || selectedTeams.size === 0) return;
+    setBulkEmailSending(true);
+
+    try {
+      const { sendBulkShortlistedEmails } = await import("@/services/admin");
+
+      const teamIds = Array.from(selectedTeams);
+      const BATCH_SIZE = 20;
+      const batches = [];
+      for (let i = 0; i < teamIds.length; i += BATCH_SIZE) {
+        batches.push(teamIds.slice(i, i + BATCH_SIZE));
+      }
+
+      setBulkEmailProgress({ current: 0, total: teamIds.length, batchCurrent: 1, batchTotal: batches.length });
+
+      let allSent = 0;
+      let allFailed = 0;
+      let allResults: any[] = [];
+
+      for (let i = 0; i < batches.length; i++) {
+        setBulkEmailProgress({ current: allSent + allFailed, total: teamIds.length, batchCurrent: i + 1, batchTotal: batches.length });
+
+        const batch = batches[i];
+        const res = await sendBulkShortlistedEmails(batch, session.access_token);
+
+        allSent += res.sent;
+        allFailed += res.failed;
+        allResults = allResults.concat(res.results);
+      }
+
+      setBulkEmailResult({
+        success: true,
+        total: teamIds.length,
+        sent: allSent,
+        failed: allFailed,
+        results: allResults
+      });
+
+      setSelectedTeams(new Set());
+      load(); // Reload to get fresh DB states
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to send bulk emails");
+    } finally {
+      setBulkEmailSending(false);
+      setBulkEmailProgress(null);
+    }
+  };
+
+
 
   const load = useCallback(async () => {
     setState({ kind: "loading" });
@@ -185,13 +263,13 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
 
   const handleBulkDeleteTests = async () => {
     if (!session || !confirm("Are you sure you want to bulk-delete all TEST-* and SPC2026-* records that have no payment events?")) return;
-    
+
     // Find matching teams that are not PAID
-    const testTeams = state.kind === "ok" ? state.teams.filter(t => 
+    const testTeams = state.kind === "ok" ? state.teams.filter(t =>
       (t.team_id.startsWith("TEST-") || t.team_id.startsWith("SPC2026-")) &&
       t.payment_status !== "PAID"
     ) : [];
-    
+
     if (testTeams.length === 0) {
       alert("No matching test records found to delete.");
       return;
@@ -242,6 +320,16 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
             {bulkLoading && <Loader2 size={12} className="animate-spin" />}
             Bulk Provision
           </button>
+          {selectedTeams.size > 0 && (
+            <button
+              onClick={() => setBulkEmailSending(true)}
+              disabled={state.kind === "loading"}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-lumen/30 bg-lumen/10 text-lumen text-xs hover:bg-lumen/20 transition-colors disabled:opacity-50"
+            >
+              <Mail size={12} />
+              Send Emails ({selectedTeams.size})
+            </button>
+          )}
           <button
             onClick={load}
             disabled={state.kind === "loading"}
@@ -330,24 +418,52 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
             <table className="w-full text-sm" aria-label="Payment records">
               <thead>
                 <tr className="border-b border-line bg-panel/60">
+                  <th scope="col" className="px-4 py-3.5 pl-5">
+                    <input
+                      type="checkbox"
+                      className="rounded border-line bg-void text-plasma focus:ring-plasma/50"
+                      checked={getEligibleTeams().length > 0 && selectedTeams.size === getEligibleTeams().length}
+                      onChange={handleSelectAll}
+                      disabled={getEligibleTeams().length === 0}
+                    />
+                  </th>
                   {["Team ID", "Team Name", "Team Lead", "Size", "Amount", "Status", "Paid At", "Provisioning", "Email", ""].map((h) => (
                     <th key={h} scope="col"
-                      className="px-4 py-3.5 text-left text-[10px] font-mono uppercase tracking-[0.24em] text-muted font-medium first:pl-5 last:pr-5 last:text-right">
+                      className="px-4 py-3.5 text-left text-[10px] font-mono uppercase tracking-[0.24em] text-muted font-medium last:pr-5 last:text-right">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {filtered.map((team, i) => (
+                {filtered.map((team, i) => {
+                  const isLegacy = team.team_id.toUpperCase().startsWith("LEGACY");
+                  const hasCredential = team.auth_id && !isLegacy;
+                  const isEligibleForEmail = Boolean(team.email?.trim()) && hasCredential && team.shortlisted_email_status !== "SENT" && team.shortlisted_email_status !== "SENDING";
+
+                  return (
                   <motion.tr
                     key={team.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: Math.min(i * 0.02, 0.2) }}
-                    className="bg-panel/20 hover:bg-panel/50 transition-colors"
+                    className={`transition-colors ${selectedTeams.has(team.team_id) ? "bg-plasma/10" : "bg-panel/20 hover:bg-panel/50"}`}
                   >
-                    <td className="pl-5 pr-4 py-3.5 font-mono text-xs text-lumen tracking-wider whitespace-nowrap">
+                    <td className="pl-5 pr-4 py-3.5">
+                      <input
+                        type="checkbox"
+                        disabled={!isEligibleForEmail}
+                        className="rounded border-line bg-void text-plasma focus:ring-plasma/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        checked={selectedTeams.has(team.team_id)}
+                        onChange={(e) => {
+                          const next = new Set(selectedTeams);
+                          if (e.target.checked) next.add(team.team_id);
+                          else next.delete(team.team_id);
+                          setSelectedTeams(next);
+                        }}
+                      />
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-xs text-lumen tracking-wider whitespace-nowrap">
                       {team.team_id}
                     </td>
                     <td className="px-4 py-3.5 font-medium text-fg">{team.team_name}</td>
@@ -380,10 +496,10 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                       )}
                     </td>
                     <td className="px-4 py-3.5">
-                      <SendEmailButton 
-                        team={team} 
-                        isSent={sentEmails.has(team.team_id)} 
-                        onClick={() => setConfirmEmailTeam(team)} 
+                      <SendEmailButton
+                        team={team}
+                        isSent={team.shortlisted_email_status === "SENT" || sentEmails.has(team.team_id)}
+                        onClick={() => setConfirmEmailTeam(team)}
                       />
                     </td>
                     <td className="pr-5 py-3.5 text-right">
@@ -396,7 +512,8 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                       </button>
                     </td>
                   </motion.tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -428,10 +545,10 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                         Provision
                       </button>
                     )}
-                    <SendEmailButton 
-                      team={team} 
-                      isSent={sentEmails.has(team.team_id)} 
-                      onClick={() => setConfirmEmailTeam(team)} 
+                    <SendEmailButton
+                      team={team}
+                      isSent={team.shortlisted_email_status === "SENT" || sentEmails.has(team.team_id)}
+                      onClick={() => setConfirmEmailTeam(team)}
                     />
                     <button
                       onClick={() => setSelected(team)}
@@ -563,6 +680,134 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
         )}
       </AnimatePresence>
 
+      {/* Send Bulk Email Confirmation/Progress Modal */}
+      <AnimatePresence>
+        {bulkEmailSending && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md rounded-2xl border border-line bg-panel p-6 shadow-2xl"
+            >
+              {!bulkEmailProgress ? (
+                <>
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-display tracking-tight text-fg">Send shortlisted emails?</h3>
+                      <p className="text-sm text-muted mt-1">You are about to send personalized shortlisted emails to {selectedTeams.size} teams.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-line bg-void/50 text-sm text-muted mb-6">
+                    <p>Each email will contain the team's:</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      <li>Team Lead Name</li>
+                      <li>Team Name</li>
+                      <li>Team ID</li>
+                      <li>Username</li>
+                      <li>Password</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => setBulkEmailSending(false)}
+                      className="px-4 py-2 rounded-xl border border-line text-sm text-subtle hover:bg-panel/60 hover:text-fg transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleBulkSendEmail}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-void font-medium bg-lumen hover:bg-lumen/90 transition-all"
+                    >
+                      <Mail size={14} />
+                      Send {selectedTeams.size} Emails
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6">
+                  <h3 className="text-lg font-display tracking-tight text-fg mb-2">Sending shortlisted emails...</h3>
+                  <p className="text-sm text-muted mb-6">
+                    Batch {bulkEmailProgress.batchCurrent} of {bulkEmailProgress.batchTotal}
+                  </p>
+
+                  <div className="w-full bg-void rounded-full h-2 mb-4 border border-line/50 overflow-hidden">
+                    <div
+                      className="bg-lumen h-2 transition-all duration-300"
+                      style={{ width: `${(bulkEmailProgress.current / bulkEmailProgress.total) * 100}%` }}
+                    />
+                  </div>
+
+                  <div className="text-xs font-mono tracking-wider text-muted">
+                    {bulkEmailProgress.current} / {bulkEmailProgress.total} processed
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Email Result Summary */}
+      <AnimatePresence>
+        {bulkEmailResult && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+              onClick={() => setBulkEmailResult(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md max-h-[85vh] flex flex-col rounded-2xl border border-line bg-panel shadow-2xl"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-line">
+                <div>
+                  <h3 className="text-lg font-display tracking-tight text-fg">Shortlisted emails completed</h3>
+                  <div className="flex gap-4 mt-2">
+                    <span className="text-sm font-medium text-lumen">Sent: {bulkEmailResult.sent}</span>
+                    <span className="text-sm font-medium text-ember">Failed: {bulkEmailResult.failed}</span>
+                  </div>
+                </div>
+                <button onClick={() => setBulkEmailResult(null)} className="p-2 -mr-2 rounded-lg hover:bg-white/5 text-muted hover:text-fg transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-3">
+                {bulkEmailResult.failed > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-ember mb-2">Failed:</h4>
+                    <ul className="space-y-2">
+                      {bulkEmailResult.results.filter((r: any) => !r.success).map((r: any) => (
+                        <li key={r.team_id} className="text-xs text-muted flex gap-2">
+                          <span className="font-mono text-ember shrink-0">{r.team_id}</span>
+                          <span>— {r.error}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {bulkEmailResult.failed === 0 && (
+                  <div className="text-center py-6 text-sm text-muted">
+                    <CheckCircle2Icon className="mx-auto mb-2 text-lumen" size={32} />
+                    All {bulkEmailResult.sent} emails were sent successfully!
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+
       <AnimatePresence>
         {bulkResult && (
           <BulkProvisionModal
@@ -681,7 +926,7 @@ function PaymentDetailsDrawer({
 
   const [isDeleting, setIsDeleting] = useState(false);
   const { session } = useAuth();
-  
+
   const handleDeleteTeam = async () => {
     if (!session || !confirm("Are you absolutely sure you want to delete this team's operational data?\nThis cannot be undone.")) return;
     setIsDeleting(true);
@@ -980,7 +1225,7 @@ function PaymentDetailsDrawer({
             </div>
             <div className="p-4 rounded-xl border border-ember/30 bg-ember/10 flex flex-col items-start gap-3">
               <p className="text-sm text-ember/80">
-                Permanently delete this team's V2 registration, credentials, and Auth user. 
+                Permanently delete this team's V2 registration, credentials, and Auth user.
                 <br />This will be aborted if the team has real payment records.
               </p>
               <button
@@ -1068,21 +1313,21 @@ function CredentialCell({ team }: { team: ShortlistedTeamFull }) {
 // Send Email Button
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SendEmailButton({ 
-  team, 
-  isSent, 
-  onClick 
-}: { 
-  team: ShortlistedTeamFull; 
-  isSent: boolean; 
-  onClick: () => void 
+function SendEmailButton({
+  team,
+  isSent,
+  onClick
+}: {
+  team: ShortlistedTeamFull;
+  isSent: boolean;
+  onClick: () => void
 }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Check eligibility locally based on properties we already have
   const hasEmail = Boolean(team.email?.trim());
-  
-  // Checking for V2 credentials: team.auth_id is set when they are provisioned 
+
+  // Checking for V2 credentials: team.auth_id is set when they are provisioned
   // and team.team_id doesn't start with "LEGACY".
   // Note: the backend actually determines existence, but we do our best here.
   const isLegacy = team.team_id.toUpperCase().startsWith("LEGACY");
@@ -1090,19 +1335,19 @@ function SendEmailButton({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (!hasEmail) {
       setErrorMsg("Email address missing.");
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
-    
+
     if (!hasCredential) {
       setErrorMsg("Credentials not found. Provision credentials for this team first.");
       setTimeout(() => setErrorMsg(null), 3000);
       return;
     }
-    
+
     onClick();
   };
 
@@ -1140,7 +1385,7 @@ function BulkProvisionModal({ result, onClose }: { result: BulkProvisionResult; 
 
   // Flatten the results into a combined array for table display
   const items: { teamId: string; status: string; password?: string }[] = [];
-  
+
   results.PROVISIONED.forEach(p => items.push({ teamId: p.teamId, status: "PROVISIONED", password: p.password }));
   results.ALREADY_PROVISIONED.forEach(id => items.push({ teamId: id, status: "ALREADY_PROVISIONED" }));
   results.LEGACY.forEach(id => items.push({ teamId: id, status: "LEGACY" }));
@@ -1227,7 +1472,7 @@ function BulkProvisionModal({ result, onClose }: { result: BulkProvisionResult; 
             </tbody>
           </table>
         </div>
-        
+
         <div className="p-6 border-t border-line shrink-0 flex justify-end">
           <button
             onClick={onClose}
