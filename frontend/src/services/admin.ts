@@ -436,7 +436,7 @@ export type BulkProvisionResult = {
     ALREADY_PROVISIONED: string[];
     LEGACY: string[];
     INCONSISTENT: string[];
-    PROVISIONED: string[];
+    PROVISIONED: { teamId: string; password: string }[];
     ORPHANED_AUTH: string[];
     FAILED: string[];
   };
@@ -465,6 +465,32 @@ export async function bulkProvisionCredentials(
     throw new Error(`Failed to bulk provision credentials (${res.status}).`);
   }
   return body as BulkProvisionResult;
+}
+
+/**
+ * Retrieves the plaintext credential for a single already-provisioned team.
+ */
+export async function getTeamCredential(
+  accessToken: string,
+  teamId: string
+): Promise<{ success: boolean; password?: string; message?: string }> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/get-team-credential`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamId })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to retrieve team credential (${res.status}).`);
+  }
+  return body as { success: boolean; password?: string; message?: string };
 }
 
 // --- Spin Wheel Services ---

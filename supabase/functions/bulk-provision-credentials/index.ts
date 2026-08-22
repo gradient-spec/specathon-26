@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
       ALREADY_PROVISIONED: [] as string[],
       LEGACY: [] as string[],
       INCONSISTENT: [] as string[],
-      PROVISIONED: [] as string[],
+      PROVISIONED: [] as { teamId: string; password: string }[],
       ORPHANED_AUTH: [] as string[],
       FAILED: [] as string[]
     };
@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
           throw new Error(updateErr ? updateErr.message : "auth_id was concurrently modified");
         }
 
-        results.PROVISIONED.push(teamId);
+        results.PROVISIONED.push({ teamId, password: plainPassword });
 
       } catch (err: any) {
         console.error(`[bulk-provision-credentials] Failed for team ${teamId}:`, err);

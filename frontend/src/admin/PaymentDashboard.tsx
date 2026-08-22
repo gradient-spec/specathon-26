@@ -10,11 +10,15 @@ import {
   listPaymentEventsForTeam,
   updatePaymentNotes,
   provisionTeamCredentials,
+  bulkProvisionCredentials,
+  getTeamCredential,
   markPaymentAsPaid,
   type ShortlistedTeamFull,
   type PaymentEvent,
+  type BulkProvisionResult,
 } from "@/services/admin";
 import { useAuth } from "./AuthContext";
+import { Eye } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Status badge
@@ -79,6 +83,9 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
   const [provisioningId, setProvisioningId] = useState<string | null>(null);
   const [credentialsModal, setCredentialsModal] = useState<{ teamId: string, password: string } | null>(null);
   const [copyStatus, setCopyStatus] = useState(false);
+  
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkProvisionResult | null>(null);
 
   const load = useCallback(async () => {
     setState({ kind: "loading" });
@@ -136,6 +143,21 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
     setTimeout(() => setCopyStatus(false), 2000);
   };
 
+  const handleBulkProvision = async () => {
+    if (!session || !confirm("Are you sure you want to run bulk provisioning?")) return;
+    setBulkLoading(true);
+    try {
+      const res = await bulkProvisionCredentials(session.access_token);
+      setBulkResult(res);
+      // Reload the table in the background
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Bulk provisioning failed");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
 
@@ -149,14 +171,24 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
             Payment Dashboard
           </h2>
         </div>
-        <button
-          onClick={load}
-          disabled={state.kind === "loading"}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.08] text-xs hover:border-white/25 disabled:opacity-50"
-        >
-          <RefreshCcw size={12} className={state.kind === "loading" ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleBulkProvision}
+            disabled={bulkLoading || state.kind === "loading"}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-plasma/30 bg-plasma/10 text-plasma text-xs hover:bg-plasma/20 transition-colors disabled:opacity-50"
+          >
+            {bulkLoading && <Loader2 size={12} className="animate-spin" />}
+            Bulk Provision
+          </button>
+          <button
+            onClick={load}
+            disabled={state.kind === "loading"}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.08] text-xs hover:border-white/25 disabled:opacity-50"
+          >
+            <RefreshCcw size={12} className={state.kind === "loading" ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -273,7 +305,7 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                     </td>
                     <td className="px-4 py-3.5">
                       {team.auth_id ? (
-                        <span className="text-[10px] uppercase font-mono tracking-wider text-lumen/60 px-2 py-1 bg-lumen/10 rounded">Provisioned</span>
+                        <CredentialCell team={team} />
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleProvision(team); }}
@@ -316,7 +348,7 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                   <span className="font-mono text-sm text-fg">₹{team.amount.toLocaleString("en-IN")}</span>
                   <div className="flex items-center gap-3">
                     {team.auth_id ? (
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-lumen/60 px-2 py-1 bg-lumen/10 rounded">Provisioned</span>
+                      <CredentialCell team={team} />
                     ) : (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleProvision(team); }}
@@ -389,6 +421,15 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
               </button>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {bulkResult && (
+          <BulkProvisionModal
+            result={bulkResult}
+            onClose={() => setBulkResult(null)}
+          />
         )}
       </AnimatePresence>
 
@@ -765,5 +806,180 @@ function PaymentDetailsDrawer({
         </div>
       </motion.aside>
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Credential Cell
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CredentialCell({ team }: { team: ShortlistedTeamFull }) {
+  const { session } = useAuth();
+  const [state, setState] = useState<"idle" | "loading" | "showing" | "legacy" | "error">("idle");
+  const [password, setPassword] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const fetchCredential = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!session) return;
+    setState("loading");
+    try {
+      const res = await getTeamCredential(session.access_token, team.team_id);
+      if (res.success && res.password) {
+        setPassword(res.password);
+        setState("showing");
+      }
+    } catch (err: any) {
+      if (err.message.includes("404")) {
+        setState("legacy");
+      } else {
+        setState("error");
+      }
+    }
+  };
+
+  const copyCred = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(`Team ID: ${team.team_id}\nPassword: ${password}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (state === "legacy") {
+    return <span className="text-[10px] uppercase font-mono tracking-wider text-muted px-2 py-1 bg-white/5 rounded">Legacy (N/A)</span>;
+  }
+  if (state === "error") {
+    return <span className="text-[10px] uppercase font-mono tracking-wider text-ember px-2 py-1 bg-ember/10 rounded">Error</span>;
+  }
+  if (state === "showing") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-xs text-fg tracking-wide bg-void px-2 py-1 rounded border border-line">{password}</span>
+        <button onClick={copyCred} className="p-1 text-muted hover:text-lumen transition-colors">
+          {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={fetchCredential}
+      disabled={state === "loading"}
+      className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-lumen/30 bg-lumen/10 text-[10px] uppercase font-mono tracking-wider text-lumen hover:bg-lumen/20 transition-colors disabled:opacity-50"
+    >
+      {state === "loading" ? <Loader2 size={10} className="animate-spin" /> : <Eye size={10} />}
+      Show Password
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bulk Provision Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BulkProvisionModal({ result, onClose }: { result: BulkProvisionResult; onClose: () => void }) {
+  const { results } = result;
+  if (!results) return null;
+
+  // Flatten the results into a combined array for table display
+  const items: { teamId: string; status: string; password?: string }[] = [];
+  
+  results.PROVISIONED.forEach(p => items.push({ teamId: p.teamId, status: "PROVISIONED", password: p.password }));
+  results.ALREADY_PROVISIONED.forEach(id => items.push({ teamId: id, status: "ALREADY_PROVISIONED" }));
+  results.LEGACY.forEach(id => items.push({ teamId: id, status: "LEGACY" }));
+  results.INCONSISTENT.forEach(id => items.push({ teamId: id, status: "INCONSISTENT" }));
+  results.ORPHANED_AUTH.forEach(id => items.push({ teamId: id, status: "ORPHANED_AUTH" }));
+  results.FAILED.forEach(id => items.push({ teamId: id, status: "FAILED" }));
+
+  // Sort by teamId
+  items.sort((a, b) => a.teamId.localeCompare(b.teamId));
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl border border-line bg-panel shadow-2xl"
+      >
+        <div className="flex items-start justify-between p-6 border-b border-line shrink-0">
+          <div>
+            <h3 className="text-lg font-display tracking-tight text-fg">Bulk Provisioning Report</h3>
+            <p className="text-sm text-muted mt-1">Review the statuses and copy newly generated passwords.</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded hover:bg-white/5 text-muted hover:text-fg transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-6 space-y-4">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-line">
+                <th className="pb-2 font-mono text-xs text-muted uppercase tracking-wider">Team ID</th>
+                <th className="pb-2 font-mono text-xs text-muted uppercase tracking-wider">Status</th>
+                <th className="pb-2 font-mono text-xs text-muted uppercase tracking-wider">Credentials</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {items.map(item => (
+                <tr key={item.teamId}>
+                  <td className="py-3 font-mono text-lumen">{item.teamId}</td>
+                  <td className="py-3">
+                    <span className={`text-[10px] uppercase font-mono tracking-wider px-2 py-1 rounded ${
+                      item.status === "PROVISIONED" ? "bg-lumen/10 text-lumen" :
+                      item.status === "ALREADY_PROVISIONED" ? "bg-plasma/10 text-plasma" :
+                      item.status === "LEGACY" ? "bg-white/10 text-muted" :
+                      "bg-ember/10 text-ember"
+                    }`}>
+                      {item.status.replace("_", " ")}
+                    </span>
+                  </td>
+                  <td className="py-3">
+                    {item.password ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-fg tracking-wide bg-void px-2 py-1 rounded border border-line">{item.password}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(`Team ID: ${item.teamId}\nPassword: ${item.password}`)}
+                          className="p-1 text-muted hover:text-lumen transition-colors"
+                          title="Copy Credential"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      </div>
+                    ) : item.status === "LEGACY" ? (
+                      <span className="text-xs text-muted italic">Not available (Legacy)</span>
+                    ) : item.status === "ALREADY_PROVISIONED" ? (
+                      <span className="text-xs text-muted italic">Available in Dashboard</span>
+                    ) : item.status === "ORPHANED_AUTH" ? (
+                      <span className="text-xs text-ember italic">Recovery required</span>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="p-6 border-t border-line shrink-0 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-lumen text-void font-medium hover:bg-lumen/90 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 }

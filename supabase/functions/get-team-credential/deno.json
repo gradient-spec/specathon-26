@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "start": "deno run -A --watch index.ts"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.worker"]
+  }
+}
