@@ -8,8 +8,9 @@ import ConfirmDialog from "./ConfirmDialog";
 import ShortlistImport from "./ShortlistImport";
 import PaymentDashboard from "./PaymentDashboard";
 import SpinWheelDashboard from "./SpinWheelDashboard";
+import EmailComposer from "./EmailComposer";
 
-type View = "registrations" | "import" | "payments" | "spinwheel";
+type View = "registrations" | "import" | "payments" | "spinwheel" | "email";
 
 export default function Dashboard() {
   const { email, signOut } = useAuth();
@@ -144,9 +145,21 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setView("spinwheel")}
-                className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all "}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "spinwheel"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
               >
                 Spin Wheel
+              </button>
+              <button
+                onClick={() => setView("email")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "email"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
+              >
+                Email Templates
               </button>
             </div>
           </div>
@@ -219,9 +232,21 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setView("spinwheel")}
-                className={"inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all "}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "spinwheel"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
               >
                 Spin Wheel
+              </button>
+              <button
+                onClick={() => setView("email")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "email"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
+              >
+                Email
               </button>
         </div>
 
@@ -231,6 +256,8 @@ export default function Dashboard() {
           <PaymentDashboard lastImport={lastImport} />
         ) : view === "spinwheel" ? (
           <SpinWheelDashboard />
+        ) : view === "email" ? (
+          <EmailComposer />
         ) : loading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 size={22} className="animate-spin text-plasma" />
