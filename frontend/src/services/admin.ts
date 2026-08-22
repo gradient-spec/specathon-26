@@ -427,7 +427,44 @@ export async function provisionTeamCredentials(
   if (!res.ok && !body.message) {
     throw new Error(`Failed to provision credentials (${res.status}).`);
   }
-  return body;
+  return body as { success: boolean; teamId?: string; password?: string; message?: string };
+}
+
+export type BulkProvisionResult = {
+  success: boolean;
+  results?: {
+    ALREADY_PROVISIONED: string[];
+    LEGACY: string[];
+    INCONSISTENT: string[];
+    PROVISIONED: string[];
+    ORPHANED_AUTH: string[];
+    FAILED: string[];
+  };
+  message?: string;
+};
+
+/**
+ * Provisions credentials in bulk for all eligible shortlisted teams.
+ */
+export async function bulkProvisionCredentials(
+  accessToken: string
+): Promise<BulkProvisionResult> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/bulk-provision-credentials`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    }
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to bulk provision credentials (${res.status}).`);
+  }
+  return body as BulkProvisionResult;
 }
 
 // --- Spin Wheel Services ---

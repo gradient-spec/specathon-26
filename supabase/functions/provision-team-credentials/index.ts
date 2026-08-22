@@ -1,5 +1,6 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { encryptPassword } from "../_shared/crypto.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin":  "*",
@@ -104,6 +105,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   const password = generateSecurePassword();
+  let encryptedPassword = "";
+  try {
+    encryptedPassword = await encryptPassword(password);
+  } catch (err: any) {
+    console.error("[provision-team] encryption error:", err);
+    return json({ success: false, message: "Encryption configuration error." }, 500);
+  }
   const email = `${teamId.toLowerCase()}@teams.specathon.in`;
 
   // Create Auth User
@@ -119,6 +127,50 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   const newUserId = authData.user.id;
+  let secretInsertedByUs = false;
+
+  // Helper for cleanup
+  const rollback = async (reason: string) => {
+    let cleanupFailed = false;
+    if (secretInsertedByUs) {
+      try {
+        const { error: delSecErr } = await serviceClient.from("team_credential_secrets").delete().eq("team_id", teamId);
+        if (delSecErr) throw delSecErr;
+      } catch (e) {
+        console.error(`[provision-team] CRITICAL: Failed to rollback team_credential_secrets for ${teamId} after ${reason}:`, e);
+        cleanupFailed = true;
+      }
+    }
+    
+    try {
+      const { error: delAuthErr } = await serviceClient.auth.admin.deleteUser(newUserId);
+      if (delAuthErr) throw delAuthErr;
+    } catch (e) {
+      console.error(`[provision-team] CRITICAL: Failed to rollback auth.users for ${newUserId} after ${reason}:`, e);
+      cleanupFailed = true;
+    }
+    return cleanupFailed;
+  };
+
+  // Insert into team_credential_secrets
+  const { error: insertErr } = await serviceClient
+    .from("team_credential_secrets")
+    .insert({
+      team_id: teamId,
+      encrypted_password: encryptedPassword,
+    });
+
+  if (insertErr) {
+    console.error("[provision-team] insert secret error:", insertErr);
+    const cleanupFailed = await rollback("insert secret error");
+    return json({ 
+      success: false, 
+      message: cleanupFailed 
+        ? "Failed to persist credentials securely. MANUAL CLEANUP REQUIRED." 
+        : "Failed to persist credentials securely." 
+    }, 500);
+  }
+  secretInsertedByUs = true;
 
   // Bind to shortlisted_teams concurrently
   // We use an UPDATE with a WHERE clause that strictly requires auth_id IS NULL.
@@ -135,15 +187,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   if (updateErr) {
     console.error("[provision-team] update binding error:", updateErr);
-    await serviceClient.auth.admin.deleteUser(newUserId);
-    return json({ success: false, message: "Failed to bind credentials to team." }, 500);
+    const cleanupFailed = await rollback("update binding error");
+    return json({ 
+      success: false, 
+      message: cleanupFailed 
+        ? "Failed to bind credentials to team. MANUAL CLEANUP REQUIRED." 
+        : "Failed to bind credentials to team." 
+    }, 500);
   }
 
   if (!updateData || updateData.length === 0) {
     // Zero rows updated. This means a concurrent request beat us to it, or the team was deleted.
     console.warn(`[provision-team] Concurrent provisioning detected for ${teamId}. Rolling back.`);
-    await serviceClient.auth.admin.deleteUser(newUserId);
-    return json({ success: false, message: "Credentials already provisioned for this team." }, 409);
+    const cleanupFailed = await rollback("concurrent provisioning");
+    return json({ 
+      success: false, 
+      message: cleanupFailed 
+        ? "Credentials already provisioned for this team. MANUAL CLEANUP REQUIRED." 
+        : "Credentials already provisioned for this team." 
+    }, 409);
   }
 
   return json({
