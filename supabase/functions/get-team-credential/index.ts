@@ -1,4 +1,4 @@
-import "@supabase/functions-js/edge-runtime.d.ts";
+import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@^2";
 import { decryptPassword } from "../_shared/crypto.ts";
 
