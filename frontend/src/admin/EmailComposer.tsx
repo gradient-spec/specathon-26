@@ -84,7 +84,7 @@ export default function EmailComposer() {
     setIsSaving(true);
 
     // Validate required tokens
-    const requiredTokens = ["{{team_lead_name}}", "{{team_name}}", "{{team_id}}", "{{username}}", "{{password}}"];
+    const requiredTokens = ["{{team_lead_name}}", "{{team_name}}", "{{team_id}}", "{{password}}"];
     const missingTokens = requiredTokens.filter(t => !body.includes(t));
     if (missingTokens.length > 0) {
       toast.error(`Missing required tokens: ${missingTokens.join(", ")}`);

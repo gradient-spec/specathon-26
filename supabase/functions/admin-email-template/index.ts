@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
       }
 
       // Basic validation for required tokens in the template
-      const requiredTokens = ["{{team_lead_name}}", "{{team_name}}", "{{team_id}}", "{{username}}", "{{password}}"];
+      const requiredTokens = ["{{team_lead_name}}", "{{team_name}}", "{{team_id}}", "{{password}}"];
       const missingTokens = requiredTokens.filter(t => !html.includes(t));
 
       if (missingTokens.length > 0) {
