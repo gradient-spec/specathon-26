@@ -551,12 +551,12 @@ export async function listSpinAttempts(): Promise<SpinAttempt[]> {
   return data;
 }
 
-export async function sendShortlistedEmail(teamId: string, token: string): Promise<{
+export async function sendShortlistedEmail(teamId: string, token: string, resend: boolean = false): Promise<{
   success: boolean;
   message?: string;
 }> {
   const { data, error } = await client().functions.invoke("send-shortlisted-email", {
-    body: { team_id: teamId },
+    body: { team_id: teamId, resend },
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -597,6 +597,56 @@ export async function sendBulkShortlistedEmails(teamIds: string[], token: string
   return data as BulkEmailResult;
 }
 
+
+export type EmailTemplate = {
+  subject: string;
+  html: string;
+};
+
+export async function getEmailTemplate(token: string, key: string = "shortlisted_team"): Promise<EmailTemplate> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/admin-email-template?key=${key}`;
+
+  const res = await fetch(edgeUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    }
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to fetch email template (${res.status}).`);
+  }
+  if (!body.success) {
+    throw new Error(body.message || "Failed to fetch email template.");
+  }
+  return body.template as EmailTemplate;
+}
+
+export async function saveEmailTemplate(token: string, subject: string, html: string, key: string = "shortlisted_team"): Promise<EmailTemplate> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/admin-email-template?key=${key}`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ subject, html })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to save email template (${res.status}).`);
+  }
+  if (!body.success) {
+    throw new Error(body.message || "Failed to save email template.");
+  }
+  return body.template as EmailTemplate;
+}
 
 export type DeleteTeamRecordResult = {
   success: boolean;

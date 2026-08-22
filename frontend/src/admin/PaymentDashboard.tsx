@@ -90,7 +90,7 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<BulkProvisionResult | null>(null);
 
-  const [confirmEmailTeam, setConfirmEmailTeam] = useState<ShortlistedTeamFull | null>(null);
+  const [confirmEmailTeam, setConfirmEmailTeam] = useState<{ team: ShortlistedTeamFull, isResend: boolean } | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   // Track which teams have been sent an email in this session
   const [sentEmails, setSentEmails] = useState<Set<string>>(new Set());
@@ -99,9 +99,9 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
     if (!confirmEmailTeam || !session) return;
     setSendingEmail(true);
     try {
-      const res = await sendShortlistedEmail(confirmEmailTeam.team_id, session.access_token);
+      const res = await sendShortlistedEmail(confirmEmailTeam.team.team_id, session.access_token, confirmEmailTeam.isResend);
       if (res.success) {
-        setSentEmails(prev => new Set(prev).add(confirmEmailTeam.team_id));
+        setSentEmails(prev => new Set(prev).add(confirmEmailTeam.team.team_id));
         setConfirmEmailTeam(null);
       }
     } catch (err) {
@@ -499,7 +499,8 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                       <SendEmailButton
                         team={team}
                         isSent={team.shortlisted_email_status === "SENT" || sentEmails.has(team.team_id)}
-                        onClick={() => setConfirmEmailTeam(team)}
+                        onClick={() => setConfirmEmailTeam({ team, isResend: false })}
+                        onResendClick={() => setConfirmEmailTeam({ team, isResend: true })}
                       />
                     </td>
                     <td className="pr-5 py-3.5 text-right">
@@ -548,7 +549,8 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
                     <SendEmailButton
                       team={team}
                       isSent={team.shortlisted_email_status === "SENT" || sentEmails.has(team.team_id)}
-                      onClick={() => setConfirmEmailTeam(team)}
+                      onClick={() => setConfirmEmailTeam({ team, isResend: false })}
+                      onResendClick={() => setConfirmEmailTeam({ team, isResend: true })}
                     />
                     <button
                       onClick={() => setSelected(team)}
@@ -632,7 +634,14 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
             >
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-display tracking-tight text-fg">Send shortlisted email?</h3>
+                  <h3 className="text-lg font-display tracking-tight text-fg">
+                    {confirmEmailTeam.isResend ? "Resend shortlisted email?" : "Send shortlisted email?"}
+                  </h3>
+                  {confirmEmailTeam.isResend && (
+                    <p className="text-sm text-ember mt-2">
+                      An email has already been sent to this team. Are you sure you want to send it again?
+                    </p>
+                  )}
                 </div>
                 <button
                   disabled={sendingEmail}
@@ -646,15 +655,15 @@ export default function PaymentDashboard({ lastImport }: { lastImport: number })
               <div className="space-y-4 font-mono text-sm mb-6">
                 <div>
                   <div className="text-xs text-muted uppercase tracking-widest mb-1">To</div>
-                  <div className="px-3 py-2 bg-void rounded border border-line text-fg">{confirmEmailTeam.email}</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-fg">{confirmEmailTeam.team.email}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted uppercase tracking-widest mb-1">Team Name</div>
-                  <div className="px-3 py-2 bg-void rounded border border-line text-lumen">{confirmEmailTeam.team_name}</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-lumen">{confirmEmailTeam.team.team_name}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted uppercase tracking-widest mb-1">Team ID</div>
-                  <div className="px-3 py-2 bg-void rounded border border-line text-fg">{confirmEmailTeam.team_id}</div>
+                  <div className="px-3 py-2 bg-void rounded border border-line text-fg">{confirmEmailTeam.team.team_id}</div>
                 </div>
               </div>
 
@@ -1316,11 +1325,13 @@ function CredentialCell({ team }: { team: ShortlistedTeamFull }) {
 function SendEmailButton({
   team,
   isSent,
-  onClick
+  onClick,
+  onResendClick
 }: {
   team: ShortlistedTeamFull;
   isSent: boolean;
-  onClick: () => void
+  onClick: () => void;
+  onResendClick: () => void;
 }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -1333,7 +1344,7 @@ function SendEmailButton({
   const isLegacy = team.team_id.toUpperCase().startsWith("LEGACY");
   const hasCredential = team.auth_id && !isLegacy;
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent, action: () => void) => {
     e.stopPropagation();
 
     if (!hasEmail) {
@@ -1348,7 +1359,7 @@ function SendEmailButton({
       return;
     }
 
-    onClick();
+    action();
   };
 
   if (errorMsg) {
@@ -1357,15 +1368,24 @@ function SendEmailButton({
 
   if (isSent) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-lumen/10 text-[10px] uppercase font-mono tracking-wider text-lumen">
-        <CheckCircle2Icon size={10} /> Sent
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-lumen/10 text-[10px] uppercase font-mono tracking-wider text-lumen">
+          <CheckCircle2Icon size={10} /> Sent
+        </span>
+        <button
+          onClick={(e) => handleClick(e, onResendClick)}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-plasma/30 bg-plasma/10 text-[10px] uppercase font-mono tracking-wider text-plasma hover:bg-plasma/20 transition-colors"
+        >
+          <RefreshCcw size={10} />
+          Resend
+        </button>
+      </div>
     );
   }
 
   return (
     <button
-      onClick={handleClick}
+      onClick={(e) => handleClick(e, onClick)}
       disabled={!hasEmail || !hasCredential}
       className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-plasma/30 bg-plasma/10 text-[10px] uppercase font-mono tracking-wider text-plasma hover:bg-plasma/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
     >

@@ -1,7 +1,7 @@
 import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@^2";
 import { decryptPassword } from "../_shared/crypto.ts";
-import { generateShortlistedEmail, sendEmailViaResend } from "../_shared/email.ts";
+import { getShortlistedEmailTemplate, generateShortlistedEmail, sendEmailViaResend } from "../_shared/email.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -96,6 +96,15 @@ Deno.serve(async (req: Request) => {
 
     const serviceClient = createServiceClient();
 
+    // Fetch the template once for the whole batch
+    let template;
+    try {
+      template = await getShortlistedEmailTemplate(serviceClient);
+    } catch (err: any) {
+      console.error("[send-shortlisted-emails] Failed to retrieve template:", err);
+      return json({ success: false, message: "Failed to retrieve email template." }, 500);
+    }
+
     // The inner worker function to process one team
     const processTeam = async (team_id: string) => {
       // Helper to safely fail this team without crashing the batch
@@ -152,13 +161,17 @@ Deno.serve(async (req: Request) => {
         const username = claimedRow.team_id;
 
         // 4. Generate HTML
-        const { subject, html } = generateShortlistedEmail({
-          "{{team_lead_name}}": claimedRow.team_lead_name,
-          "{{team_name}}": claimedRow.team_name,
-          "{{team_id}}": claimedRow.team_id,
-          "{{username}}": username,
-          "{{password}}": decryptedPassword
-        });
+        const { subject, html } = generateShortlistedEmail(
+          template.subject,
+          template.html,
+          {
+            "{{team_lead_name}}": claimedRow.team_lead_name,
+            "{{team_name}}": claimedRow.team_name,
+            "{{team_id}}": claimedRow.team_id,
+            "{{username}}": username,
+            "{{password}}": decryptedPassword
+          }
+        );
 
         // 5. Send Email
         let resendData;

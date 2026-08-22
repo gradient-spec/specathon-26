@@ -1,8 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
-import { Mail, RefreshCcw, Eye, Edit3, Save, AlertCircle } from "lucide-react";
+import { Mail, RefreshCcw, Eye, Edit3, Save, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "./AuthContext";
+import { getEmailTemplate, saveEmailTemplate } from "@/services/admin";
 
 const DEFAULT_SUBJECT = "Congratulations! {{team_name}} has been shortlisted for SPECATHON 2026";
 const DEFAULT_BODY = `<p>Hello {{team_lead_name}},</p>
@@ -35,10 +37,32 @@ const VARIABLES = [
 ];
 
 export default function EmailComposer() {
-  const [subject, setSubject] = useState(DEFAULT_SUBJECT);
-  const [body, setBody] = useState(DEFAULT_BODY);
+  const { session } = useAuth();
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
   const [view, setView] = useState<"edit" | "preview">("edit");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const quillRef = useRef<ReactQuill>(null);
+
+  useEffect(() => {
+    async function loadTemplate() {
+      if (!session) return;
+      try {
+        const tpl = await getEmailTemplate(session.access_token);
+        setSubject(tpl.subject);
+        setBody(tpl.html);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load template");
+        // Do not overwrite with empty on error; maybe set default as fallback
+        setSubject(DEFAULT_SUBJECT);
+        setBody(DEFAULT_BODY);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadTemplate();
+  }, [session]);
 
   const insertVariable = (token: string) => {
     const editor = quillRef.current?.getEditor();
@@ -52,12 +76,30 @@ export default function EmailComposer() {
   const handleReset = () => {
     setSubject(DEFAULT_SUBJECT);
     setBody(DEFAULT_BODY);
-    toast.success("Template reset to default");
+    toast.success("Template reset to default (Not saved yet)");
   };
 
-  const handleSaveDraft = () => {
-    // Local state is sufficient for this step.
-    toast.success("Draft saved locally");
+  const handleSaveTemplate = async () => {
+    if (!session) return;
+    setIsSaving(true);
+
+    // Validate required tokens
+    const requiredTokens = ["{{team_lead_name}}", "{{team_name}}", "{{team_id}}", "{{username}}", "{{password}}"];
+    const missingTokens = requiredTokens.filter(t => !body.includes(t));
+    if (missingTokens.length > 0) {
+      toast.error(`Missing required tokens: ${missingTokens.join(", ")}`);
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      await saveEmailTemplate(session.access_token, subject, body);
+      toast.success("Template saved to production");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save template");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderPreview = (text: string) => {
@@ -95,15 +137,18 @@ export default function EmailComposer() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleReset}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted hover:text-fg hover:bg-panel/40 transition-colors"
+              disabled={isLoading || isSaving}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted hover:text-fg hover:bg-panel/40 transition-colors disabled:opacity-50"
             >
-              <RefreshCcw size={12} /> Reset
+              <RefreshCcw size={12} /> Reset to Default
             </button>
             <button
-              onClick={handleSaveDraft}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-plasma text-void hover:bg-plasma/90 transition-colors"
+              onClick={handleSaveTemplate}
+              disabled={isLoading || isSaving}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-plasma text-void hover:bg-plasma/90 transition-colors disabled:opacity-50"
             >
-              <Save size={12} /> Save Draft
+              {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              {isSaving ? "Saving..." : "Save Template"}
             </button>
           </div>
         </div>
@@ -112,11 +157,11 @@ export default function EmailComposer() {
           to dynamically insert team details.
         </p>
 
-        <div className="mt-4 p-3 rounded-xl border border-gold/30 bg-gold/10 flex gap-3 max-w-2xl">
-          <AlertCircle size={16} className="text-gold shrink-0 mt-0.5" />
-          <div className="text-sm text-gold/90">
-            <p className="font-medium">Preview Only (Step 3B)</p>
-            <p className="mt-1 opacity-90">The Email Composer remains a preview/local-draft in Step 3B. Actual template persistence and server-side retrieval will be implemented in a later Email Template Persistence step. Emails sent now will use the safe default template.</p>
+        <div className="mt-4 p-3 rounded-xl border border-plasma/30 bg-plasma/10 flex gap-3 max-w-2xl">
+          <AlertCircle size={16} className="text-plasma shrink-0 mt-0.5" />
+          <div className="text-sm text-plasma/90">
+            <p className="font-medium">Live Production Template</p>
+            <p className="mt-1 opacity-90">Saving this template will immediately update the email content used for both individual and bulk shortlisted email sends.</p>
           </div>
         </div>
       </div>
@@ -145,7 +190,12 @@ export default function EmailComposer() {
         </button>
       </div>
 
-      {view === "edit" ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 text-muted">
+          <Loader2 size={32} className="animate-spin mb-4" />
+          <p className="text-sm">Loading template...</p>
+        </div>
+      ) : view === "edit" ? (
         <div className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted">Subject</label>

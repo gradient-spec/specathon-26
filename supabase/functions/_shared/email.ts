@@ -22,8 +22,32 @@ SPECATHON 2026<br>
 Gradient Technical Club</p>`
 };
 
-export function generateShortlistedEmail(replacements: Record<string, string>) {
-  let { subject, html } = DEFAULT_SHORTLISTED_EMAIL_TEMPLATE;
+export async function getShortlistedEmailTemplate(serviceClient: any) {
+  const { data, error } = await serviceClient
+    .from("email_templates")
+    .select("subject, html")
+    .eq("template_key", "shortlisted_team")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to fetch email template from database: ${error.message}`);
+  }
+
+  if (data) {
+    return { subject: data.subject, html: data.html };
+  }
+
+  // Safe fallback if database row was deleted
+  return DEFAULT_SHORTLISTED_EMAIL_TEMPLATE;
+}
+
+export function generateShortlistedEmail(
+  templateSubject: string,
+  templateHtml: string,
+  replacements: Record<string, string>
+) {
+  let subject = templateSubject;
+  let html = templateHtml;
 
   for (const [tokenStr, val] of Object.entries(replacements)) {
     subject = subject.split(tokenStr).join(val);

@@ -1,7 +1,7 @@
 import "https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@^2";
 import { decryptPassword } from "../_shared/crypto.ts";
-import { generateShortlistedEmail, sendEmailViaResend } from "../_shared/email.ts";
+import { getShortlistedEmailTemplate, generateShortlistedEmail, sendEmailViaResend } from "../_shared/email.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -58,10 +58,12 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { team_id } = await req.json();
+    const { team_id, resend } = await req.json();
     if (!team_id || typeof team_id !== "string") {
       return json({ success: false, message: "Invalid team_id." }, 400);
     }
+
+    const isResend = Boolean(resend);
 
     // 1. Authenticate admin
     const userClient = createUserClient(token);
@@ -77,12 +79,37 @@ Deno.serve(async (req: Request) => {
 
     const serviceClient = createServiceClient();
 
+    // 1b. Validate eligibility and prevent implicit resend of SENT emails
+    const { data: currentTeam, error: teamCheckErr } = await serviceClient
+      .from("shortlisted_teams")
+      .select("shortlisted_email_status")
+      .eq("team_id", team_id)
+      .maybeSingle();
+
+    if (teamCheckErr || !currentTeam) {
+      return json({ success: false, message: "Team not found." }, 404);
+    }
+
+    if (currentTeam.shortlisted_email_status === "SENDING") {
+      return json({ success: false, message: "Email is currently being sent." }, 400);
+    }
+
+    if (currentTeam.shortlisted_email_status === "SENT" && !isResend) {
+      return json({ success: false, message: "Email already sent. Use resend to send it again." }, 400);
+    }
+
+    if (currentTeam.shortlisted_email_status !== "SENT" && isResend) {
+      return json({ success: false, message: "Cannot explicitly resend an email that has not been sent successfully yet." }, 400);
+    }
+
     // 2. ATOMIC CLAIM
+    const validStatuses = isResend ? ["SENT"] : ["NOT_SENT", "FAILED"];
+
     const { data: claimedRow, error: claimErr } = await serviceClient
       .from("shortlisted_teams")
       .update({ shortlisted_email_status: "SENDING", shortlisted_email_error: null })
       .eq("team_id", team_id)
-      .in("shortlisted_email_status", ["NOT_SENT", "FAILED"])
+      .in("shortlisted_email_status", validStatuses)
       .not("email", "is", null)
       .select("team_id, team_name, team_lead_name, email")
       .maybeSingle();
@@ -131,14 +158,25 @@ Deno.serve(async (req: Request) => {
 
     const username = claimedRow.team_id;
 
-    // 5. Generate email
-    const { subject, html } = generateShortlistedEmail({
-      "{{team_lead_name}}": claimedRow.team_lead_name,
-      "{{team_name}}": claimedRow.team_name,
-      "{{team_id}}": claimedRow.team_id,
-      "{{username}}": username,
-      "{{password}}": decryptedPassword
-    });
+    // 5. Fetch email template & Generate email
+    let template;
+    try {
+      template = await getShortlistedEmailTemplate(serviceClient);
+    } catch (err: any) {
+      return markFailed(err.message, "Failed to retrieve email template.");
+    }
+
+    const { subject, html } = generateShortlistedEmail(
+      template.subject,
+      template.html,
+      {
+        "{{team_lead_name}}": claimedRow.team_lead_name,
+        "{{team_name}}": claimedRow.team_name,
+        "{{team_id}}": claimedRow.team_id,
+        "{{username}}": username,
+        "{{password}}": decryptedPassword
+      }
+    );
 
     // 6. Send email
     let resendData;
