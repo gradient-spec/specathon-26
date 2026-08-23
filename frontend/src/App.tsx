@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, Outlet } from "react-router-dom";
 import { AuthProvider } from "./admin/AuthContext";
 import { TeamAuthProvider } from "./hooks/TeamAuthContext";
 import RequireAdmin from "./admin/RequireAdmin";
@@ -27,47 +27,46 @@ export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <AuthProvider>
-          <TeamAuthProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Public */}
-                <Route path="/" element={<Home />} />
-                <Route path="/shortlisted" element={<ShortlistedTeams />} />
-                <Route path="/shortlist/recover" element={<ShortlistRecovery />} />
-                <Route path="/shortlist/:token" element={<ShortlistDashboard />} />
-                <Route path="/shortlist/:token/payment" element={<ShortlistPayment />} />
-                <Route path="/shortlist/:token/confirmation" element={<ShortlistConfirmation />} />
-                <Route path="/shortlist/:token/receipt" element={<ShortlistReceipt />} />
-                <Route path="/shortlist/invalid" element={<ShortlistInvalid />} />
-                <Route path="/photobooth" element={<PhotoBoothPage />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public (No Auth Required) */}
+            <Route path="/shortlisted" element={<ShortlistedTeams />} />
+            <Route path="/shortlist/recover" element={<ShortlistRecovery />} />
+            <Route path="/shortlist/:token" element={<ShortlistDashboard />} />
+            <Route path="/shortlist/:token/payment" element={<ShortlistPayment />} />
+            <Route path="/shortlist/:token/confirmation" element={<ShortlistConfirmation />} />
+            <Route path="/shortlist/:token/receipt" element={<ShortlistReceipt />} />
+            <Route path="/shortlist/invalid" element={<ShortlistInvalid />} />
+            <Route path="/photobooth" element={<PhotoBoothPage />} />
 
-                {/* Team Authentication */}
-                <Route path="/team/login" element={<TeamLogin />} />
-                <Route path="/team/payment" element={<TeamDashboard />} />
-                <Route path="/team/payment/f82b7c4a1e9d3a2f" element={<TeamPaymentSuccess />} />
-                <Route path="/team/payment/x1y2z3a4b5c6d7e8" element={<TeamPaymentFailed />} />
+            {/* Team Authentication + Homepage (ShortlistPortal needs TeamAuth) */}
+            <Route element={<TeamAuthProvider><Outlet /></TeamAuthProvider>}>
+              <Route path="/" element={<Home />} />
+              <Route path="/team/login" element={<TeamLogin />} />
+              <Route path="/team/payment" element={<TeamDashboard />} />
+              <Route path="/team/payment/f82b7c4a1e9d3a2f" element={<TeamPaymentSuccess />} />
+              <Route path="/team/payment/x1y2z3a4b5c6d7e8" element={<TeamPaymentFailed />} />
+            </Route>
 
-                {/* Admin */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route
-                  path="/admin/dashboard"
-                  element={
-                    <RequireAdmin>
-                      <Dashboard />
-                    </RequireAdmin>
-                  }
-                />
+            {/* Admin */}
+            <Route element={<AuthProvider><Outlet /></AuthProvider>}>
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <RequireAdmin>
+                    <Dashboard />
+                  </RequireAdmin>
+                }
+              />
+              {/* Redirect /admin -> /admin/login for convenience */}
+              <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+            </Route>
 
-                {/* Redirect /admin -> /admin/login for convenience */}
-                <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-
-                {/* Catch-all */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
-          </TeamAuthProvider>
-        </AuthProvider>
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </ToastProvider>
     </BrowserRouter>
   );

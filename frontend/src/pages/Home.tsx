@@ -4,11 +4,11 @@ import Hero from "@/components/Hero";
 import Loader from "@/components/Loader";
 import Cursor from "@/components/Cursor";
 import Particles from "@/components/Particles";
-import ShortlistPortal from "@/components/ShortlistPortal";
 import SeatCountdown from "@/components/SeatCountdown";
-import PhotoBoothSection from "@/components/PhotoBoothSection";
 import { useLenis } from "@/hooks/useLenis";
 
+const ShortlistPortal = lazy(() => import("@/components/ShortlistPortal"));
+const PhotoBoothSection = lazy(() => import("@/components/PhotoBoothSection"));
 const Stats = lazy(() => import("@/components/Stats"));
 const Timeline = lazy(() => import("@/components/Timeline"));
 const Gallery = lazy(() => import("@/components/Gallery"));
@@ -56,20 +56,20 @@ export default function Home() {
         {/* 1 — Hero: Shortlist announcement + Sep 11 deadline countdown */}
         <Hero />
 
-        {/* 2 & 3 — Shortlist Verification (left) + Digital Photobooth (right) as a
-            deliberate two-column composition on desktop; stacks naturally below lg. */}
-        <section className="relative">
-          <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-y-10 lg:items-center">
-            <ShortlistPortal />
-            <PhotoBoothSection />
-          </div>
-        </section>
-        <Stats />
-        {/* Seat-confirmation countdown — sits directly below the Shortlist portal,
-            width-aligned with it. */}
-        <SeatCountdown />
+        <Suspense fallback={<div className="h-40 flex items-center justify-center text-slate-500">Loading...</div>}>
+          {/* 2 & 3 — Shortlist Verification (left) + Digital Photobooth (right) as a
+              deliberate two-column composition on desktop; stacks naturally below lg. */}
+          <section className="relative">
+            <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-y-10 lg:items-center">
+              <ShortlistPortal />
+              <PhotoBoothSection />
+            </div>
+          </section>
+          <Stats />
+          {/* Seat-confirmation countdown — sits directly below the Shortlist portal,
+              width-aligned with it. */}
+          <SeatCountdown />
 
-        <Suspense fallback={<div className="h-40" />}>
           {/* 5 — 36-Hour Interactive Agenda */}
           <Timeline />
 

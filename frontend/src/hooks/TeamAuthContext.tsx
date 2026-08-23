@@ -68,7 +68,22 @@ export function TeamAuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.functions.invoke('team-login', {
       body: { teamId: id, password, turnstileToken }
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.name === 'FunctionsFetchError') {
+        throw new Error("Unable to connect to the server. Please check your internet connection.");
+      }
+      if (error.name === 'FunctionsHttpError') {
+        const serverError = (error as any).context?.error;
+        if (serverError) {
+          throw new Error(serverError);
+        }
+        throw new Error("Authentication failed due to a server error. Please try again.");
+      }
+      if (error.name === 'FunctionsRelayError') {
+        throw new Error("Server is currently unavailable. Please try again later.");
+      }
+      throw new Error(error.message || "An unexpected error occurred during login.");
+    }
     if (data?.error) throw new Error(data.error);
     if (data?.session) {
       const { error: sessionError } = await supabase.auth.setSession({
