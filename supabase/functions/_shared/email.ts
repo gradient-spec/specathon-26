@@ -62,7 +62,8 @@ export async function sendEmailViaResend(
   to: string[],
   subject: string,
   html: string,
-  from = "SPECATHON <noreply@gradientclub.in>"
+  from = "SPECATHON <noreply@gradientclub.in>",
+  attachments?: { filename: string; content: string; content_id?: string }[]
 ) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -74,7 +75,8 @@ export async function sendEmailViaResend(
       from,
       to,
       subject,
-      html
+      html,
+      attachments
     })
   });
 

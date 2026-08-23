@@ -292,6 +292,10 @@ export type ShortlistedTeamFull = {
   shortlisted_email_sent_at:    string | null;
   shortlisted_email_message_id: string | null;
   shortlisted_email_error:      string | null;
+  payment_email_status:         "NOT_SENT" | "SENDING" | "SENT" | "FAILED";
+  payment_email_sent_at:        string | null;
+  payment_email_message_id:     string | null;
+  payment_email_error:          string | null;
 };
 
 export type PaymentEvent = {
@@ -345,14 +349,25 @@ export async function updatePaymentNotes(
   if (error) throw error;
 }
 
-export async function markPaymentAsPaid(
-  id: string
-): Promise<void> {
-  const { error } = await client()
-    .from("shortlisted_teams")
-    .update({ payment_status: "PAID", paid_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
+export async function manualMarkPaidAndEmail(
+  teamId: string,
+  token: string,
+  resend: boolean = false
+): Promise<{ success: boolean; message?: string }> {
+  const { data, error } = await client().functions.invoke("manual-mark-paid", {
+    body: { team_id: teamId, resend },
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to invoke manual-mark-paid function");
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || "Failed to mark paid and send email");
+  }
+
+  return data;
 }
 
 export async function logAudit(
@@ -780,4 +795,38 @@ export async function deleteTeamRecords(
     throw new Error(`Failed to delete team records (${res.status}).`);
   }
   return body as DeleteTeamRecordResult;
+}
+// ── V2: Participants Import ────────────────────────────────────────────────
+
+export type ParticipantRow = {
+  team_id: string;
+  member_id: string;
+  member_name: string;
+  email: string | null;
+  phone: string | null;
+};
+
+/**
+ * Passes a validated array of rows to the import_v2_participants() RPC.
+ * The RPC handles all business logic and runs atomically inside Postgres.
+ * Returns { imported: number } on success, throws on any error.
+ */
+export async function importParticipants(
+  rows: ParticipantRow[]
+): Promise<{ imported: number }> {
+  const { data, error } = await client().rpc("import_v2_participants", {
+    rows,
+  });
+
+  if (error) {
+    console.error("[importParticipants] RPC error:", error);
+    const msg =
+      (typeof error === "object" && error !== null && "message" in error
+        ? (error as { message?: string }).message
+        : null) ??
+      String(error);
+    throw new Error(msg || "Import failed. Check the browser console for details.");
+  }
+
+  return data as { imported: number };
 }

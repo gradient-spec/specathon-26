@@ -1,32 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload, CreditCard } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Loader2, LogOut, RefreshCcw, Shield, Upload, CreditCard } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { deleteTeams } from "@/services/admin";
-import { supabase } from "@/services/supabase";
 import ConfirmDialog from "./ConfirmDialog";
 import ShortlistImport from "./ShortlistImport";
 import PaymentDashboard from "./PaymentDashboard";
 import SpinWheelDashboard from "./SpinWheelDashboard";
 import EmailComposer from "./EmailComposer";
 
-type View = "registrations" | "import" | "payments" | "spinwheel" | "email";
+import ParticipantImport from "./ParticipantImport";
+
+type View = "registrations" | "import" | "participants" | "payments" | "spinwheel" | "email";
 
 export default function Dashboard() {
   const { email, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastLoaded, setLastLoaded] = useState<Date | null>(null);
-  const [live, setLive] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState<{ ids: string[] } | null>(null);
   const [view, setView] = useState<View>("import");
   // Timestamp bumped after every successful CSV import.
   // PaymentDashboard watches this to re-fetch automatically.
   const [lastImport, setLastImport] = useState(0);
-
-  // Coalesce burst reloads (a team + its members insert ≈ 3 events within ms).
-  const debounceRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -40,47 +37,9 @@ export default function Dashboard() {
     }
   }, []);
 
-  const scheduleLoad = useCallback(() => {
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => {
-      debounceRef.current = null;
-      load();
-    }, 400);
-  }, [load]);
-
-  // Initial load + safety poll (network hiccups, socket drops).
+  // Initial load
   useEffect(() => {
     load();
-    const id = window.setInterval(load, 60_000);
-    return () => window.clearInterval(id);
-  }, [load]);
-
-  // Realtime subscription — instant updates on insert / update / delete.
-  useEffect(() => {
-    const client = supabase;
-    if (!client) return;
-    const channel = client
-      .channel("admin-dashboard")
-      .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, scheduleLoad)
-      .on("postgres_changes", { event: "*", schema: "public", table: "team_members" }, scheduleLoad)
-      .subscribe((status) => setLive(status === "SUBSCRIBED"));
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      client.removeChannel(channel);
-    };
-  }, [scheduleLoad]);
-
-  // Refresh whenever the tab regains focus — matches "open the dashboard, see fresh data".
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible") load();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", load);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", load);
-    };
   }, [load]);
 
   const doDelete = async () => {
@@ -134,6 +93,16 @@ export default function Dashboard() {
                 Import Shortlist
               </button>
               <button
+                onClick={() => setView("participants")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "participants"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg"
+                  : "text-muted hover:text-fg"
+                  }`}
+              >
+                <Upload size={11} />
+                Import Participants
+              </button>
+              <button
                 onClick={() => setView("payments")}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "payments"
                   ? "bg-plasma/20 border border-plasma/30 text-fg"
@@ -165,14 +134,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span
-              title={live ? "Live updates connected" : "Reconnecting…"}
-              className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-[0.24em] ${live ? "text-lumen" : "text-muted"
-                }`}
-            >
-              {live ? <Wifi size={11} /> : <WifiOff size={11} />}
-              {live ? "live" : "offline"}
-            </span>
             {lastLoaded && (
               <span className="hidden md:inline text-[11px] font-mono text-muted tabular-nums">
                 {lastLoaded.toLocaleTimeString()}
@@ -221,6 +182,16 @@ export default function Dashboard() {
             Import
           </button>
           <button
+            onClick={() => setView("participants")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "participants"
+              ? "bg-plasma/20 border border-plasma/30 text-fg"
+              : "text-muted hover:text-fg"
+              }`}
+          >
+            <Upload size={11} />
+            Import P
+          </button>
+          <button
             onClick={() => setView("payments")}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "payments"
               ? "bg-plasma/20 border border-plasma/30 text-fg"
@@ -252,6 +223,8 @@ export default function Dashboard() {
 
         {view === "import" ? (
           <ShortlistImport onImported={() => setLastImport(Date.now())} />
+        ) : view === "participants" ? (
+          <ParticipantImport onImported={() => setLastImport(Date.now())} />
         ) : view === "payments" ? (
           <PaymentDashboard lastImport={lastImport} />
         ) : view === "spinwheel" ? (

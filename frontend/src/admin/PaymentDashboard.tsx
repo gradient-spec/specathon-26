@@ -12,7 +12,7 @@ import {
   provisionTeamCredentials,
   bulkProvisionCredentials,
   getTeamCredential,
-  markPaymentAsPaid,
+  manualMarkPaidAndEmail,
   deleteTeamRecords,
   sendShortlistedEmail,
   type ShortlistedTeamFull,
@@ -924,12 +924,26 @@ function PaymentDetailsDrawer({
   const handleReset = () => { setNotes(savedNotes); setSaveState("idle"); };
 
   const handleMarkPaid = async () => {
-    if (!confirm("Are you sure you want to mark this team's payment as PAID manually?")) return;
+    if (!confirm("Are you sure you want to mark this team's payment as PAID manually? This will also generate participant QRs and send the payment confirmation email.")) return;
     try {
-      await markPaymentAsPaid(team.id);
+      if (!session) throw new Error("Not authenticated");
+      await manualMarkPaidAndEmail(team.team_id, session.access_token, false);
       onStatusUpdated(team.id);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to mark as paid");
+      alert(err instanceof Error ? err.message : "Failed to mark as paid and send email");
+    }
+  };
+
+  const handleResendPaymentEmail = async () => {
+    if (!confirm("Are you sure you want to resend the payment confirmation email?")) return;
+    try {
+      if (!session) throw new Error("Not authenticated");
+      await manualMarkPaidAndEmail(team.team_id, session.access_token, true);
+      // We optimistically update the in-memory state or trigger a reload.
+      // Easiest is to alert success.
+      alert("Payment confirmation email sent successfully.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to resend payment email");
     }
   };
 
@@ -1065,6 +1079,18 @@ function PaymentDetailsDrawer({
                   )}
                 </dd>
               </div>
+              {team.payment_status === "PAID" && (
+                <div className="flex items-center justify-between border-b border-line/60 pb-2.5">
+                  <dt className="text-xs text-muted uppercase tracking-[0.18em] font-mono">Confirmation Email</dt>
+                  <dd>
+                    <SendPaymentEmailButton
+                      team={team}
+                      isSent={team.payment_email_status === "SENT"}
+                      onResendClick={handleResendPaymentEmail}
+                    />
+                  </dd>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <dt className="text-xs text-muted uppercase tracking-[0.18em] font-mono">Paid At</dt>
                 <dd className="text-sm text-fg font-mono text-xs">
@@ -1391,6 +1417,80 @@ function SendEmailButton({
     >
       <Mail size={10} />
       Send Email
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Send Payment Email Button
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SendPaymentEmailButton({
+  team,
+  isSent,
+  onResendClick
+}: {
+  team: ShortlistedTeamFull;
+  isSent: boolean;
+  onResendClick: () => void;
+}) {
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const hasEmail = Boolean(team.email?.trim());
+
+  const handleClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+
+    if (!hasEmail) {
+      setErrorMsg("Email address missing.");
+      setTimeout(() => setErrorMsg(null), 3000);
+      return;
+    }
+
+    action();
+  };
+
+  if (errorMsg) {
+    return <span className="text-[10px] uppercase font-mono tracking-wider text-ember">{errorMsg}</span>;
+  }
+
+  if (isSent) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-lumen/10 text-[10px] uppercase font-mono tracking-wider text-lumen">
+          <CheckCircle2Icon size={10} /> Sent
+        </span>
+        <button
+          onClick={(e) => handleClick(e, onResendClick)}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-plasma/30 bg-plasma/10 text-[10px] uppercase font-mono tracking-wider text-plasma hover:bg-plasma/20 transition-colors"
+        >
+          <RefreshCcw size={10} />
+          Resend
+        </button>
+      </div>
+    );
+  }
+
+  if (team.payment_email_status === "FAILED") {
+    return (
+      <button
+        onClick={(e) => handleClick(e, onResendClick)}
+        className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-ember/30 bg-ember/10 text-[10px] uppercase font-mono tracking-wider text-ember hover:bg-ember/20 transition-colors"
+      >
+        <RefreshCcw size={10} />
+        Retry Confirmation Email
+      </button>
+    );
+  }
+
+  // NOT_SENT
+  return (
+    <button
+      onClick={(e) => handleClick(e, onResendClick)}
+      className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-plasma/30 bg-plasma/10 text-[10px] uppercase font-mono tracking-wider text-plasma hover:bg-plasma/20 transition-colors"
+    >
+      <Mail size={10} />
+      Send Confirmation Email
     </button>
   );
 }
