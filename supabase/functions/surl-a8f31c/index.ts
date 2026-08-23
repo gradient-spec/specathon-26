@@ -3,12 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Redis } from "https://esm.sh/@upstash/redis@1.20.0";
 import { Ratelimit } from "https://esm.sh/@upstash/ratelimit@0.4.3";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
-import { encodeHex } from "https://deno.land/std@0.200.0/encoding/hex.ts";
 
 async function hashIp(ip: string): Promise<string> {
   const data = new TextEncoder().encode(ip + (Deno.env.get("IP_SALT") || "default_salt"));
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return encodeHex(hash);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 serve(async (req) => {
