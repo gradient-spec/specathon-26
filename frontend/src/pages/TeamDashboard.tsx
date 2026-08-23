@@ -86,8 +86,8 @@ export default function TeamDashboard() {
   return (
     <TeamPortalLayout>
       <div className="flex-1 flex items-center justify-center px-6 pt-28 md:pt-20 pb-4">
-        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-start gap-y-10 gap-x-12 lg:gap-x-20">
-          <div>
+        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-y-10 gap-x-12 lg:gap-x-20">
+          <div className="flex flex-col justify-center">
             <Reveal>
             <div className="card-team p-10 md:p-12">
               <div className="mb-7">
