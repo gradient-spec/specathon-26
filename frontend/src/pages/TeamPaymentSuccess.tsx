@@ -44,15 +44,9 @@ export default function TeamPaymentSuccess() {
         // Notify backend securely exactly once
         if (!notifiedRef.current) {
           notifiedRef.current = true;
-          const txnid = searchParams.get("txnid");
-          const amount = searchParams.get("amount");
           
-          if (txnid) {
-            // Fire and forget telegram notification
-            supabase.functions.invoke("notify-payment", {
-              body: { txnid, amount }
-            }).catch(err => console.error("Notification failed", err));
-          }
+          // Fire and forget telegram notification
+          supabase.functions.invoke("notify-payment").catch(err => console.error("Notification failed", err));
         }
 
         const { data: teamData, error: fetchError } = await supabase

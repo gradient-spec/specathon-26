@@ -36,9 +36,7 @@ serve(async (req) => {
     }
     const teamId = user.email.split("@")[0].toUpperCase();
 
-    // 2. Read Request Body
-    const body = await req.json();
-    const { txnid, amount } = body;
+    // 2. No Request Body needed since Easebuzz is static
 
     // 3. Upstash Redis Rate Limiting (1 notification per 12 hours per team)
     const redisUrl = Deno.env.get("UPSTASH_REDIS_REST_URL");
@@ -65,19 +63,19 @@ serve(async (req) => {
     
     const { data: teamData } = await supabaseAdmin
       .from("shortlisted_teams")
-      .select("team_name, payment_status")
+      .select("team_name, amount, payment_status")
       .eq("team_id", teamId)
       .single();
 
     const teamName = teamData?.team_name || "Unknown Team";
+    const dbAmount = teamData?.amount !== null && teamData?.amount !== undefined ? teamData.amount : "Unknown";
 
     // 5. Send Telegram Message
     const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
     
     if (telegramBotToken && telegramChatId) {
-      const actualAmount = amount ? amount : "Unknown";
-      const message = `🎉 *New Payment Received!* 🎉\n\n*Team ID:* \`${teamId}\`\n*Team Name:* ${teamName}\n*Amount:* ₹${actualAmount}\n*Txn ID:* \`${txnid || "N/A"}\`\n\n*(Please verify in Easebuzz before marking as PAID)*`;
+      const message = `🎉 *New Payment Received!* 🎉\n\n*Team ID:* \`${teamId}\`\n*Team Name:* ${teamName}\n*Amount:* ₹${dbAmount}\n\n*(Please verify in Easebuzz before marking as PAID)*`;
       
       await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
         method: 'POST',
