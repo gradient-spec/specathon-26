@@ -41,8 +41,8 @@ export default function TeamPaymentSuccess() {
         if (!supabase) throw new Error("Supabase client not initialized.");
         if (!teamId) throw new Error("Team identity not resolved.");
         
-        // Notify backend securely exactly once
-        if (!notifiedRef.current) {
+        // Notify backend securely exactly once, ONLY if redirected from Easebuzz
+        if (!notifiedRef.current && searchParams.get("status") === "success") {
           notifiedRef.current = true;
           
           // Fire and forget telegram notification
