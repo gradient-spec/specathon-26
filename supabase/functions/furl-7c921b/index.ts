@@ -81,14 +81,37 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    await supabase.from("easebuzz_audit_log").insert({
-      event_type: 'FURL_CALLBACK',
-      easebuzz_txnid: txnid,
-      amount: amount ? Math.round(amount) : null,
-      payload: payload,
-      ip_address: ip,
-      user_agent: userAgent
-    });
+    const processBackgroundWork = async () => {
+      try {
+        await supabase.from("easebuzz_audit_log").insert({
+          event_type: 'FURL_CALLBACK',
+          easebuzz_txnid: txnid,
+          amount: amount ? Math.round(amount) : null,
+          payload: payload,
+          ip_address: ip,
+          user_agent: userAgent
+        });
+
+        const udf1 = formData.get("udf1")?.toString(); // Used as Team ID
+        if (udf1) {
+          // Optionally mark the team as FAILED
+          await supabase.from("shortlisted_teams")
+            .update({ payment_status: "FAILED" })
+            .eq("team_id", udf1);
+        }
+      } catch (err) {
+        console.error("Background task failed:", err);
+      }
+    };
+
+    // Fire and forget background processing to make the redirect lightning fast
+    // @ts-ignore
+    if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(processBackgroundWork());
+    } else {
+      processBackgroundWork();
+    }
 
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://specathon.in";
     const redirectUrl = new URL(`${frontendUrl}/team/payment/x1y2z3a4b5c6d7e8`);

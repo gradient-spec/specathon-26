@@ -81,37 +81,64 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    await supabase.from("easebuzz_audit_log").insert({
-      event_type: 'SURL_CALLBACK',
-      easebuzz_txnid: txnid,
-      amount: amount ? Math.round(amount) : null,
-      payload: payload,
-      ip_address: ip,
-      user_agent: userAgent
-    });
-
-    const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-    const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
-    if (telegramBotToken && telegramChatId) {
-      const name = formData.get("firstname")?.toString() || "A team";
-      const udf1 = formData.get("udf1")?.toString();
-      const teamStr = udf1 ? ` (*Team ID:* \`${udf1}\`)` : "";
-      
-      const message = `🎉 *New Payment Received!* 🎉\n\n${name}${teamStr} has successfully completed their payment.\n\n*Amount:* ₹${(amount ? amount / 100 : 0)}\n*Txn ID:* \`${txnid}\``;
-      
+    const processBackgroundWork = async () => {
       try {
-        await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: telegramChatId,
-            text: message,
-            parse_mode: 'Markdown'
-          })
+        await supabase.from("easebuzz_audit_log").insert({
+          event_type: 'SURL_CALLBACK',
+          easebuzz_txnid: txnid,
+          amount: amount ? Math.round(amount) : null,
+          payload: payload,
+          ip_address: ip,
+          user_agent: userAgent
         });
+
+        const udf1 = formData.get("udf1")?.toString(); // Used as Team ID
+        let teamName = "Unknown Team";
+        
+        if (udf1) {
+          const { data: teamData } = await supabase
+            .from("shortlisted_teams")
+            .select("team_name")
+            .eq("team_id", udf1)
+            .single();
+          if (teamData?.team_name) {
+            teamName = teamData.team_name;
+          }
+          
+          // Optionally mark the team as PAID
+          await supabase.from("shortlisted_teams")
+            .update({ payment_status: "PAID" })
+            .eq("team_id", udf1);
+        }
+
+        const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
+        const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
+        if (telegramBotToken && telegramChatId) {
+          const actualAmount = amount ? amount / 100 : 0;
+          const message = `🎉 *New Payment Received!* 🎉\n\n*Team ID:* \`${udf1 || "N/A"}\`\n*Team Name:* ${teamName}\n*Amount:* ₹${actualAmount}\n*Txn ID:* \`${txnid || "N/A"}\``;
+          
+          await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: telegramChatId,
+              text: message,
+              parse_mode: 'Markdown'
+            })
+          });
+        }
       } catch (err) {
-        console.error("Failed to send telegram notification", err);
+        console.error("Background task failed:", err);
       }
+    };
+
+    // Fire and forget background processing to make the redirect lightning fast
+    // @ts-ignore: EdgeRuntime is available in Supabase environment
+    if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(processBackgroundWork());
+    } else {
+      processBackgroundWork();
     }
 
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://specathon.in";
