@@ -91,37 +91,6 @@ serve(async (req) => {
           ip_address: ip,
           user_agent: userAgent
         });
-
-        const udf1 = formData.get("udf1")?.toString(); // Used as Team ID
-        let teamName = "Unknown Team";
-        
-        if (udf1) {
-          const { data: teamData } = await supabase
-            .from("shortlisted_teams")
-            .select("team_name")
-            .eq("team_id", udf1)
-            .single();
-          if (teamData?.team_name) {
-            teamName = teamData.team_name;
-          }
-        }
-
-        const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-        const telegramChatId = Deno.env.get("TELEGRAM_CHAT_ID");
-        if (telegramBotToken && telegramChatId) {
-          const actualAmount = amount ? amount / 100 : 0;
-          const message = `🎉 *New Payment Received!* 🎉\n\n*Team ID:* \`${udf1 || "N/A"}\`\n*Team Name:* ${teamName}\n*Amount:* ₹${actualAmount}\n*Txn ID:* \`${txnid || "N/A"}\``;
-          
-          await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: telegramChatId,
-              text: message,
-              parse_mode: 'Markdown'
-            })
-          });
-        }
       } catch (err) {
         console.error("Background task failed:", err);
       }

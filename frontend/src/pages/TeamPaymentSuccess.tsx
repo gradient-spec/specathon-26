@@ -6,6 +6,8 @@ import TeamPortalLayout from "@/components/TeamPortalLayout";
 import Reveal from "@/components/Reveal";
 import { useTeamAuth } from "@/hooks/TeamAuthContext";
 import { teamSupabase as supabase } from "@/services/supabase";
+import { useSearchParams } from "react-router-dom";
+import { useRef } from "react";
 
 type TeamData = {
   team_id: string;
@@ -23,6 +25,8 @@ export default function TeamPaymentSuccess() {
   const [data, setData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const notifiedRef = useRef(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -36,6 +40,21 @@ export default function TeamPaymentSuccess() {
       try {
         if (!supabase) throw new Error("Supabase client not initialized.");
         if (!teamId) throw new Error("Team identity not resolved.");
+        
+        // Notify backend securely exactly once
+        if (!notifiedRef.current) {
+          notifiedRef.current = true;
+          const txnid = searchParams.get("txnid");
+          const amount = searchParams.get("amount");
+          
+          if (txnid) {
+            // Fire and forget telegram notification
+            supabase.functions.invoke("notify-payment", {
+              body: { txnid, amount }
+            }).catch(err => console.error("Notification failed", err));
+          }
+        }
+
         const { data: teamData, error: fetchError } = await supabase
           .from("shortlisted_teams")
           .select("team_id, team_name, contact, team_size, amount, payment_status, spin_ticket")
