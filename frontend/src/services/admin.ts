@@ -106,6 +106,7 @@ export type ShortlistedTeamRow = {
   team_name: string;
   team_lead_name: string;
   contact: string;
+  email: string;
   team_size: number;
   amount: number;
   payment_status: "PENDING";
@@ -176,19 +177,24 @@ export async function syncSheetForTeams(teamIds: string[]): Promise<void> {
 // ── V2: Payment Dashboard ─────────────────────────────────────────────────
 
 export type ShortlistedTeamFull = {
-  id:                  string;
-  team_id:             string;
-  registration_source: string;
-  team_name:           string;
-  team_lead_name:      string;
-  contact:             string;
-  team_size:           number;
-  amount:              number;
-  payment_status:      "PENDING" | "FAILED" | "PAID";
-  payment_notes:       string | null;
-  paid_at:             string | null;
-  created_at:          string;
-  auth_id:             string | null;
+  id:                           string;
+  team_id:                      string;
+  registration_source:          string;
+  team_name:                    string;
+  team_lead_name:               string;
+  contact:                      string;
+  email:                        string | null;
+  team_size:                    number;
+  amount:                       number;
+  payment_status:               "PENDING" | "FAILED" | "PAID";
+  payment_notes:                string | null;
+  paid_at:                      string | null;
+  created_at:                   string;
+  auth_id:                      string | null;
+  shortlisted_email_status:     "NOT_SENT" | "SENDING" | "SENT" | "FAILED";
+  shortlisted_email_sent_at:    string | null;
+  shortlisted_email_message_id: string | null;
+  shortlisted_email_error:      string | null;
 };
 
 export type PaymentEvent = {
@@ -436,7 +442,7 @@ export type BulkProvisionResult = {
     ALREADY_PROVISIONED: string[];
     LEGACY: string[];
     INCONSISTENT: string[];
-    PROVISIONED: string[];
+    PROVISIONED: { teamId: string; password: string }[];
     ORPHANED_AUTH: string[];
     FAILED: string[];
   };
@@ -465,6 +471,32 @@ export async function bulkProvisionCredentials(
     throw new Error(`Failed to bulk provision credentials (${res.status}).`);
   }
   return body as BulkProvisionResult;
+}
+
+/**
+ * Retrieves the plaintext credential for a single already-provisioned team.
+ */
+export async function getTeamCredential(
+  accessToken: string,
+  teamId: string
+): Promise<{ success: boolean; password?: string; message?: string }> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/get-team-credential`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamId })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to retrieve team credential (${res.status}).`);
+  }
+  return body as { success: boolean; password?: string; message?: string };
 }
 
 // --- Spin Wheel Services ---
@@ -519,6 +551,136 @@ export async function listSpinAttempts(): Promise<SpinAttempt[]> {
   return data;
 }
 
+export async function sendShortlistedEmail(teamId: string, token: string, resend: boolean = false): Promise<{
+  success: boolean;
+  message?: string;
+}> {
+  const { data, error } = await client().functions.invoke("send-shortlisted-email", {
+    body: { team_id: teamId, resend },
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to invoke send-shortlisted-email function");
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || "Failed to send email");
+  }
+
+  return data;
+}
+
+export type BulkEmailResult = {
+  success: boolean;
+  total: number;
+  sent: number;
+  failed: number;
+  results: { team_id: string; success: boolean; error?: string }[];
+  message?: string;
+};
+
+export async function sendBulkShortlistedEmails(teamIds: string[], token: string): Promise<BulkEmailResult> {
+  const { data, error } = await client().functions.invoke("send-shortlisted-emails", {
+    body: { team_ids: teamIds },
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to invoke send-shortlisted-emails function");
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || "Failed to send bulk emails");
+  }
+
+  return data as BulkEmailResult;
+}
 
 
+export type EmailTemplate = {
+  subject: string;
+  html: string;
+};
 
+export async function getEmailTemplate(token: string, key: string = "shortlisted_team"): Promise<EmailTemplate> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/admin-email-template?key=${key}`;
+
+  const res = await fetch(edgeUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    }
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to fetch email template (${res.status}).`);
+  }
+  if (!body.success) {
+    throw new Error(body.message || "Failed to fetch email template.");
+  }
+  return body.template as EmailTemplate;
+}
+
+export async function saveEmailTemplate(token: string, subject: string, html: string, key: string = "shortlisted_team"): Promise<EmailTemplate> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/admin-email-template?key=${key}`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ subject, html })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to save email template (${res.status}).`);
+  }
+  if (!body.success) {
+    throw new Error(body.message || "Failed to save email template.");
+  }
+  return body.template as EmailTemplate;
+}
+
+export type DeleteTeamRecordResult = {
+  success: boolean;
+  results?: {
+    DELETED: string[];
+    SKIPPED_PAYMENT_EVENTS: string[];
+    FAILED: { teamId: string; error: string }[];
+  };
+  message?: string;
+};
+
+/**
+ * Deletes team records safely via the delete-team-record Edge Function.
+ * Only deletes V2 operational/test records. Preserves V1 and payment_events.
+ */
+export async function deleteTeamRecords(
+  teamIds: string[],
+  accessToken: string
+): Promise<DeleteTeamRecordResult> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/delete-team-record`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamIds })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to delete team records (${res.status}).`);
+  }
+  return body as DeleteTeamRecordResult;
+}

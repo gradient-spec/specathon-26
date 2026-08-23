@@ -12,6 +12,7 @@ const REQUIRED_HEADERS = [
   "team_name",
   "team_lead_name",
   "contact",
+  "email",
   "team_size",
   "amount",
   "payment_status",
@@ -100,11 +101,17 @@ function parseCsv(raw: string): ShortlistedTeamRow[] {
       team_name: obj.team_name,
       team_lead_name: obj.team_lead_name,
       contact: obj.contact,
+      email: obj.email,
       team_size: parseInt(obj.team_size, 10),
       amount: parseInt(obj.amount, 10),
       payment_status: "PENDING",
       payment_notes: obj.payment_notes?.trim() || null,
     });
+    
+    // Additional frontend validations to ensure no empty or invalid fields
+    if (!rows[rows.length - 1].email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rows[rows.length - 1].email)) {
+      throw new ParseError(`Row ${i + 1}: email must be valid (got "${obj.email}").`);
+    }
   }
   return rows;
 }
