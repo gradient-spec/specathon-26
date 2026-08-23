@@ -104,6 +104,8 @@ export default function PhotoBooth() {
         frame={frame}
         handleUserMedia={handleUserMedia}
         handleUserMediaError={handleUserMediaError}
+        onStartCamera={startCamera}
+        cameraReady={isReady}
       />
 
       <ActionButtons

@@ -42,6 +42,8 @@ export default function CameraCard({
   isFlashing,
   justCaptured,
   frame,
+  onStartCamera,
+  cameraReady,
 }) {
   const safeFrame = frame || DEFAULT_FRAME;
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
@@ -99,7 +101,8 @@ export default function CameraCard({
         <div
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setParallax({ x: 0, y: 0 })}
-          className="relative w-full aspect-[4/5] rounded-[8px] overflow-hidden bg-ink-950 ring-1 ring-black/10"
+          onClick={(!cameraOn || cameraStatus === 'denied' || cameraStatus === 'error') ? onStartCamera : undefined}
+          className={`relative w-full aspect-[4/5] rounded-[8px] overflow-hidden bg-ink-950 ring-1 ring-black/10 ${(!cameraOn || cameraStatus === 'denied' || cameraStatus === 'error') ? 'cursor-pointer' : ''}`}
         >
         <motion.div
           className="absolute inset-0"
@@ -117,28 +120,36 @@ export default function CameraCard({
               <CameraOff className="w-8 h-8" strokeWidth={1.5} />
               <p className="text-sm">
                 {cameraStatus === 'denied'
-                  ? 'Camera access was denied. Allow camera permission in your browser to continue.'
-                  : "Couldn't reach a camera on this device."}
+                  ? 'Camera access denied. Please allow permission in your browser settings, then tap here to try again.'
+                  : "Couldn't reach a camera on this device. Tap here to retry."}
               </p>
             </div>
           ) : cameraOn ? (
-            <Webcam
-              ref={webcamRef}
-              audio={false}
-              mirrored
-              screenshotFormat="image/jpeg"
-              screenshotQuality={0.92}
-              videoConstraints={VIDEO_CONSTRAINTS}
-              onUserMedia={handleUserMedia}
-              onUserMediaError={handleUserMediaError}
-              className="w-full h-full object-cover scale-[1.03]"
-            />
+            <>
+              <Webcam
+                ref={webcamRef}
+                audio={false}
+                mirrored
+                screenshotFormat="image/jpeg"
+                screenshotQuality={0.92}
+                videoConstraints={VIDEO_CONSTRAINTS}
+                onUserMedia={handleUserMedia}
+                onUserMediaError={handleUserMediaError}
+                className={`w-full h-full object-cover scale-[1.03] transition-opacity duration-300 ${cameraReady ? 'opacity-100' : 'opacity-0'}`}
+              />
+              {!cameraReady && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-ink-950">
+                  <span className="w-6 h-6 border-2 border-slate-400 border-t-transparent rounded-full animate-spin mb-3"></span>
+                  <p className="text-sm font-medium">Starting camera...</p>
+                </div>
+              )}
+            </>
           ) : (
             /* Camera OFF (default). Nothing is streaming until the user taps Capture. */
-            <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 px-8 text-center bg-ink-950">
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 px-8 text-center bg-ink-950 transition-colors hover:bg-ink-900">
               <CameraOff className="w-8 h-8" strokeWidth={1.5} />
               <p className="text-sm leading-relaxed">
-                Camera is off. Tap <span className="text-fg font-semibold">Capture</span> to start.
+                Camera is off.<br/>Tap here or click <span className="text-fg font-semibold">Capture</span> to start.
               </p>
             </div>
           )}
