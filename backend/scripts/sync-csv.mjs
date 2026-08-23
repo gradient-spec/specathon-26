@@ -8,7 +8,7 @@
  *
  *   npm run sync:csv
  *
- * Requires SUPABASE_SERVICE_ROLE_KEY (Project settings → API → service_role).
+ * Requires SUPABASE_SECRET_DEFAULT (Supabase new default secret).
  * NEVER commit that key. Keep it in .env, which is gitignored.
  */
 
@@ -39,7 +39,7 @@ if (existsSync(envPath)) {
 }
 
 const SUPA_URL = process.env.VITE_SUPABASE_URL;
-const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPA_KEY = process.env.SUPABASE_SECRET_DEFAULT;
 
 if (!SUPA_URL || !SUPA_KEY) {
   console.error(
@@ -49,7 +49,7 @@ if (!SUPA_URL || !SUPA_KEY) {
         .join(", ") +
       "\n\nRequired:\n" +
       "  VITE_SUPABASE_URL=https://your-project.supabase.co\n" +
-      "  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...   (Project settings → API → service_role)\n"
+      "  SUPABASE_SECRET_DEFAULT=sb_secret_...   (New Supabase default secret)\n"
   );
   process.exit(1);
 }
