@@ -46,7 +46,7 @@ serve(async (req) => {
       const redis = new Redis({ url: redisUrl, token: redisToken });
       const ratelimit = new Ratelimit({
         redis: redis,
-        limiter: Ratelimit.slidingWindow(1, "1 m"), // 1 minute for testing (change to 12 h later)
+        limiter: Ratelimit.slidingWindow(1, "12 h"),
         analytics: false,
         ephemeralCache: new Map(),
       });
