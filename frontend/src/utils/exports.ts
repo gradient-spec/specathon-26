@@ -293,13 +293,10 @@ type TeamSummaryRow = {
 
 export function exportDomainXlsx(
   teams: FullTeam[],
+  /** Map from reg_code → presigned abstract URL (empty string if none) */
+  abstractUrls: Map<string, string>,
 ) {
   if (teams.length === 0) return;
-
-  const r2PublicBase = (
-    (import.meta.env.VITE_R2_PUBLIC_URL as string | undefined) ??
-    "https://pub-04614df7e12440b09256674be74d02c4.r2.dev"
-  ).replace(/\/$/, "");
 
   // Group teams by domain, sort domain names alphabetically
   const byDomain = new Map<string, FullTeam[]>();
@@ -325,9 +322,7 @@ export function exportDomainXlsx(
       "Email":           t.email ?? "",
       "College":         t.college || (t.is_internal ? STPETERS : ""),
       "State":           t.college_state ?? (t.is_internal ? "Telangana" : ""),
-      "Abstract":        t.abstract_url
-        ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(`${r2PublicBase}/${t.abstract_url}`)}`
-        : "",
+      "Abstract":        abstractUrls.get(t.reg_code ?? "") ?? "",
     }));
 
     // Build the worksheet manually so we can inject HYPERLINK formulas
@@ -379,8 +374,8 @@ export function exportDomainXlsx(
     }
     ws["!rows"] = [{ hpt: 22 }];
 
-    // Tab name: truncate domain to 31 chars (Excel limit) and replace illegal chars
-    const tabName = domain.replace(/[:\\/?*[\]]/g, "-").slice(0, 31);
+    // Tab name: truncate domain to 31 chars (Excel limit)
+    const tabName = domain.slice(0, 31);
     XLSX.utils.book_append_sheet(wb, ws, tabName);
   }
 

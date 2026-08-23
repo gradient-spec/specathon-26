@@ -10,6 +10,13 @@ export const supabase =
       })
     : null;
 
+export const teamSupabase =
+  url && key
+    ? createClient(url, key, {
+        auth: { persistSession: true, autoRefreshToken: true, storageKey: "specathon-team-auth" },
+      })
+    : null;
+
 /* ─── Types ─────────────────────────────────────────────────────── */
 
 export type MemberInput = {

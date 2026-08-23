@@ -27,8 +27,11 @@ backend/registrations/
 /src/
 /public/
 /scripts/
-/supabase/
+# /supabase/ — removed: Edge Functions now tracked in repo under supabase/
 /registrations/
 /dist/
 /tsc-help.txt
 /tsconfig.tsbuildinfo
+
+# AI tracking file
+context.md

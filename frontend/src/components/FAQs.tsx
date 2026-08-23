@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { MapPin, ArrowUpRight, Lock, ChevronDown } from "lucide-react";
 import Reveal from "./Reveal";
 import LineSidebar from "./LineSidebar";
+import Watermark from "./Watermark";
 
 type Faq = {
   q: string;
@@ -57,7 +58,8 @@ export default function FAQs() {
   };
 
   return (
-    <section id="faq" className="relative py-14 md:py-20">
+    <section id="faq" className="relative py-8 md:py-10 overflow-hidden">
+      <Watermark />
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="mb-14 max-w-2xl">
           <Reveal>
@@ -80,7 +82,7 @@ export default function FAQs() {
               <div
                 key={faq.q}
                 className={`relative rounded-2xl glass overflow-hidden transition-all duration-300 ${isOpen
-                  ? "border border-lumen/50 shadow-[0_0_30px_rgba(74,203,235,0.22)] bg-panel/90"
+                  ? "border border-lumen/50 shadow-[0_0_30px_rgba(47,147,173,0.22)] bg-panel/90"
                   : "border border-white/10 hover:border-white/20"
                   }`}
               >
@@ -115,12 +117,7 @@ export default function FAQs() {
                       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                       className="overflow-hidden"
                     >
-                      <div className="px-5 pb-5 pt-3 border-t border-white/[0.08]  bg-void/30 relative">
-                        <div className="flex items-center gap-2 font-mono text-  [11px] text-muted uppercase tracking-[0.28em] mb-2.5">
-                          {/* <span className="text-lumen">/{String(idx + 1).padStart(2, "0")}</span> */}
-                          {/* <span className="h-px w-6 bg-white/15" /> */}
-                          {/* Answdfder */}
-                        </div>
+                      <div className="mx-4 mb-4 mt-1 card-team p-4 relative">
                         <p className="text-muted leading-relaxed text-sm">
                           {faq.a.replace("粒 ", "")}
                         </p>
@@ -152,7 +149,7 @@ export default function FAQs() {
             <div className="py-2">
               <LineSidebar
                 items={FAQS.map((f) => f.q)}
-                accentColor="#4ACBEB"
+                accentColor="#2F93AD"
                 textColor="#c4c4c4"
                 markerColor="#186275"
                 showIndex={false}
@@ -177,8 +174,8 @@ export default function FAQs() {
 
           {/* Answer panel */}
           <Reveal delay={0.1}>
-            <div className="relative rounded-3xl glass p-8 md:p-10 min-h-[280px] lg:sticky lg:top-24 border border-lumen/40 shadow-[0_0_45px_rgba(74,203,235,0.22),0_10px_30px_-10px_rgba(0,0,0,0.5)] bg-panel/80 overflow-hidden">
-              <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-lumen/20 blur-3xl pointer-events-none" />
+            <div className="relative card-team p-8 md:p-10 min-h-[280px] lg:sticky lg:top-24 overflow-hidden">
+              <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
               <div>
                 <motion.div
                   key={current.q}
@@ -197,7 +194,7 @@ export default function FAQs() {
                       <button
                         onClick={() => setIsLocked(false)}
                         data-cursor
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider bg-lumen/15 text-lumen border border-lumen/40 hover:bg-lumen/25 transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(74,203,235,0.25)]"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-wider bg-lumen/15 text-lumen border border-lumen/40 hover:bg-lumen/25 transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(47,147,173,0.25)]"
                         title="Question locked. Click to unlock hover preview."
                       >
                         <Lock size={12} className="text-lumen shrink-0" />

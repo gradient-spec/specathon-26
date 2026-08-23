@@ -258,7 +258,7 @@ export default function RegistrationDrawer({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={4}
-                    className="w-full bg-panel/40 border border-line rounded-lg p-3 text-sm text-fg focus:border-lumen/60 focus:outline-none transition-all focus:shadow-[0_0_0_3px_rgba(74,203,235,0.12),0_0_22px_-6px_rgba(74,203,235,0.5)]"
+                    className="w-full bg-panel/40 border border-line rounded-lg p-3 text-sm text-fg focus:border-lumen/60 focus:outline-none transition-all focus:shadow-[0_0_0_3px_rgba(47,147,173,0.12),0_0_22px_-6px_rgba(47,147,173,0.5)]"
                     placeholder="Add a private note visible only to organizers…"
                   />
                   <div className="mt-3 flex justify-end">

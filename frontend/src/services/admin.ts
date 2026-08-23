@@ -4,7 +4,8 @@ import type { Status } from "../utils/constants";
 export type TeamRow = {
   id: string;
   reg_code: string | null;
-  created_at: string;
+  created_at:          string;
+  auth_id:             string | null;
   team_name: string;
   team_size: number;
   domain: string;
@@ -37,7 +38,8 @@ export type MemberRow = {
   department: string | null;
   email: string | null;
   role: string | null;
-  created_at: string;
+  created_at:          string;
+  auth_id:             string | null;
 };
 
 export type FullTeam = TeamRow & { members: MemberRow[] };
@@ -193,6 +195,166 @@ export async function deleteTeams(ids: string[], actor: string | null) {
   }
 }
 
+// ── V2: Shortlisted Teams Import ──────────────────────────────────────────
+
+export type ShortlistedTeamRow = {
+  team_id: string;
+  registration_source: "WEBSITE" | "UNSTOP";
+  team_name: string;
+  team_lead_name: string;
+  contact: string;
+  email: string;
+  team_size: number;
+  amount: number;
+  payment_status: "PENDING";
+  payment_notes: string | null;
+};
+
+/**
+ * Passes a validated array of rows to the import_shortlisted_teams() RPC.
+ * The RPC handles all business logic and runs atomically inside Postgres.
+ * Returns { imported: number } on success, throws on any error.
+ */
+export async function importShortlisted(
+  rows: ShortlistedTeamRow[]
+): Promise<{ imported: number }> {
+  const { data, error } = await client().rpc("import_shortlisted_teams", {
+    rows,
+  });
+
+  if (error) {
+    // Supabase RPC errors are plain objects { code, message, details, hint },
+    // not Error instances. Extract the human-readable message explicitly so
+    // the UI never shows "[object Object]".
+    console.error("[importShortlisted] RPC error:", error);
+    const msg =
+      (typeof error === "object" && error !== null && "message" in error
+        ? (error as { message?: string }).message
+        : null) ??
+      String(error);
+    throw new Error(msg || "Import failed. Check the browser console for details.");
+  }
+
+  return data as { imported: number };
+}
+
+/**
+ * Fires the sync-sheet Edge Function for the supplied team IDs.
+ * Fire-and-forget from the frontend — never throws, never blocks the import.
+ * Errors are logged to the console only.
+ */
+export async function syncSheetForTeams(teamIds: string[]): Promise<void> {
+  if (teamIds.length === 0) return;
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+    const edgeUrl     = `${supabaseUrl}/functions/v1/sync-sheet`;
+
+    const res = await fetch(edgeUrl, {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({ teamIds }),
+    });
+
+    const body = await res.json() as { success: boolean; message?: string; synced?: number };
+    if (!body.success) {
+      console.warn("[syncSheetForTeams] Sheet sync reported failure:", body.message);
+    } else {
+      console.log(`[syncSheetForTeams] Synced ${body.synced} row(s) to Automation Sheet.`);
+    }
+  } catch (err) {
+    // Never propagate — sheet sync failure must not affect CSV import success.
+    console.error("[syncSheetForTeams] Unexpected error:", err);
+  }
+}
+
+// ── V2: Payment Dashboard ─────────────────────────────────────────────────
+
+export type ShortlistedTeamFull = {
+  id:                           string;
+  team_id:                      string;
+  registration_source:          string;
+  team_name:                    string;
+  team_lead_name:               string;
+  contact:                      string;
+  email:                        string | null;
+  team_size:                    number;
+  amount:                       number;
+  payment_status:               "PENDING" | "FAILED" | "PAID";
+  payment_notes:                string | null;
+  paid_at:                      string | null;
+  created_at:                   string;
+  auth_id:                      string | null;
+  shortlisted_email_status:     "NOT_SENT" | "SENDING" | "SENT" | "FAILED";
+  shortlisted_email_sent_at:    string | null;
+  shortlisted_email_message_id: string | null;
+  shortlisted_email_error:      string | null;
+};
+
+export type PaymentEvent = {
+  id:                  string;
+  shortlisted_team_id: string;
+  razorpay_order_id:   string | null;
+  razorpay_payment_id: string | null;
+  event_type:          string;
+  amount:              number;
+  payload:             Record<string, unknown>;
+  signature_verified:  boolean | null;
+  created_at:          string;
+  auth_id:             string | null;
+};
+
+export async function listShortlistedTeams(): Promise<ShortlistedTeamFull[]> {
+  const { data, error } = await client()
+    .from("shortlisted_teams")
+    .select("*")
+    .order("team_id", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ShortlistedTeamFull[];
+}
+
+export async function listPaymentEventsForTeam(
+  shortlistedTeamId: string
+): Promise<PaymentEvent[]> {
+  const { data, error } = await client()
+    .from("payment_events")
+    .select("*")
+    .eq("shortlisted_team_id", shortlistedTeamId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as PaymentEvent[];
+}
+
+/**
+ * Updates payment_notes on a shortlisted_teams row.
+ * Only touches payment_notes — never modifies payment_status, amount,
+ * paid_at or any other field. Admin-only via service-role client.
+ */
+export async function updatePaymentNotes(
+  id: string,
+  notes: string
+): Promise<void> {
+  const trimmed = notes.trim().slice(0, 1000);
+  const { error } = await client()
+    .from("shortlisted_teams")
+    .update({ payment_notes: trimmed || null })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function markPaymentAsPaid(
+  id: string
+): Promise<void> {
+  const { error } = await client()
+    .from("shortlisted_teams")
+    .update({ payment_status: "PAID", paid_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function logAudit(
   actor: string | null,
   action: string,
@@ -342,4 +504,280 @@ export async function downloadAllAbstracts(
   a.download = `SPECATHON2026_Abstracts_${date}.zip`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+
+/**
+ * Provisions credentials for a shortlisted team by invoking the provision-team-credentials Edge Function.
+ */
+export async function provisionTeamCredentials(
+  teamId: string,
+  accessToken: string
+): Promise<{ success: boolean; teamId?: string; password?: string; message?: string }> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/provision-team-credentials`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamId }),
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to provision credentials (${res.status}).`);
+  }
+  return body as { success: boolean; teamId?: string; password?: string; message?: string };
+}
+
+export type BulkProvisionResult = {
+  success: boolean;
+  results?: {
+    ALREADY_PROVISIONED: string[];
+    LEGACY: string[];
+    INCONSISTENT: string[];
+    PROVISIONED: { teamId: string; password: string }[];
+    ORPHANED_AUTH: string[];
+    FAILED: string[];
+  };
+  message?: string;
+};
+
+/**
+ * Provisions credentials in bulk for all eligible shortlisted teams.
+ */
+export async function bulkProvisionCredentials(
+  accessToken: string
+): Promise<BulkProvisionResult> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/bulk-provision-credentials`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    }
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to bulk provision credentials (${res.status}).`);
+  }
+  return body as BulkProvisionResult;
+}
+
+/**
+ * Retrieves the plaintext credential for a single already-provisioned team.
+ */
+export async function getTeamCredential(
+  accessToken: string,
+  teamId: string
+): Promise<{ success: boolean; password?: string; message?: string }> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/get-team-credential`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamId })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to retrieve team credential (${res.status}).`);
+  }
+  return body as { success: boolean; password?: string; message?: string };
+}
+
+// --- Spin Wheel Services ---
+
+export type WheelConfig = {
+  id: number;
+  is_enabled: boolean;
+  current_mode: "TEST" | "LIVE";
+  prize_1_name: string;
+  prize_2_name: string;
+  better_luck_a_name: string;
+  better_luck_b_name: string;
+  dummy_1_name: string;
+  dummy_2_name: string;
+  dummy_3_name: string;
+  dummy_4_name: string;
+};
+
+export type SpinAttempt = {
+  id: string;
+  shortlisted_team_id: string;
+  auth_id: string;
+  mode: "TEST" | "LIVE";
+  result: "PRIZE_1" | "PRIZE_2" | "BETTER_LUCK_A" | "BETTER_LUCK_B";
+  created_at: string;
+  team?: {
+    team_id: string;
+    team_name: string;
+  };
+};
+
+export async function getWheelConfig(): Promise<WheelConfig> {
+  const { data, error } = await client().from("wheel_config").select("*").eq("id", 1).single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateWheelConfig(updates: Partial<Omit<WheelConfig, "id">>): Promise<void> {
+  const { error } = await client().from("wheel_config").update(updates).eq("id", 1);
+  if (error) throw error;
+}
+
+export async function listSpinAttempts(): Promise<SpinAttempt[]> {
+  const { data, error } = await client()
+    .from("spin_attempts")
+    .select(`
+      *,
+      team:shortlisted_teams(team_id, team_name)
+    `)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function sendShortlistedEmail(teamId: string, token: string, resend: boolean = false): Promise<{
+  success: boolean;
+  message?: string;
+}> {
+  const { data, error } = await client().functions.invoke("send-shortlisted-email", {
+    body: { team_id: teamId, resend },
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to invoke send-shortlisted-email function");
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || "Failed to send email");
+  }
+
+  return data;
+}
+
+export type BulkEmailResult = {
+  success: boolean;
+  total: number;
+  sent: number;
+  failed: number;
+  results: { team_id: string; success: boolean; error?: string }[];
+  message?: string;
+};
+
+export async function sendBulkShortlistedEmails(teamIds: string[], token: string): Promise<BulkEmailResult> {
+  const { data, error } = await client().functions.invoke("send-shortlisted-emails", {
+    body: { team_ids: teamIds },
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to invoke send-shortlisted-emails function");
+  }
+
+  if (!data?.success) {
+    throw new Error(data?.message || "Failed to send bulk emails");
+  }
+
+  return data as BulkEmailResult;
+}
+
+
+export type EmailTemplate = {
+  subject: string;
+  html: string;
+};
+
+export async function getEmailTemplate(token: string, key: string = "shortlisted_team"): Promise<EmailTemplate> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/admin-email-template?key=${key}`;
+
+  const res = await fetch(edgeUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    }
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to fetch email template (${res.status}).`);
+  }
+  if (!body.success) {
+    throw new Error(body.message || "Failed to fetch email template.");
+  }
+  return body.template as EmailTemplate;
+}
+
+export async function saveEmailTemplate(token: string, subject: string, html: string, key: string = "shortlisted_team"): Promise<EmailTemplate> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/admin-email-template?key=${key}`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ subject, html })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to save email template (${res.status}).`);
+  }
+  if (!body.success) {
+    throw new Error(body.message || "Failed to save email template.");
+  }
+  return body.template as EmailTemplate;
+}
+
+export type DeleteTeamRecordResult = {
+  success: boolean;
+  results?: {
+    DELETED: string[];
+    SKIPPED_PAYMENT_EVENTS: string[];
+    FAILED: { teamId: string; error: string }[];
+  };
+  message?: string;
+};
+
+/**
+ * Deletes team records safely via the delete-team-record Edge Function.
+ * Only deletes V2 operational/test records. Preserves V1 and payment_events.
+ */
+export async function deleteTeamRecords(
+  teamIds: string[],
+  accessToken: string
+): Promise<DeleteTeamRecordResult> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const edgeUrl = `${supabaseUrl}/functions/v1/delete-team-record`;
+
+  const res = await fetch(edgeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ teamIds })
+  });
+
+  const body = await res.json();
+  if (!res.ok && !body.message) {
+    throw new Error(`Failed to delete team records (${res.status}).`);
+  }
+  return body as DeleteTeamRecordResult;
 }

@@ -22,7 +22,7 @@ export const DOMAINS: Domain[] = [
       "Build intelligent systems that learn, reason, and automate complex tasks using data and machine learning. Create solutions that transform industries through predictive analytics, computer vision, and generative AI.",
     icon: "/icons/artificial-intelligence.png",
     accent: "text-lumen",
-    glow: "rgba(74, 203, 235, 0.55)",
+    glow: "rgba(47,147,173, 0.55)",
     pptUrl: "#",
   },
   {
@@ -153,9 +153,9 @@ export default function Domains() {
   const pointerAngle = (activeIndex / DOMAINS.length) * 360 - 90;
 
   return (
-    <section ref={sectionRef} id="domains" className="relative py-14 md:py-20 overflow-hidden">
+    <section ref={sectionRef} id="domains" className="relative py-8 md:py-10 overflow-hidden">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
-        <div className="mb-16 max-w-2xl">
+        <div className="mb-8 max-w-2xl">
           <Reveal>
             <div className="eyebrow flex items-center gap-3">
 

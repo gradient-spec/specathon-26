@@ -1,98 +1,119 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Reveal from "./Reveal";
-import Watermark from "./Watermark";
 
-/* ── TIMELINE STEPS — 5 key milestones leading to SPECATHON 2026 */
-type Step = { day: string; title: string; note: string };
+type Slot = { time: string; title: string; note?: string };
+type Day = { id: string; label: string; date: string; slots: Slot[] };
 
-const STEPS: Step[] = [
+const AGENDA: Day[] = [
   {
-    day: "27th July 2026",
-    title: "Registrations Start",
-    note: "Official registration portal opens for all participating teams. Form your squad, select your preferred domain track, and begin drafting your project proposal.",
+    id: "day1",
+    label: "Day 1",
+    date: "September 11, 2026",
+    slots: [
+      { time: "8:30 AM", title: "Reporting at Campus" },
+      { time: "9:30 AM", title: "Opening Ceremony" },
+      { time: "10:30 AM", title: "Hackathon Begins" },
+      { time: "11:30 AM", title: "Round 1 Evaluation" },
+      { time: "1:30 PM – 2:30 PM", title: "Lunch" },
+      { time: "5:30 PM", title: "Snacks" },
+      { time: "8:00 PM – 9:00 PM", title: "Dinner" },
+      { time: "9:30 PM – 11:30 PM", title: "Mentorship / Internal Evaluation" },
+      { time: "12:00 AM – 1:00 AM", title: "Campfire with jamming session" },
+    ],
   },
   {
-    day: "20th August 2026",
-    title: "End of Registrations & Abstract Submissions",
-    note: "Final deadline to complete team registration and submit your initial project abstract. Ensure all team member details and problem statement proposals are uploaded before midnight.",
-  },
-  {
-    day: "23rd August 2026",
-    title: "Shortlisted Teams Announced",
-    note: "Evaluation of submitted abstracts concludes. The official list of shortlisted teams qualified to compete in the main hackathon edition will be published.",
-  },
-  {
-    day: "31st August 2026",
-    title: "Registration Fee Payment Deadline",
-    note: "Shortlisted teams must complete their seat confirmation and registration fee payment. Receive your official team confirmation pass and pre-hackathon guidelines.",
-  },
-  {
-    day: "11th September 2026",
-    title: "SPECATHON Begins",
-    note: "The grand 36-hour hackathon officially kicks off! Doors open for check-ins, mentor sessions, overnight building, and live judging at the campus venue.",
+    id: "day2",
+    label: "Day 2",
+    date: "September 12, 2026",
+    slots: [
+      { time: "6:00 AM", title: "Fresh up" },
+      { time: "7:30 AM – 8:30 AM", title: "Breakfast" },
+      { time: "10:00 AM – 1:00 PM", title: "Round 2 Evaluation" },
+      { time: "1:00 PM – 2:00 PM", title: "Lunch" },
+      { time: "2:30 PM", title: "Final Evaluation" },
+      { time: "4:30 PM", title: "Closing Ceremony / End" },
+    ],
   },
 ];
 
 export default function Timeline() {
+  const [active, setActive] = useState(0);
+  const day = AGENDA[active];
+
   return (
-    <section id="timeline" className="relative py-12 md:py-18 overflow-hidden">
-      <Watermark />
-      <div className="mx-auto max-w-5xl px-6 md:px-10">
-        <div className="text-center mb-16">
-          <Reveal>
-            <div className="eyebrow inline-flex items-center gap-3">
-              <span className="font-mono text-xs uppercase tracking-[0.2em] text-lumen font-medium">
-
+    <section id="timeline" className="relative py-8 md:py-10 overflow-hidden scroll-mt-16">
+      <div className="mx-auto max-w-3xl px-6 md:px-10">
+<Reveal>
+  <div className="text-center mb-6">
+    {/* <div className="eyebrow inline-flex items-center gap-2 mb-4">Run of show</div> */}
+    <h2 className="font-display font-bold text-4xl md:text-5xl leading-[1.05] tracking-tightest">
+      Your{" "}
+      <span className="text-lumen italic">
+                Specathon 2026
               </span>
-            </div>
-            <h2 className="mt-4 font-display text-4xl md:text-5xl leading-[1.05] tracking-tightest">
-              Roadmap to <span className="font-serif italic text-lumen">SPECATHON</span>
-            </h2>
-            <p className="mt-4 text-muted text-sm max-w-md mx-auto leading-relaxed">
+       {" "} Timeline
+    </h2>
+  </div>
+</Reveal>
 
-            </p>
-          </Reveal>
-        </div>
+        {/* Tabs */}
+        <Reveal delay={0.06}>
+          <div className="flex items-center justify-center gap-2 mb-8">
+            {AGENDA.map((d, i) => (
+              <button
+                key={d.id}
+                onClick={() => setActive(i)}
+                className={`relative rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${
+                  active === i ? "text-void" : "text-subtle hover:text-fg"
+                }`}
+              >
+                {active === i && (
+                  <motion.span
+                    layoutId="agenda-tab"
+                    className="absolute inset-0 rounded-full bg-plasma"
+                    transition={{ type: "spring", stiffness: 300, damping: 26 }}
+                  />
+                )}
+                <span className="relative">{d.label} · {d.date.split(",")[0]}</span>
+              </button>
+            ))}
+          </div>
+        </Reveal>
 
-        <div className="relative">
-          {/* Central connector line — decorative, lives outside <ol> to keep valid HTML */}
-          <div aria-hidden="true" className="absolute left-4 md:left-1/2 top-2 bottom-2 w-px md:-translate-x-1/2 bg-gradient-to-b from-transparent via-lumen/40 to-transparent" />
+        {/* Checkpoints — clean single-column rail, no icons */}
+        <AnimatePresence mode="wait">
+          <motion.ol
+            key={day.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="relative"
+          >
+            {/* Rail */}
+            <div className="absolute left-[7px] top-3 bottom-3 w-px bg-gradient-to-b from-transparent via-lumen/40 to-transparent" />
 
-          <ol className="relative">
-            {STEPS.map((s, i) => {
-              const left = i % 2 === 0;
-              return (
-                <li key={`${s.day}-${s.title}`} className="relative md:grid md:grid-cols-2 md:gap-x-12 pl-12 md:pl-0 pb-12 md:pb-10 last:pb-0 group">
-                  {/* Node — sits directly in <li> so absolute positioning is correct */}
-                  <span
-                    className={`absolute left-4 md:left-1/2 top-2 md:-translate-x-1/2 h-4 w-4 rounded-full z-10 transition-all duration-300 ${i === 0
-                      ? "bg-lumen border-2 border-lumen shadow-[0_0_20px_rgba(74,203,235,0.8)]"
-                      : "bg-[#0B0F17] border-2 border-lumen/70 shadow-[0_0_10px_rgba(74,203,235,0.25)]"
-                      } group-hover:bg-lumen group-hover:border-lumen group-hover:scale-125 group-hover:shadow-[0_0_28px_rgba(74,203,235,1),0_0_50px_rgba(74,203,235,0.65)]`}
-                  >
-                    <span className="absolute -inset-1 rounded-full border border-lumen/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
-                  </span>
+            {day.slots.map((s, i) => (
+              <li key={`${s.time}-${s.title}-${i}`} className="relative pl-9 md:pl-12 pb-4 last:pb-0 group">
+                {/* Node dot */}
+                <span className="absolute left-[7px] top-[22px] -translate-x-1/2 h-3 w-3 rounded-full bg-void border-2 border-lumen/70 group-hover:border-lumen shadow-[0_0_14px_-3px_rgba(47,147,173,0.75)] transition-colors z-10" />
 
-                  <Reveal delay={0.04} x={left ? -24 : 24} className={left ? "md:col-start-1" : "md:col-start-2"}>
-                    {/* Card */}
-                    <div className={left ? "md:text-right md:pr-6" : "md:pl-6"}>
-                      <div className="rounded-2xl glass p-5 md:p-6 mb-4 md:mb-0 transition-all duration-500 hover:-translate-y-1.5 hover:border-lumen/60 hover:shadow-[0_0_35px_rgba(74,203,235,0.25),0_10px_30px_-10px_rgba(0,0,0,0.5)] hover:bg-panel/80 group-hover:border-lumen/50 cursor-pointer">
-                        <div className={`flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-lumen font-semibold ${left ? "md:justify-end" : ""}`}>
-                          <span>{s.day}</span>
-                        </div>
-                        <div className="mt-2 font-display text-xl md:text-2xl tracking-tight text-fg group-hover:text-white transition-colors duration-300">
-                          {s.title}
-                        </div>
-                        <div className="mt-2 text-muted text-sm leading-relaxed group-hover:text-fg/90 transition-colors duration-300">
-                          {s.note}
-                        </div>
-                      </div>
-                    </div>
-                  </Reveal>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
+                <div className="card-team px-5 py-4 md:px-6 md:py-5 transition-all duration-500 group-hover:-translate-y-0.5 group-hover:border-cyan-400/40">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <h3 className="font-display text-lg md:text-xl tracking-tight leading-snug">
+                      {s.title}
+                    </h3>
+                    <span className="font-mono text-xs md:text-sm tabular-nums text-lumen shrink-0">
+                      {s.time}
+                    </span>
+                  </div>
+                  {s.note && <p className="mt-2 text-sm text-subtle leading-relaxed">{s.note}</p>}
+                </div>
+              </li>
+            ))}
+          </motion.ol>
+        </AnimatePresence>
       </div>
     </section>
   );

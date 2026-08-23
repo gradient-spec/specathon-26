@@ -7,7 +7,6 @@ import DateCounter from "./DateCounter";
 export default function Hero() {
   const titleRef = useRef<HTMLHeadingElement>(null);
 
-  // Kinetic reveal of the wordmark.
   useEffect(() => {
     if (!titleRef.current) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -24,22 +23,22 @@ export default function Hero() {
   return (
     <section
       id="top"
-      className="group relative min-h-[85svh] flex flex-col justify-center pt-24 pb-6 overflow-hidden noise"
+      className="group relative min-h-[92svh] flex flex-col justify-center pt-24 pb-10 overflow-hidden noise"
     >
       <div className="relative mx-auto max-w-5xl w-full px-6 md:px-10 flex flex-col items-center text-center">
-        {/* Wordmark: SPECATHON [2026 glass badge] */}
+        {/* Wordmark */}
         <h1
           ref={titleRef}
-          className="hero-title font-display font-bold leading-[1.25] text-[clamp(2rem,8.5vw,6.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-4 md:flex-nowrap md:gap-x-6 py-4 px-2 overflow-visible"
+          className="hero-title font-display font-bold leading-[1.2] text-[clamp(2rem,8.5vw,6.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-4 md:flex-nowrap md:gap-x-6 py-2 px-2 overflow-visible"
           aria-label="SPECATHON 2026"
         >
-          <span className="overflow-visible inline-flex py-2 px-1" style={{ fontFamily: '"Playfair Display", ui-serif, serif', fontStyle: 'normal' }}>
+          <span className="overflow-visible inline-flex py-2 px-1" style={{ fontFamily: '"Playfair Display", ui-serif, serif' }}>
             {title.split("").map((c, i) => (
               <span
                 key={i}
                 data-char
-                className={`inline-block will-change-transform py-1 px-[2px] ${c === '.' ? 'text-lumen' : 'shimmer-text'}`}
-                style={c === '.' ? undefined : ({ "--delay": `${i * 0.15}s` } as React.CSSProperties)}
+                className="inline-block will-change-transform py-1 px-[2px] shimmer-text"
+                style={{ "--delay": `${i * 0.15}s` } as React.CSSProperties}
               >
                 {c}
               </span>
@@ -56,55 +55,55 @@ export default function Hero() {
           </motion.span>
         </h1>
 
-        {/* Tagline — placed above date badge */}
+
+        {/* Official event dates — restored V1 slot-counter style/position */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.8, duration: 0.6 }}
+          className="mt-7"
+        >
+          <DateCounter value="11 & 12 SEP" startDelay={2900} />
+        </motion.div>
+        {/* Tagline — organizing department line */}
         <motion.p
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.6, duration: 0.7 }}
-          className="mt-8 font-display text-xl md:text-3xl text-fg/90 tracking-tight"
+          className="mt-6 max-w-2xl font-display text-base md:text-xl text-slate-200 leading-relaxed tracking-tight"
         >
-          <span className="text-lumen">A 36-Hour</span> National Level Hackathon
+          Registrations Closed{" "}
+          <span className="text-slate-400">·</span>{" "}
+          <span className="text-plasma font-bold">The Shortlist Is Live</span>
         </motion.p>
 
-        {/* Date Display Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.8, duration: 0.6 }}
-          className="mt-6"
-        >
-          <DateCounter
-            value="11 & 12 SEP"
-            delay={80}
-            startDelay={2800}
-            animateBy="words"
-            direction="bottom"
-          />
-        </motion.div>
+        {/* Message to shortlisted + unselected teams — high contrast, stands out over the watermark */}
+  <motion.p
+  initial={{ opacity: 0, y: 12 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 3.0, duration: 0.6 }}
+  className="my-6 max-w-2xl text-lg md:text-xl font-medium text-slate-100 leading-relaxed"
+>
+  Congratulations to all the teams who made the cut—you’ve earned your place among the brightest ideas at{" "}
+  <span className="font-playfair text-[#2997B3]">
+    SPECATHON 2026
+  </span>
+  . To everyone who didn’t make the list this time, keep going. Your idea still has the power to make an impact.
 
-        {/* About — clean text without card background or title */}
-        <motion.div
-          id="about"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.95, duration: 0.6 }}
-          className="mt-8 scroll-mt-24 max-w-4xl text-center mx-auto"
-        >
-          <p className="text-fg/80 text-base md:text-lg leading-relaxed font-body">
-            Thirty-six hours, one campus, and a room full of innovators. SPECATHON is flagship national level hackathon hosted by Department of CSE(AI&ML),  St. Peter's Engineering College, Hyderabad — pick a problem, ship a working demo,
-            and defend it in front of mentors and judges.
-          </p>
-        </motion.div>
+  {/* <span className="font-playfair">
+    Keep creating. Keep challenging. Keep believing.
+  </span> */}
+</motion.p>
 
         {/* Primary CTA */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.1, duration: 0.6 }}
+          transition={{ delay: 3.3, duration: 0.6 }}
           className="mt-10 flex justify-center items-center w-full"
         >
-          <a href="#register" id="hero-register-btn" className="btn-primary group/btn !px-8 !py-4 text-base">
-            Register Now
+          <a href="#shortlist-portal" id="hero-cta-btn" className="btn-primary cta-shimmer group/btn !px-8 !py-4 text-base">
+            Search Team Shortlist Status
             <ArrowRight size={18} className="transition-transform group-hover/btn:translate-x-1" />
           </a>
         </motion.div>
@@ -112,5 +111,3 @@ export default function Hero() {
     </section>
   );
 }
-
-

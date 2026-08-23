@@ -72,7 +72,7 @@ const SOCIALS: SocialItem[] = [
 
 export default function SocialMedia() {
   return (
-    <section id="social" className="relative py-10 border-t border-white/[0.06] bg-transparent">
+    <section id="social" className="relative py-6 border-t border-white/[0.06] bg-transparent">
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="flex flex-col md:flex-row items-center md:items-center justify-between text-center md:text-left gap-6">
           <Reveal>
@@ -83,9 +83,6 @@ export default function SocialMedia() {
               <h3 className="mt-1 font-display text-2xl md:text-3xl tracking-tight">
                 Social Media Handles
               </h3>
-              <p className="mt-1 text-muted text-xs md:text-sm">
-                Stay updated with official announcements, event photos, and competition results.
-              </p>
             </div>
           </Reveal>
 

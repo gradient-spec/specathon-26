@@ -1,14 +1,19 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
       colors: {
         // ── Design System v2 ──────────────────────────────────────
         // Backgrounds
         void: "#0B0F14",   // Primary background
-        ink: "#121820",    // Secondary background
+        ink: {
+          DEFAULT: "#121820", // Secondary background (V2)
+          950: "#0B0F1A",     // Photobooth camera viewport
+          900: "#0F172A",
+          800: "#111827",
+        },
         panel: "#1A2332",  // Surface / card
         line: "#2A3647",   // Borders / dividers
         // Text
@@ -17,19 +22,31 @@ export default {
         muted: "#829580",  // Muted text
         disabled: "#A5B4C6", // Disabled text
         // Brand accents
-        plasma: "#186275", // Primary accent (teal)
+        plasma: "#186275", // Primary accent (teal) — fills, buttons, borders
         indigo: "#240C5C", // Secondary accent (deep indigo)
-        lumen: "#4ACBEB",  // Neon cyan glow — the hero accent
-        glow: "#4ACBEB",   // Explicit glow token (alias)
+        // Legible teal tint of the primary brand for on-dark text links, icons,
+        // highlights and glows (replaces the retired neon cyan; passes AA on #0B0F14).
+        lumen: "#2F93AD",
+        glow: "#2F93AD",   // Explicit glow token (alias)
         // Status
         success: "#1A9E4A",
         gold: "#CD8200",   // Warning
         ember: "#AD0D03",  // Error
+        // Photobooth accent tokens (from standalone photobooth project)
+        "indigo-glow": "#5B5FEF",
+        "violet-glow": "#8B5CF6",
+        "cyan-glow": "#00C2FF",
+        paper: {
+          DEFAULT: "#F2EEE4",
+          dark: "#E8E2D3",
+          platinum: "#D8D8D2",
+        },
       },
       fontFamily: {
         sans: ['"Alegreya Sans"', "system-ui", "sans-serif"],
         display: ['"Playfair Display"', "ui-serif", "serif"],
         serif: ['"Playfair Display"', "ui-serif", "serif"],
+        playfair: ['"Playfair Display"', "ui-serif", "Georgia", "serif"],
         body: ['"Alegreya Sans"', "system-ui", "sans-serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
         baskerville: ['"Libre Baskerville"', "serif"],
@@ -39,11 +56,11 @@ export default {
         tightest: "-0.03em",
       },
       boxShadow: {
-        glow: "0 0 40px -8px rgba(74,203,235,0.5)",
-        cyan: "0 0 40px -8px rgba(74,203,235,0.55)",
+        glow: "0 0 40px -8px rgba(47,147,173,0.5)",
+        cyan: "0 0 40px -8px rgba(47,147,173,0.55)",
       },
       backgroundImage: {
-        grid: "linear-gradient(to right, rgba(74,203,235,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(74,203,235,0.05) 1px, transparent 1px)",
+        grid: "linear-gradient(to right, rgba(47,147,173,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(47,147,173,0.05) 1px, transparent 1px)",
         radial: "radial-gradient(1200px 600px at 50% -10%, rgba(24,98,117,0.28), transparent 60%)",
       },
       animation: {

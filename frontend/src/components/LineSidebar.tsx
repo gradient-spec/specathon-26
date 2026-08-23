@@ -26,7 +26,7 @@ export type LineSidebarProps = {
 
 export default function LineSidebar({
   items,
-  accentColor = "#4ACBEB",
+  accentColor = "#2F93AD",
   textColor = "#c4c4c4",
   markerColor = "#186275",
   showIndex = true,

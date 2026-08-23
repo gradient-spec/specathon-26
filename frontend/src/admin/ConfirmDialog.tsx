@@ -55,7 +55,7 @@ export default function ConfirmDialog({
                 className={
                   destructive
                     ? "px-4 py-2 rounded-xl text-sm text-fg font-medium bg-ember border border-ember/30 hover:shadow-[0_0_16px_rgba(173,13,3,0.35)] transition-all"
-                    : "px-4 py-2 rounded-xl text-sm text-fg font-medium bg-plasma border border-plasma/30 hover:border-lumen/50 hover:shadow-[0_0_16px_rgba(74,203,235,0.35)] transition-all"
+                    : "px-4 py-2 rounded-xl text-sm text-fg font-medium bg-plasma border border-plasma/30 hover:border-lumen/50 hover:shadow-[0_0_16px_rgba(47,147,173,0.35)] transition-all"
                 }
               >
                 {confirmLabel}

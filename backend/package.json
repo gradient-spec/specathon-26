@@ -6,7 +6,8 @@
   "description": "Supabase database (schema/migrations) and admin tooling for SPECATHON 2026. Not a running server — Supabase is the hosted backend; this package holds SQL migrations and the CSV export/sync CLI.",
   "scripts": {
     "sync:csv": "node scripts/sync-csv.mjs",
-    "export:csv": "node scripts/sync-csv.mjs --once"
+    "export:csv": "node scripts/sync-csv.mjs --once",
+    "import:shortlisted": "node scripts/import-shortlisted.mjs"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.110.8"

@@ -208,7 +208,7 @@ export default function Particles() {
           const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
           grad.addColorStop(0, `rgba(255, 255, 255, ${m.alpha})`); // Intense white core
           grad.addColorStop(0.2, `rgba(229, 228, 226, ${m.alpha * 0.85})`); // Platinum metallic
-          grad.addColorStop(0.5, `rgba(74, 203, 235, ${m.alpha * 0.45})`); // Vibrant teal accent
+          grad.addColorStop(0.5, `rgba(47,147,173, ${m.alpha * 0.45})`); // Vibrant teal accent
           grad.addColorStop(1, `rgba(180, 195, 210, 0)`); // Translucent smoke tail
 
           ctx.save();
@@ -219,7 +219,7 @@ export default function Particles() {
           ctx.lineWidth = m.size * 0.95;
           ctx.lineCap = "round";
           ctx.shadowBlur = 14;
-          ctx.shadowColor = "#4ACBEB";
+          ctx.shadowColor = "#2F93AD";
           ctx.stroke();
 
           // Platinum meteor head dot with vibrant bloom
