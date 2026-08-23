@@ -5,6 +5,7 @@ import { Loader2, CreditCard, AlertCircle, Home } from "lucide-react";
 import TeamPortalLayout from "@/components/TeamPortalLayout";
 import Reveal from "@/components/Reveal";
 import TeamLogoutButton from "@/components/TeamLogoutButton";
+import PhotoBoothSection from "@/components/PhotoBoothSection";
 import { useTeamAuth } from "@/hooks/TeamAuthContext";
 import { teamSupabase as supabase } from "@/services/supabase";
 
@@ -84,9 +85,10 @@ export default function TeamDashboard() {
 
   return (
     <TeamPortalLayout>
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-20 pb-4">
-        <div className="w-full max-w-5xl">
-          <Reveal>
+      <div className="flex-1 flex items-center justify-center px-6 pt-28 md:pt-20 pb-4">
+        <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-start gap-y-10 gap-x-12 lg:gap-x-20">
+          <div>
+            <Reveal>
             <div className="card-team p-10 md:p-12">
               <div className="mb-7">
                 <h1 className="font-display text-xl md:text-2xl tracking-tightest text-center md:text-left">Team Portal</h1>
@@ -193,6 +195,11 @@ export default function TeamDashboard() {
               Return to Home
             </Link>
             <TeamLogoutButton />
+          </div>
+          </div>
+          
+          <div className="lg:sticky lg:top-28 flex flex-col justify-center h-full pb-10 lg:pb-0">
+            <PhotoBoothSection />
           </div>
         </div>
       </div>
