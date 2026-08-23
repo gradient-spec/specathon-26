@@ -45,7 +45,8 @@ export default function PhotoBooth() {
 
   const handleCapture = useCallback(() => {
     // First tap turns the camera ON (requests permission / activates feed).
-    if (!cameraOn) {
+    // If it was previously denied/error, we reset state to try requesting again.
+    if (!cameraOn || cameraStatus === 'denied' || cameraStatus === 'error') {
       startCamera();
       return;
     }
