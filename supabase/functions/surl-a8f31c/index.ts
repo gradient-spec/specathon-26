@@ -115,23 +115,16 @@ serve(async (req) => {
     }
 
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://specathon.in";
-    const redirectUrl = `${frontendUrl}/team/payment/f82b7c4a1e9d3a2f`;
+    const redirectUrl = new URL(`${frontendUrl}/team/payment/f82b7c4a1e9d3a2f`);
+    if (txnid) redirectUrl.searchParams.set("txnid", txnid);
+    if (amountStr) redirectUrl.searchParams.set("amount", amountStr);
+    redirectUrl.searchParams.set("status", "success");
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta http-equiv="refresh" content="0; url=${redirectUrl}">
-          <title>Redirecting...</title>
-        </head>
-        <body style="background-color: #0d0d0d; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center;">
-          <p>Payment recorded. Redirecting back to application... <br><br> <a href="${redirectUrl}" style="color: #64ffda;">Click here</a> if you are not redirected automatically.</p>
-        </body>
-      </html>
-    `;
-
-    return new Response(html, {
-      headers: { "Content-Type": "text/html; charset=utf-8" }
+    return new Response(null, {
+      status: 303,
+      headers: {
+        "Location": redirectUrl.toString(),
+      }
     });
 
   } catch (err: any) {
