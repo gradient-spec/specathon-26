@@ -93,12 +93,6 @@ serve(async (req) => {
         });
 
         const udf1 = formData.get("udf1")?.toString(); // Used as Team ID
-        if (udf1) {
-          // Optionally mark the team as FAILED
-          await supabase.from("shortlisted_teams")
-            .update({ payment_status: "FAILED" })
-            .eq("team_id", udf1);
-        }
       } catch (err) {
         console.error("Background task failed:", err);
       }

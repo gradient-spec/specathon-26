@@ -104,11 +104,6 @@ serve(async (req) => {
           if (teamData?.team_name) {
             teamName = teamData.team_name;
           }
-          
-          // Optionally mark the team as PAID
-          await supabase.from("shortlisted_teams")
-            .update({ payment_status: "PAID" })
-            .eq("team_id", udf1);
         }
 
         const telegramBotToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
