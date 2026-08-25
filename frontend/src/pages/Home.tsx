@@ -4,7 +4,6 @@ import Hero from "@/components/Hero";
 import Loader from "@/components/Loader";
 import Cursor from "@/components/Cursor";
 import Particles from "@/components/Particles";
-import ShortlistPortal from "@/components/ShortlistPortal";
 import SeatCountdown from "@/components/SeatCountdown";
 import PhotoBoothSection from "@/components/PhotoBoothSection";
 import { useLenis } from "@/hooks/useLenis";
@@ -18,10 +17,12 @@ const SocialMedia = lazy(() => import("@/components/SocialMedia"));
 const Footer = lazy(() => import("@/components/Footer"));
 
 /**
- * SPECATHON 2026 — V2 single-page structure.
- * Sequence: Hero → Shortlist Portal (+ QR Pass) → Photobooth → 36h Agenda →
- * Moments from Past Editions (gallery + legacy metrics).
- * Excluded per V2 spec: Domains grid, main Footer, Map & Support Desk (Contact).
+ * SPECATHON 2026 — V3 single-page structure: the event-welcome phase.
+ * Sequence: Hero → Countdown → Stats → Timeline → Digital Photobooth →
+ * Gallery → FAQ → Contact. The V2 registration/shortlist search panel has
+ * been removed from the public homepage (Team Portal routes are unaffected).
+ * The Digital Photobooth is unrelated to the V2 shortlist/payment flow and
+ * remains part of V3.
  */
 export default function Home() {
   useLenis();
@@ -53,36 +54,32 @@ export default function Home() {
       <Particles />
       <Navbar />
       <main className="relative">
-        {/* 1 — Hero: Shortlist announcement + Sep 11 deadline countdown */}
+        {/* 1 — Hero: welcome to SPECATHON 2026 */}
         <Hero />
 
-        {/* 2 & 3 — Shortlist Verification (left) + Digital Photobooth (right) as a
-            deliberate two-column composition on desktop; stacks naturally below lg. */}
-        <section className="relative">
-          <div className="mx-auto max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-y-10 lg:items-center">
-            <ShortlistPortal />
-            <PhotoBoothSection />
-          </div>
-        </section>
-        <Stats />
-        {/* Seat-confirmation countdown — sits directly below the Shortlist portal,
-            width-aligned with it. */}
+        {/* 2 — Countdown to the event */}
         <SeatCountdown />
 
+        {/* 3 — Stats */}
+        <Stats />
+
         <Suspense fallback={<div className="h-40" />}>
-          {/* 5 — 36-Hour Interactive Agenda */}
+          {/* 4 — Timeline: the SPECATHON 2026 journey */}
           <Timeline />
 
-          {/* 6 — Legacy metrics + Moments from Past Editions */}
+          {/* 5 — Digital Photobooth */}
+          <PhotoBoothSection />
+
+          {/* 6 — Gallery: moments from past editions */}
           <Gallery />
 
-          {/* 7 — FAQ (restored from V1) */}
+          {/* 7 — FAQ */}
           <FAQs />
 
-          {/* 8 — Contact Leads (restored from V1) */}
+          {/* 8 — Contact */}
           <Contact />
 
-          {/* 9 — Social handles + Footer (restored from V1) */}
+          {/* Site chrome — social handles + footer */}
           <SocialMedia />
           <Footer />
         </Suspense>

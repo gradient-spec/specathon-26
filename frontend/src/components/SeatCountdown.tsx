@@ -89,7 +89,7 @@ export default function SeatCountdown() {
     "
   >
     <span className="italic text-white">
-      Clock's Ticking
+      The Countdown Begins
     </span>
 
     <span className="mx-2 text-slate-500">-</span>

@@ -11,15 +11,15 @@ const AGENDA: Day[] = [
     label: "Day 1",
     date: "September 11, 2026",
     slots: [
-      { time: "8:30 AM", title: "Reporting at Campus" },
-      { time: "9:30 AM", title: "Opening Ceremony" },
-      { time: "10:30 AM", title: "Hackathon Begins" },
+      { time: "8:30 AM", title: "Reporting Time" },
+      { time: "9:30 AM", title: "Inaugural" },
+      { time: "10:30 AM", title: "Commencement of Hackathon" },
       { time: "11:30 AM", title: "Round 1 Evaluation" },
       { time: "1:30 PM – 2:30 PM", title: "Lunch" },
-      { time: "5:30 PM", title: "Snacks" },
+      { time: "5:30 PM", title: "Short Break" },
       { time: "8:00 PM – 9:00 PM", title: "Dinner" },
       { time: "9:30 PM – 11:30 PM", title: "Mentorship / Internal Evaluation" },
-      { time: "12:00 AM – 1:00 AM", title: "Campfire with jamming session" },
+      { time: "12:00 AM – 1:00 AM", title: "Campfire with Jamming session" },
     ],
   },
   {
@@ -27,12 +27,12 @@ const AGENDA: Day[] = [
     label: "Day 2",
     date: "September 12, 2026",
     slots: [
-      { time: "6:00 AM", title: "Fresh up" },
+      { time: "6:00 AM", title: "Refresh" },
       { time: "7:30 AM – 8:30 AM", title: "Breakfast" },
       { time: "10:00 AM – 1:00 PM", title: "Round 2 Evaluation" },
       { time: "1:00 PM – 2:00 PM", title: "Lunch" },
       { time: "2:30 PM", title: "Final Evaluation" },
-      { time: "4:30 PM", title: "Closing Ceremony / End" },
+      { time: "4:30 PM", title: "Valedcitory & Vote of Thanks" },
     ],
   },
 ];
@@ -52,7 +52,7 @@ export default function Timeline() {
       <span className="text-lumen italic">
                 Specathon 2026
               </span>
-       {" "} Timeline
+       {" "} Journey
     </h2>
   </div>
 </Reveal>

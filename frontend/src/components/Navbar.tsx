@@ -7,13 +7,16 @@ const links: { id: string; label: string }[] = [
   { id: "top", label: "Home" },
   { id: "gallery", label: "Gallery" },
   { id: "timeline", label: "Timeline" },
-  { id: "shortlisted", label: "Shortlisted Teams" },
   { id: "faq", label: "FAQs" },
   { id: "contact", label: "Contact" },
 ];
 
 export default function Navbar({
-  hideShortlist = false,
+  // Retained for backward compatibility with existing callers (e.g.
+  // TeamPortalLayout passes `hideShortlist`) — the Shortlisted Teams nav
+  // item/CTA it used to toggle no longer exists on the public V3 homepage,
+  // so this prop is now a no-op.
+  hideShortlist: _hideShortlist = false,
 }: {
   hideShortlist?: boolean;
 }) {
@@ -210,66 +213,6 @@ export default function Navbar({
                 SPEC
               </span>
             </a>
-
-            {/* Desktop — Shortlisted Teams */}
-            <AnimatePresence>
-              {!hideShortlist && scrolled && (
-                <motion.a
-                  key="shortlist-cta"
-                  href="#shortlisted"
-                  initial={{
-                    opacity: 0,
-                    x: 12,
-                    scale: 0.95,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                    scale: 1,
-                  }}
-                  exit={{
-                    opacity: 0,
-                    x: 12,
-                    scale: 0.95,
-                  }}
-                  transition={{
-                    duration: 0.35,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  className="hidden md:inline-flex btn-primary cta-shimmer !px-5 !py-2 text-[13px] tracking-wide"
-                >
-                  SHORTLISTED TEAMS
-                </motion.a>
-              )}
-            </AnimatePresence>
-
-            {/* Mobile — Shortlisted Teams */}
-            <AnimatePresence>
-              {!hideShortlist && scrolled && (
-                <motion.a
-                  key="shortlist-cta-mobile"
-                  href="#shortlisted"
-                  initial={{
-                    opacity: 0,
-                    scale: 0.9,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                  }}
-                  exit={{
-                    opacity: 0,
-                    scale: 0.9,
-                  }}
-                  transition={{
-                    duration: 0.25,
-                  }}
-                  className="md:hidden inline-flex items-center rounded-full border border-cyan-400/40 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-cyan-300"
-                >
-                  TEAMS
-                </motion.a>
-              )}
-            </AnimatePresence>
           </div>
         </div>
       </motion.header>
@@ -306,10 +249,7 @@ export default function Navbar({
             </div>
 
             <nav className="flex flex-col gap-2 px-6 py-10">
-              {(hideShortlist
-                ? links.filter((l) => l.id !== "shortlisted")
-                : links
-              ).map((l, i) => (
+              {links.map((l, i) => (
                 <motion.a
                   key={l.id}
                   href={`#${l.id}`}
@@ -322,16 +262,6 @@ export default function Navbar({
                   {l.label}
                 </motion.a>
               ))}
-
-              {!hideShortlist && (
-                <a
-                  href="#shortlisted"
-                  onClick={() => setOpen(false)}
-                  className="btn-primary self-start mt-8"
-                >
-                  View Shortlisted Teams
-                </a>
-              )}
             </nav>
           </motion.div>
         )}

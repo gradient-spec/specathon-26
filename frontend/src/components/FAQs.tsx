@@ -18,14 +18,6 @@ const FAQS: Faq[] = [
     venueUrl: "https://maps.google.com/?q=St.+Peter's+Engineering+College+Hyderabad",
   },
   {
-    q: "How do payments work?",
-    a: "A participation fee of ₹400 per head applies only after your project abstract is shortlisted. A secure online payment link will be sent directly to shortlisted team leads.",
-  },
-  {
-    q: "Are fees refundable?",
-    a: "Registration fees are strictly non-refundable once paid, as funds are immediately committed toward hacker kits, catering, swag bundles, and event arrangements.",
-  },
-  {
     q: "Is accommodation provided?",
     a: "Yes! Free campus accommodation is provided. Out-of-state participants can check in from 10th September, 4:00 PM. For all participants, stay & resting halls remain available until 12th September, 4:00 PM.",
   },
