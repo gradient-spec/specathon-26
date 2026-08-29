@@ -86,9 +86,8 @@ export default function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.55, duration: 0.6 }}
-          className="mt-6 font-mono text-[10px] md:text-xs tracking-[0.3em] uppercase text-lumen/80"
         >
-          THE NEXT CHAPTER BEGINS
+          Registrations &amp; Payments Closed — Teams Finalized
         </motion.p>
 
         {/* Main Hero Message */}
@@ -132,7 +131,7 @@ export default function Hero() {
           transition={{ delay: 3.35, duration: 0.6 }}
           className="mt-7"
         >
-          <DateCounter value="11 & 12 SEP" startDelay={3500} />
+          <DateCounter value="11th & 12th SEP" startDelay={3500} />
         </motion.div>
 
         {/* Countdown Label */}

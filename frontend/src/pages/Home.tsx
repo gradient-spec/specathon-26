@@ -1,7 +1,7 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import Loader from "@/components/Loader";
+import InvitationIntro from "@/components/InvitationIntro";
 import Cursor from "@/components/Cursor";
 import Particles from "@/components/Particles";
 import SeatCountdown from "@/components/SeatCountdown";
@@ -18,14 +18,18 @@ const Footer = lazy(() => import("@/components/Footer"));
 
 /**
  * SPECATHON 2026 — V3 single-page structure: the event-welcome phase.
- * Sequence: Hero → Countdown → Stats → Timeline → Digital Photobooth →
- * Gallery → FAQ → Contact. The V2 registration/shortlist search panel has
- * been removed from the public homepage (Team Portal routes are unaffected).
- * The Digital Photobooth is unrelated to the V2 shortlist/payment flow and
- * remains part of V3.
+ * InvitationIntro plays a ~3.5–4s automatic cinematic opening (no click
+ * required) over the homepage's fixed overlay layer — the same role the
+ * previous progress-bar Loader played — then hands off to Hero underneath.
+ * Section sequence: Hero → Countdown → Stats → Timeline → Digital
+ * Photobooth → Gallery → FAQ → Contact. The V2 registration/shortlist
+ * search panel has been removed from the public homepage (Team Portal
+ * routes are unaffected). The Digital Photobooth is unrelated to the V2
+ * shortlist/payment flow and remains part of V3.
  */
 export default function Home() {
   useLenis();
+  const [introActive, setIntroActive] = useState(true);
 
   // Scroll to a hash target (e.g. arriving via "/#contact" from another route,
   // such as the organizer link on the Team Payment pages). The target section
@@ -49,9 +53,9 @@ export default function Home() {
 
   return (
     <>
-      <Loader />
+      <InvitationIntro onComplete={() => setIntroActive(false)} />
       <Cursor />
-      <Particles />
+      <Particles elevated={introActive} />
       <Navbar />
       <main className="relative">
         {/* 1 — Hero: welcome to SPECATHON 2026 */}

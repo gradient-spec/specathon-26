@@ -30,7 +30,7 @@ export default function DateCounter(props: DateCounterProps = {}): JSX.Element {
   let animatedIndex = 0;
 
   return (
-    <div className="date-counter flex items-center gap-3.5 sm:gap-4">
+    <div className="date-counter flex flex-wrap items-center justify-center gap-y-2 gap-x-2.5 sm:gap-x-4">
       {groups.map((group, groupIndex) => (
         <div className="counter-group flex items-center gap-2" key={groupIndex}>
           {group.split("").map((char, charIndex) => {

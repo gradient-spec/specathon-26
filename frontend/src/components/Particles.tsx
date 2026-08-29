@@ -24,7 +24,7 @@ interface Star {
   color: string;
 }
 
-export default function Particles() {
+export default function Particles({ elevated = false }: { elevated?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -257,7 +257,9 @@ export default function Particles() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 w-full h-full z-0 opacity-95"
+      className={`pointer-events-none fixed inset-0 w-full h-full opacity-95 ${
+        elevated ? "z-[110]" : "z-0"
+      }`}
     />
   );
 }
