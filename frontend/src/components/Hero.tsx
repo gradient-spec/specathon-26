@@ -3,10 +3,32 @@ import { motion } from "framer-motion";
 import gsap from "gsap";
 import DateCounter from "./DateCounter";
 
-export default function Hero() {
+/**
+ * Hero mounts immediately at t=0 (underneath the invitation overlay), but
+ * its entrance animations must not run while it's hidden — otherwise by
+ * the time the invitation fades out, Hero is already sitting in its final,
+ * static state and the viewer never actually sees the opening sequence.
+ *
+ * `isActive` (passed by Home.tsx, flips false → true once
+ * InvitationIntro's onComplete fires) gates this. The outer <section> and
+ * its layout (min-h-[92svh] etc.) always render, so page height/scroll
+ * stays stable throughout — only the entrance content (the animated title
+ * chars + every motion.* element below) mounts for the first time once
+ * isActive is true. That's deliberate: toggling an already-mounted
+ * motion element's `animate` target from a value equal to its `initial`
+ * doesn't reliably re-trigger in this Framer Motion version (verified —
+ * the DOM stayed frozen at the initial inline style), whereas a genuine
+ * mount always runs the initial→animate transition correctly, which is
+ * the standard, well-tested path. Mounting it fresh here also means every
+ * `transition.delay` below is counted from "isActive became true", i.e.
+ * exactly when the invitation hands off — identical stagger/timing to
+ * the original design, just correctly time-shifted.
+ */
+export default function Hero({ isActive = true }: { isActive?: boolean }) {
   const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
+    if (!isActive) return;
     if (!titleRef.current) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -24,7 +46,7 @@ export default function Hero() {
         delay: 1.7,
       }
     );
-  }, []);
+  }, [isActive]);
 
   const title = "SPECATHON";
 
@@ -34,108 +56,109 @@ export default function Hero() {
       className="group relative min-h-[92svh] flex flex-col justify-center pt-24 pb-10 overflow-hidden noise"
     >
       <div className="relative mx-auto max-w-5xl w-full px-6 md:px-10 flex flex-col items-center text-center">
-
-        {/* Main SPECATHON 2026 Wordmark */}
-        <h1
-          ref={titleRef}
-          className="hero-title font-display font-bold leading-[1.2] text-[clamp(2rem,8.5vw,6.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-4 md:flex-nowrap md:gap-x-6 py-2 px-2 overflow-visible"
-          aria-label="SPECATHON 2026"
-        >
-          <span
-            className="overflow-visible inline-flex py-2 px-1"
-            style={{
-              fontFamily: '"Playfair Display", ui-serif, serif',
-            }}
-          >
-            {title.split("").map((c, i) => (
+        {isActive && (
+          <>
+            {/* Main SPECATHON 2026 Wordmark */}
+            <h1
+              ref={titleRef}
+              className="hero-title font-display font-bold leading-[1.2] text-[clamp(2rem,8.5vw,6.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-4 md:flex-nowrap md:gap-x-6 py-2 px-2 overflow-visible"
+              aria-label="SPECATHON 2026"
+            >
               <span
-                key={i}
-                data-char
-                className="inline-block will-change-transform py-1 px-[2px] shimmer-text"
-                style={
-                  {
-                    "--delay": `${i * 0.15}s`,
-                  } as React.CSSProperties
-                }
+                className="overflow-visible inline-flex py-2 px-1"
+                style={{
+                  fontFamily: '"Playfair Display", ui-serif, serif',
+                }}
               >
-                {c}
+                {title.split("").map((c, i) => (
+                  <span
+                    key={i}
+                    data-char
+                    className="inline-block will-change-transform py-1 px-[2px] shimmer-text"
+                    style={
+                      {
+                        "--delay": `${i * 0.15}s`,
+                      } as React.CSSProperties
+                    }
+                  >
+                    {c}
+                  </span>
+                ))}
               </span>
-            ))}
-          </span>
 
-          <motion.span
-            initial={{ opacity: 0, scale: 0.8, y: -20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{
-              delay: 2.3,
-              type: "spring",
-              stiffness: 180,
-              damping: 16,
-            }}
-            className="font-bold text-lumen text-[clamp(2rem,8.5vw,6.5rem)]"
-            style={{
-              fontFamily: '"Playfair Display", ui-serif, serif',
-            }}
-          >
-            2026
-          </motion.span>
-        </h1>
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{
+                  delay: 2.3,
+                  type: "spring",
+                  stiffness: 180,
+                  damping: 16,
+                }}
+                className="font-bold text-lumen text-[clamp(2rem,8.5vw,6.5rem)]"
+                style={{
+                  fontFamily: '"Playfair Display", ui-serif, serif',
+                }}
+              >
+                2026
+              </motion.span>
+            </h1>
 
-        {/* Eyebrow */}
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.55, duration: 0.6 }}
-        >
-          Registrations &amp; Payments Closed — Teams Finalized
-        </motion.p>
+            {/* Eyebrow */}
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.55, duration: 0.6 }}
 
-        {/* Main Hero Message */}
-        <motion.h2
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.7, duration: 0.7 }}
-          className="mt-4 max-w-3xl font-display font-bold text-3xl sm:text-4xl md:text-5xl leading-[1.05] tracking-tightest text-fg"
-        >
-          The Wait is Almost Over.
-        </motion.h2>
+            >
+              Registrations &amp; Payments Closed — Teams Finalized
+            </motion.p>
 
-        {/* Welcome Message */}
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2.95, duration: 0.65 }}
-          className="mt-5 max-w-2xl font-display text-base md:text-xl text-slate-200 leading-relaxed tracking-tight"
-        >
-          Welcome to{" "}
-          <span className="text-lumen font-bold">
-            SPECATHON 2026
-          </span>
-          .
-        </motion.p>
+            {/* Main Hero Message */}
+            <motion.h2
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.7, duration: 0.7 }}
+              className="mt-4 max-w-3xl font-display font-bold text-3xl sm:text-4xl md:text-5xl leading-[1.05] tracking-tightest text-fg"
+            >
+              The Wait is Almost Over.
+            </motion.h2>
 
-        {/* Supporting Tagline */}
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.15, duration: 0.65 }}
-          className="mt-2 max-w-2xl text-base md:text-lg font-medium text-slate-400 leading-relaxed"
-        >
-          Get ready to build. Create. Unleash your creativity.
-        </motion.p>
+            {/* Welcome Message */}
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.95, duration: 0.65 }}
+              className="mt-5 max-w-2xl font-display text-base md:text-xl text-slate-200 leading-relaxed tracking-tight"
+            >
+              Welcome to{" "}
+              <span className="text-lumen font-bold">
+                SPECATHON 2026
+              </span>
+              .
+            </motion.p>
 
-        {/* Event Date */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 3.35, duration: 0.6 }}
-          className="mt-7"
-        >
-          <DateCounter value="11th & 12th SEP" startDelay={3500} />
-        </motion.div>
+            {/* Supporting Tagline */}
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 3.15, duration: 0.65 }}
+              className="mt-2 max-w-2xl text-base md:text-lg font-medium text-slate-400 leading-relaxed"
+            >
+              Get ready to build. Create. Unleash your creativity.
+            </motion.p>
 
-        {/* Countdown Label */}
-
+            {/* Event Date */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 3.35, duration: 0.6 }}
+              className="mt-7"
+            >
+              <DateCounter value="11th & 12th SEP" startDelay={3500} />
+            </motion.div>
+          </>
+        )}
       </div>
     </section>
   );

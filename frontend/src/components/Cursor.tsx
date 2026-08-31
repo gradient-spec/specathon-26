@@ -28,13 +28,18 @@ export default function Cursor() {
   useEffect(() => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
-    let currentX = mouseX;
-    let currentY = mouseY;
+    // No center-fallback: the dot must not exist anywhere until the user's
+    // first real pointer movement. `hasMoved` gates both visibility and
+    // the very first position jump (straight to the real cursor location,
+    // not lerped in from a fake starting point).
+    let mouseX = 0;
+    let mouseY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let hasMoved = false;
 
-    let prevSpawnX = mouseX;
-    let prevSpawnY = mouseY;
+    let prevSpawnX = 0;
+    let prevSpawnY = 0;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -74,6 +79,16 @@ export default function Cursor() {
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
+      if (!hasMoved) {
+        // First real movement: jump straight to the actual cursor
+        // position (no lerp-in from a fake origin) and reveal the dot.
+        hasMoved = true;
+        currentX = mouseX;
+        currentY = mouseY;
+        prevSpawnX = mouseX;
+        prevSpawnY = mouseY;
+        if (wrapRef.current) wrapRef.current.style.opacity = "1";
+      }
     };
 
     document.addEventListener("mousemove", handleMouseMove, { passive: true });
@@ -182,6 +197,7 @@ export default function Cursor() {
       <div
         ref={wrapRef}
         className="pointer-events-none fixed left-0 top-0 z-[9999] will-change-transform hidden md:block"
+        style={{ opacity: 0 }}
       >
         <div ref={dotRef} className="cursor-dot" />
       </div>

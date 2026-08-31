@@ -27,22 +27,28 @@ export default function Navbar({
     let ticking = false;
 
     const updateNavbarState = () => {
-      const btn = document.getElementById("check-shortlist-btn");
+      // V2's original condition watched a `#check-shortlist-btn` element
+      // that only ever existed on V2's own homepage registration section —
+      // V3 doesn't render it, so that condition never fired and the
+      // header was permanently stuck in its "top" state. State 2 should
+      // begin once the user has crossed the Hero section, so this watches
+      // Hero's own `#top` section instead — same boundary logic (crosses
+      // the header height), just pointed at an element that actually
+      // exists in V3.
+      const hero = document.getElementById("top");
 
-      // If the shortlist button is not present, don't guess a scroll
-      // position. Keep the current navbar state unchanged.
-      if (!btn) {
+      if (!hero) {
         ticking = false;
         return;
       }
 
       // The navbar is 64px tall (h-16).
-      // State 2 begins as soon as the TOP of the
-      // "CHECK SHORTLIST STATUS" button crosses this boundary.
+      // State 2 begins as soon as the BOTTOM of the Hero section
+      // crosses this boundary — i.e. the user has fully passed Hero.
       const navbarHeight = 64;
 
       const shouldBeScrolled =
-        btn.getBoundingClientRect().top <= navbarHeight;
+        hero.getBoundingClientRect().bottom <= navbarHeight;
 
       setScrolled((current) => {
         if (current === shouldBeScrolled) {

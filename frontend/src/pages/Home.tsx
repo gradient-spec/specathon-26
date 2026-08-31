@@ -30,6 +30,13 @@ const Footer = lazy(() => import("@/components/Footer"));
 export default function Home() {
   useLenis();
   const [introActive, setIntroActive] = useState(true);
+  // Flips true when the invitation's hold begins (well before its exit
+  // fade starts) — see InvitationIntro.tsx's file-level comment. Hero
+  // mounts and starts its own entrance choreography immediately, hidden
+  // behind the still-opaque invitation, so it's already visibly mid-reveal
+  // by the time the invitation's crossfade reaches the viewer — no dead
+  // gap after the cut.
+  const [heroActive, setHeroActive] = useState(false);
 
   // Scroll to a hash target (e.g. arriving via "/#contact" from another route,
   // such as the organizer link on the Team Payment pages). The target section
@@ -53,13 +60,20 @@ export default function Home() {
 
   return (
     <>
-      <InvitationIntro onComplete={() => setIntroActive(false)} />
+      <InvitationIntro
+        onHeroActivate={() => setHeroActive(true)}
+        onComplete={() => setIntroActive(false)}
+      />
       <Cursor />
       <Particles elevated={introActive} />
       <Navbar />
       <main className="relative">
-        {/* 1 — Hero: welcome to SPECATHON 2026 */}
-        <Hero />
+        {/* 1 — Hero: welcome to SPECATHON 2026. isActive stays false while
+            the invitation is fully showing, so Hero's entrance animations
+            don't run (and finish) hidden behind it — they only start once
+            the invitation begins its exit fade (heroActive), giving a true
+            crossfade instead of a hard cut followed by a separate wait. */}
+        <Hero isActive={heroActive} />
 
         {/* 2 — Countdown to the event */}
         <SeatCountdown />
