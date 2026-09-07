@@ -11,6 +11,16 @@ const links: { id: string; label: string }[] = [
   { id: "contact", label: "Contact" },
 ];
 
+function GradientLogo() {
+  return (
+    <img
+      src="/gradient-logo%20(2).png"
+      alt="Gradient"
+      className="h-5 w-auto object-contain sm:h-6 md:h-7 lg:h-8"
+    />
+  );
+}
+
 export default function Navbar({
   // Retained for backward compatibility with existing callers (e.g.
   // TeamPortalLayout passes `hideShortlist`) — the Shortlisted Teams nav
@@ -94,11 +104,10 @@ export default function Navbar({
           duration: 0.6,
           ease: [0.22, 1, 0.36, 1],
         }}
-        className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
-          scrolled
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled
             ? "backdrop-blur-xl bg-void/60 border-b border-white/[0.05]"
             : ""
-        }`}
+          }`}
       >
         <div className="mx-auto max-w-[1400px] px-4 md:px-8 h-16 flex items-center justify-between gap-3">
           {/* Left — wordmark */}
@@ -132,14 +141,10 @@ export default function Navbar({
                       x
                     </span>
 
-                    <span className="font-display text-[11px] tracking-wide text-fg truncate">
-                      GRADIENT
-                    </span>
+                    <GradientLogo />
                   </>
                 ) : (
-                  <span className="font-display text-[11px] tracking-wide text-fg truncate">
-                    GRADIENT
-                  </span>
+                  <GradientLogo />
                 )}
               </div>
 
@@ -178,9 +183,7 @@ export default function Navbar({
                         x
                       </span>
 
-                      <span className="font-display text-sm tracking-widest text-fg group-hover:text-lumen transition-colors">
-                        GRADIENT
-                      </span>
+                      <GradientLogo />
                     </motion.div>
                   ) : (
                     <motion.span
@@ -192,9 +195,9 @@ export default function Navbar({
                         duration: 0.35,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      className="font-display text-sm tracking-widest text-fg group-hover:text-lumen transition-colors"
+                      className="flex items-center"
                     >
-                      GRADIENT
+                      <GradientLogo />
                     </motion.span>
                   )}
                 </AnimatePresence>

@@ -50,7 +50,7 @@ function useDeadline() {
    MAIN COUNTDOWN
 ======================================================= */
 
-export default function SeatCountdown() {
+export default function SeatCountdown({ inHero = false }: { inHero?: boolean }) {
   const {
     days,
     hours,
@@ -59,7 +59,7 @@ export default function SeatCountdown() {
   } = useDeadline();
 
   return (
-    <section className="relative pt-14 pb-8 md:pt-12 md:pb-6">
+    <section className={`relative ${inHero ? "pt-0 pb-0" : "pt-12 pb-8 sm:pt-14 sm:pb-10 md:pt-16 md:pb-12"}`}>
 
       <div
         className="
@@ -67,9 +67,11 @@ export default function SeatCountdown() {
           flex
           flex-col
           items-center
-          px-4
+          px-2
+          sm:px-4
+          md:px-6
+          lg:px-10
           text-center
-          md:px-10
         "
       >
 
@@ -77,28 +79,30 @@ export default function SeatCountdown() {
             DEADLINE LABEL
         ================================================= */}
 
-<Reveal>
-  <div
-    className="
-      mb-10
+        <Reveal>
+          <div
+            className="
+      mb-4
+      sm:mb-5
+      md:mb-6
       font-playfair
-      text-base
-      tracking-wide
-      md:mb-5
+      text-sm
+      sm:text-base
       md:text-lg
+      tracking-wide
     "
-  >
-    <span className="italic text-white">
-      The Countdown Begins
-    </span>
+          >
+            <span className="italic text-white">
+              The Countdown Begins
+            </span>
 
-    <span className="mx-2 text-slate-500">-</span>
+            <span className="mx-2 text-slate-500">-</span>
 
-    <span className="italic text-cyan-400">
-      September 11th 2026
-    </span>
-  </div>
-</Reveal>
+            <span className="italic text-cyan-400">
+              September 11th 2026
+            </span>
+          </div>
+        </Reveal>
 
         {/* =================================================
             COUNTDOWN CONTAINER
@@ -125,6 +129,8 @@ export default function SeatCountdown() {
             relative
             w-full
             max-w-2xl
+            px-2
+            sm:px-0
           "
         >
 
@@ -243,8 +249,10 @@ export default function SeatCountdown() {
             <div
               className="
                 relative
-                px-4
+                px-3
                 py-4
+                sm:px-4
+                sm:py-4
                 md:px-6
                 md:py-5
               "
@@ -795,10 +803,9 @@ function DigitText({
         text-slate-200
         md:text-[48px]
 
-        ${
-          position === "top"
-            ? "top-0 h-[200%]"
-            : "bottom-0 h-[200%]"
+        ${position === "top"
+          ? "top-0 h-[200%]"
+          : "bottom-0 h-[200%]"
         }
       `}
       style={{

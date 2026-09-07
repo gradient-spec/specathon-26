@@ -4,7 +4,6 @@ import Hero from "@/components/Hero";
 import InvitationIntro from "@/components/InvitationIntro";
 import Cursor from "@/components/Cursor";
 import Particles from "@/components/Particles";
-import SeatCountdown from "@/components/SeatCountdown";
 import PhotoBoothSection from "@/components/PhotoBoothSection";
 import { useLenis } from "@/hooks/useLenis";
 
@@ -75,26 +74,23 @@ export default function Home() {
             crossfade instead of a hard cut followed by a separate wait. */}
         <Hero isActive={heroActive} />
 
-        {/* 2 — Countdown to the event */}
-        <SeatCountdown />
-
-        {/* 3 — Stats */}
+        {/* 2 — Stats */}
         <Stats />
 
         <Suspense fallback={<div className="h-40" />}>
-          {/* 4 — Timeline: the SPECATHON 2026 journey */}
+          {/* 3 — Timeline: the SPECATHON 2026 journey */}
           <Timeline />
 
-          {/* 5 — Digital Photobooth */}
+          {/* 4 — Digital Photobooth */}
           <PhotoBoothSection />
 
-          {/* 6 — Gallery: moments from past editions */}
+          {/* 5 — Gallery: moments from past editions */}
           <Gallery />
 
-          {/* 7 — FAQ */}
+          {/* 6 — FAQ */}
           <FAQs />
 
-          {/* 8 — Contact */}
+          {/* 7 — Contact */}
           <Contact />
 
           {/* Site chrome — social handles + footer */}
