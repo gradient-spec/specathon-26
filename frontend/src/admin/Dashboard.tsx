@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload, CreditCard } from "lucide-react";
+import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload, CreditCard, Tv } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { deleteTeams } from "@/services/admin";
@@ -9,8 +9,9 @@ import ShortlistImport from "./ShortlistImport";
 import PaymentDashboard from "./PaymentDashboard";
 import SpinWheelDashboard from "./SpinWheelDashboard";
 import EmailComposer from "./EmailComposer";
+import LiveStreamControl from "./LiveStreamControl";
 
-type View = "registrations" | "import" | "payments" | "spinwheel" | "email";
+type View = "registrations" | "import" | "payments" | "spinwheel" | "email" | "live";
 
 export default function Dashboard() {
   const { email, signOut } = useAuth();
@@ -161,6 +162,16 @@ export default function Dashboard() {
               >
                 Email Templates
               </button>
+              <button
+                onClick={() => setView("live")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "live"
+                  ? "bg-cyan-950/60 border border-cyan-400/50 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.25)]"
+                  : "text-muted hover:text-cyan-400"
+                  }`}
+              >
+                <Tv size={11} />
+                Live Control
+              </button>
             </div>
           </div>
 
@@ -200,10 +211,10 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-[1400px] px-6 md:px-8 py-10 space-y-10">
         {/* Mobile tab switcher */}
-        <div className="flex md:hidden items-center gap-1 rounded-lg border border-line bg-panel/40 p-1 w-fit">
+        <div className="flex md:hidden items-center gap-1 rounded-lg border border-line bg-panel/40 p-1 w-fit overflow-x-auto max-w-full hide-scrollbar">
           <button
             onClick={() => setView("registrations")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "registrations"
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 ${view === "registrations"
               ? "bg-plasma/20 border border-plasma/30 text-fg"
               : "text-muted hover:text-fg"
               }`}
@@ -212,7 +223,7 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setView("import")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "import"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 ${view === "import"
               ? "bg-plasma/20 border border-plasma/30 text-fg"
               : "text-muted hover:text-fg"
               }`}
@@ -222,32 +233,42 @@ export default function Dashboard() {
           </button>
           <button
             onClick={() => setView("payments")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "payments"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 ${view === "payments"
               ? "bg-plasma/20 border border-plasma/30 text-fg"
               : "text-muted hover:text-fg"
               }`}
           >
             <CreditCard size={11} />
-                Payments
-              </button>
-              <button
-                onClick={() => setView("spinwheel")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "spinwheel"
-                  ? "bg-plasma/20 border border-plasma/30 text-fg"
-                  : "text-muted hover:text-fg"
-                  }`}
-              >
-                Spin Wheel
-              </button>
-              <button
-                onClick={() => setView("email")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "email"
-                  ? "bg-plasma/20 border border-plasma/30 text-fg"
-                  : "text-muted hover:text-fg"
-                  }`}
-              >
-                Email
-              </button>
+            Payments
+          </button>
+          <button
+            onClick={() => setView("spinwheel")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 ${view === "spinwheel"
+              ? "bg-plasma/20 border border-plasma/30 text-fg"
+              : "text-muted hover:text-fg"
+              }`}
+          >
+            Spin Wheel
+          </button>
+          <button
+            onClick={() => setView("email")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 ${view === "email"
+              ? "bg-plasma/20 border border-plasma/30 text-fg"
+              : "text-muted hover:text-fg"
+              }`}
+          >
+            Email
+          </button>
+          <button
+            onClick={() => setView("live")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 ${view === "live"
+              ? "bg-cyan-950/60 border border-cyan-400/50 text-cyan-300"
+              : "text-muted hover:text-cyan-400"
+              }`}
+          >
+            <Tv size={11} />
+            Live
+          </button>
         </div>
 
         {view === "import" ? (
@@ -258,6 +279,8 @@ export default function Dashboard() {
           <SpinWheelDashboard />
         ) : view === "email" ? (
           <EmailComposer />
+        ) : view === "live" ? (
+          <LiveStreamControl />
         ) : loading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 size={22} className="animate-spin text-plasma" />

@@ -2,23 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
 import { Rocket, Users, Utensils, UserCog, FileText, Trophy } from "lucide-react";
+import { useLiveConfig } from "@/hooks/useLiveConfig";
+import { ALL_EVENTS, ScheduleEvent } from "@/constants/schedule";
 
-/* =======================================================
-   LIVE STREAM CONFIGURATION
-======================================================= */
-const YOUTUBE_VIDEO_ID = ""; // Replace with actual YouTube Live ID 
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Rocket,
+  Users,
+  Utensils,
+  UserCog,
+  FileText,
+  Trophy,
+};
 
-const ALL_EVENTS = [
-  { name: "Inaugural", timeLabel: "9:30 AM", startStr: "09:30", endStr: "11:30", icon: Rocket, day: 1 },
-  { name: "Round 1 Evaluation", timeLabel: "11:30 AM", startStr: "11:30", endStr: "20:00", icon: Users, day: 1 },
-  { name: "Dinner", timeLabel: "8:00 PM – 9:00 PM", startStr: "20:00", endStr: "21:00", icon: Utensils, day: 1 },
-  { name: "Mentorship / Internal Evaluation", timeLabel: "9:30 PM – 11:30 PM", startStr: "21:30", endStr: "23:30", icon: UserCog, day: 1 },
-  { name: "Round 2 Evaluation", timeLabel: "10:00 AM – 1:00 PM", startStr: "10:00", endStr: "13:00", icon: FileText, day: 2 },
-  { name: "Lunch", timeLabel: "1:00 PM – 2:00 PM", startStr: "13:00", endStr: "14:00", icon: Utensils, day: 2 },
-  { name: "Final Evaluation", timeLabel: "2:30 PM", startStr: "14:30", endStr: "17:30", icon: Trophy, day: 2 },
-];
-
-function LiveSchedule() {
+function LiveSchedule({ 
+  activeMode = "auto", 
+  manualActiveEventId = null 
+}: { 
+  activeMode?: "auto" | "manual"; 
+  manualActiveEventId?: string | null 
+}) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -26,16 +28,20 @@ function LiveSchedule() {
     return () => clearInterval(timer);
   }, []);
 
-  const checkIsActive = (startStr: string, endStr: string, dayNum: number) => {
+  const checkIsActive = (event: ScheduleEvent) => {
+    if (activeMode === "manual") {
+      return manualActiveEventId ? event.id === manualActiveEventId : false;
+    }
+
     const isDay1 = now.getFullYear() === 2026 && now.getMonth() === 8 && now.getDate() === 11;
     const isDay2 = now.getFullYear() === 2026 && now.getMonth() === 8 && now.getDate() === 12;
     
     let isCorrectDay = false;
-    if (dayNum === 1 && isDay1) isCorrectDay = true;
-    if (dayNum === 2 && isDay2) isCorrectDay = true;
+    if (event.day === 1 && isDay1) isCorrectDay = true;
+    if (event.day === 2 && isDay2) isCorrectDay = true;
     
     const isPreEvent = now.getTime() < new Date(2026, 8, 11).getTime();
-    if (isPreEvent && dayNum === 1) isCorrectDay = true; 
+    if (isPreEvent && event.day === 1) isCorrectDay = true; 
 
     if (!isCorrectDay) return false;
 
@@ -43,21 +49,21 @@ function LiveSchedule() {
     const currentM = now.getMinutes();
     const currentTotalM = currentH * 60 + currentM;
 
-    const [startH, startM] = startStr.split(':').map(Number);
+    const [startH, startM] = event.startStr.split(':').map(Number);
     const startTotalM = startH * 60 + startM;
 
-    const [endH, endM] = endStr.split(':').map(Number);
+    const [endH, endM] = event.endStr.split(':').map(Number);
     const endTotalM = endH * 60 + endM;
 
     return currentTotalM >= startTotalM && currentTotalM < endTotalM;
   };
 
-  const renderEventCard = (event: any) => {
-    const isActive = checkIsActive(event.startStr, event.endStr, event.day);
-    const Icon = event.icon;
+  const renderEventCard = (event: ScheduleEvent) => {
+    const isActive = checkIsActive(event);
+    const Icon = ICONS[event.iconName] || Rocket;
 
     return (
-      <div key={event.name} className={`w-[130px] h-[170px] sm:w-[140px] sm:h-[180px] rounded-2xl flex flex-col items-center justify-center text-center relative overflow-hidden snap-center shrink-0 group transition-all duration-300
+      <div key={event.id} className={`w-[130px] h-[170px] sm:w-[140px] sm:h-[180px] rounded-2xl flex flex-col items-center justify-center text-center relative overflow-hidden snap-center shrink-0 group transition-all duration-300
         ${isActive ? 'bg-cyan-950/30 border border-cyan-400/50 shadow-[0_0_25px_rgba(34,211,238,0.2)]' : 'glass border border-line/40 hover:border-lumen/40 hover:bg-white/[0.02]'}
       `}>
         {/* Top Left Highlight (Glassmorphism glare) */}
@@ -154,10 +160,11 @@ function LiveSchedule() {
   );
 }
 
-type EventState = "BEFORE" | "LIVE" | "AFTER";
-
 export default function LiveHero({ isActive = true }: { isActive?: boolean }) {
-  const [eventState] = useState<EventState>("LIVE");
+  const { config } = useLiveConfig();
+  const videoId = config.youtubeVideoId;
+  const eventState = config.eventState || "LIVE";
+
   const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -191,7 +198,6 @@ export default function LiveHero({ isActive = true }: { isActive?: boolean }) {
         {isActive && (
           <>
             {/* Header / Animated Title */}
-
             <h1
               ref={titleRef}
               className="hero-title font-display font-bold leading-[1.2] text-[clamp(1.2rem,4vw,2.5rem)] tracking-tightest flex items-center justify-center flex-wrap gap-x-3 md:flex-nowrap md:gap-x-4 py-1 px-2 overflow-visible"
@@ -254,30 +260,47 @@ export default function LiveHero({ isActive = true }: { isActive?: boolean }) {
                   {/* Status Bar */}
                   <div className="flex items-center justify-between w-full max-w-5xl px-1">
                     <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-cyan-400/20 bg-cyan-950/20 shadow-cyan">
-                      <div className="w-1 h-1 rounded-full bg-cyan-400 animate-pulseGlow" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                       <span className="eyebrow !tracking-widest text-cyan-400 text-[10px]" style={{ letterSpacing: '0.1em' }}>
                         LIVE
                       </span>
                     </div>
-
-
                   </div>
 
                   {/* Video Player */}
                   <div className="w-full max-w-5xl aspect-video glass rounded-2xl overflow-hidden relative group">
-                    {YOUTUBE_VIDEO_ID ? (
+                    {videoId ? (
                       <iframe
                         className="w-full h-full"
-                        src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&mute=1&playsinline=1&rel=0`}
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&rel=0`}
                         title="Specathon 2026 Live Stream"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         referrerPolicy="strict-origin-when-cross-origin"
                         allowFullScreen
-                      ></iframe>
+                      />
                     ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
-                        <div className="w-10 h-10 rounded-full border-t-2 border-r-2 border-plasma animate-spinCrisp mb-4" />
-                        <span className="eyebrow text-subtle">STREAM STARTING SOON</span>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+                        {/* Rotating Cybernetic Dual-Ring Loader */}
+                        <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center mb-4">
+                          {/* Outer rotating glowing cyan ring */}
+                          <div
+                            className="absolute inset-0 rounded-full border-[2.5px] border-cyan-400/20 border-t-cyan-400 animate-spin"
+                            style={{ animationDuration: '1.2s' }}
+                          />
+                          {/* Inner counter-rotating plasma ring */}
+                          <div
+                            className="absolute inset-1.5 rounded-full border-[2px] border-indigo/30 border-b-plasma animate-spin"
+                            style={{ animationDirection: 'reverse', animationDuration: '1.8s' }}
+                          />
+                          {/* Pulsing center core */}
+                          <div className="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_16px_rgba(34,211,238,0.9)] animate-pulse" />
+                        </div>
+                        <span className="eyebrow !text-cyan-300 !tracking-[0.28em] text-xs font-semibold animate-pulse">
+                          STREAM STARTING SOON
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400 mt-1.5">
+                          Stay tuned · Broadcast will begin shortly
+                        </span>
                       </div>
                     )}
                   </div>
@@ -297,7 +320,10 @@ export default function LiveHero({ isActive = true }: { isActive?: boolean }) {
                       <span className="text-white" style={{ fontFamily: '"Playfair Display", ui-serif, serif' }}>Up </span>
                       <span className="text-cyan-400 italic" style={{ fontFamily: '"Playfair Display", ui-serif, serif' }}>Next</span>
                     </div>
-                    <LiveSchedule />
+                    <LiveSchedule 
+                      activeMode={config.activeMode} 
+                      manualActiveEventId={config.manualActiveEventId} 
+                    />
                   </div>
                 </div>
               )}
@@ -323,3 +349,4 @@ export default function LiveHero({ isActive = true }: { isActive?: boolean }) {
     </section>
   );
 }
+
