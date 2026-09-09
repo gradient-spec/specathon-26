@@ -54,10 +54,12 @@
 .lb-root .brand-mark span { font-family: "JetBrains Mono", monospace; font-size: 14px; }
 .lb-root .brand-mark img { width: 24px; height: 24px; object-fit: contain; display: block; }
 .lb-root .brand-link {
-  align-items: center; display: inline-flex; gap: 12px;
-  text-decoration: none; transition: opacity .18s ease; color: inherit;
+  align-items: center; display: inline-flex; gap: 12px; color: inherit;
 }
-.lb-root .brand-link:hover { opacity: .82; }
+.lb-root .brand-link a {
+  color: inherit; text-decoration: none; transition: opacity .18s ease;
+}
+.lb-root .brand-link a:hover { opacity: .7; text-decoration: underline; }
 .lb-root .hero-rule { background: linear-gradient(90deg, #67e8f9, rgba(103, 232, 249, .12), transparent); height: 1px; }
 .lb-root .countdown-pill {
   align-items: center; background: rgba(103, 232, 249, .06);

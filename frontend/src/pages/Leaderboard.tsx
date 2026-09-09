@@ -136,13 +136,21 @@ export default function Leaderboard() {
     <main className="lb-root">
       <div className="event-grid" style={{ minHeight: "100vh" }}>
         <header className="mx-auto flex max-w-[1480px] items-center justify-between px-5 py-6 lg:px-10">
-          <a className="brand-link" href="https://gradientclub.in" target="_blank" rel="noopener noreferrer">
-            <div className="brand-mark"><img src="/gradient-club-logo.png" alt="Gradient Club" /></div>
+          <div className="brand-link">
+            <a href="https://gradientclub.in" target="_blank" rel="noopener noreferrer" aria-label="Gradient Club">
+              <div className="brand-mark"><img src="/gradient-club-logo.png" alt="Gradient Club" /></div>
+            </a>
             <div>
-              <p className="eyebrow" style={{ color: "#67e8f9" }}>GRADIENT CLUB · SPEC HYDERABAD</p>
-              <p className="font-display text-sm font-semibold" style={{ letterSpacing: "0.16em", color: "#fff" }}>SPECATHON 2026</p>
+              <p className="eyebrow" style={{ color: "#67e8f9" }}>
+                <a href="https://gradientclub.in" target="_blank" rel="noopener noreferrer">GRADIENT CLUB</a>
+                <span style={{ opacity: 0.55 }}> · </span>
+                <a href="https://spechyd.ac.in" target="_blank" rel="noopener noreferrer">SPEC HYDERABAD</a>
+              </p>
+              <p className="font-display text-sm font-semibold" style={{ letterSpacing: "0.16em", color: "#fff" }}>
+                <a href="https://specathon-2026.gradientclub.in/" style={{ color: "#fff" }}>SPECATHON 2026</a>
+              </p>
             </div>
-          </a>
+          </div>
           <div className="flex items-center gap-3 text-xs" style={{ color: "#94a3b8" }}>
             <Link to="/" className="control-link">← Back to site</Link>
           </div>
