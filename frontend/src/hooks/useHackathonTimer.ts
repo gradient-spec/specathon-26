@@ -108,35 +108,61 @@ export function useHackathonTimer(): HackathonTimerReturn {
     return () => window.clearInterval(offsetInterval);
   }, [refresh]);
 
-  // ── 2. Realtime Subscriptions ────────────────────────────────────────
+  // ── 2. Realtime Subscriptions (Postgres + BroadcastChannel + LocalStorage) ──
   useEffect(() => {
-    if (!supabase) return;
-
     let debounceTimer: number | null = null;
     const triggerDebouncedRefresh = () => {
       if (debounceTimer) window.clearTimeout(debounceTimer);
       debounceTimer = window.setTimeout(() => {
         refresh();
-      }, 250);
+      }, 100);
     };
 
-    const channel = supabase
-      .channel("hackathon-timer-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "timer_config" },
-        triggerDebouncedRefresh
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "timer_events" },
-        triggerDebouncedRefresh
-      )
-      .subscribe();
+    // Cross-tab BroadcastChannel sync for zero-latency updates
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        bc = new BroadcastChannel("specathon_timer_channel");
+        bc.onmessage = () => {
+          triggerDebouncedRefresh();
+        };
+      }
+    } catch {}
+
+    // Cross-tab localStorage event listener
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith("specathon_timer_")) {
+        triggerDebouncedRefresh();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    // Supabase Realtime channel (Postgres changes + WebSockets broadcast)
+    let channel: any = null;
+    if (supabase) {
+      channel = supabase
+        .channel("hackathon-timer-realtime", {
+          config: { broadcast: { self: false } },
+        })
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "timer_config" },
+          triggerDebouncedRefresh
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "timer_events" },
+          triggerDebouncedRefresh
+        )
+        .on("broadcast", { event: "timer_update" }, triggerDebouncedRefresh)
+        .subscribe();
+    }
 
     return () => {
       if (debounceTimer) window.clearTimeout(debounceTimer);
-      supabase?.removeChannel(channel);
+      if (bc) bc.close();
+      window.removeEventListener("storage", handleStorage);
+      if (supabase && channel) supabase.removeChannel(channel);
     };
   }, [refresh]);
 

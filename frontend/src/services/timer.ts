@@ -250,10 +250,102 @@ function client() {
   return supabase;
 }
 
+// ── Hybrid Local Storage & Broadcast Synchronization ──────────────────
+const STORAGE_CONFIG_KEY = "specathon_timer_config_state";
+const STORAGE_EVENTS_KEY = "specathon_timer_events_state";
+
+export function isTableMissingError(err: any): boolean {
+  if (!err) return false;
+  const msg = (err.message || "").toLowerCase();
+  const code = err.code || "";
+  return (
+    code === "PGRST204" ||
+    code === "42P01" ||
+    msg.includes("schema cache") ||
+    msg.includes("could not find the table") ||
+    (msg.includes("relation") && msg.includes("does not exist"))
+  );
+}
+
+export function notifyTimerBroadcast() {
+  if (typeof window !== "undefined") {
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const bc = new BroadcastChannel("specathon_timer_channel");
+        bc.postMessage({ type: "timer_update", timestamp: Date.now() });
+        bc.close();
+      }
+    } catch {}
+  }
+
+  if (supabase) {
+    try {
+      supabase.channel("hackathon-timer-realtime").send({
+        type: "broadcast",
+        event: "timer_update",
+        payload: { timestamp: Date.now() },
+      });
+    } catch {}
+  }
+}
+
+export function getStoredConfig(): TimerConfig {
+  if (typeof window === "undefined") return DEFAULT_FALLBACK_CONFIG;
+  try {
+    const raw = localStorage.getItem(STORAGE_CONFIG_KEY);
+    if (raw) {
+      return { ...DEFAULT_FALLBACK_CONFIG, ...JSON.parse(raw) };
+    }
+  } catch {}
+  return DEFAULT_FALLBACK_CONFIG;
+}
+
+export function setStoredConfig(cfg: TimerConfig) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_CONFIG_KEY, JSON.stringify(cfg));
+  } catch {}
+  notifyTimerBroadcast();
+}
+
+export function getStoredEvents(): TimerEvent[] {
+  if (typeof window === "undefined") return DEFAULT_FALLBACK_EVENTS;
+  try {
+    const raw = localStorage.getItem(STORAGE_EVENTS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return DEFAULT_FALLBACK_EVENTS;
+}
+
+export function setStoredEvents(events: TimerEvent[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_EVENTS_KEY, JSON.stringify(events));
+  } catch {}
+  notifyTimerBroadcast();
+}
+
+export async function checkDatabaseMigrationStatus(): Promise<{ migrated: boolean; error?: string }> {
+  if (!supabase) return { migrated: false, error: "Supabase client not initialized." };
+  try {
+    const { error } = await client().from("timer_config").select("id").limit(1);
+    if (error) {
+      return { migrated: false, error: error.message };
+    }
+    return { migrated: true };
+  } catch (err: any) {
+    return { migrated: false, error: err?.message || "Connection error" };
+  }
+}
+
 // ── Read APIs ──────────────────────────────────────────────────────────
 
 export async function fetchTimerConfig(): Promise<TimerConfig> {
-  if (!supabase) return DEFAULT_FALLBACK_CONFIG;
+  const local = getStoredConfig();
+  if (!supabase) return local;
   try {
     const { data, error } = await client()
       .from("timer_config")
@@ -262,18 +354,28 @@ export async function fetchTimerConfig(): Promise<TimerConfig> {
       .maybeSingle();
 
     if (error) {
-      console.warn("[timer-service] Error fetching timer_config, using fallback:", error.message);
-      return DEFAULT_FALLBACK_CONFIG;
+      if (isTableMissingError(error)) {
+        console.warn("[timer-service] timer_config table not found in Supabase schema cache. Using resilient local cache.");
+      } else {
+        console.warn("[timer-service] Error fetching timer_config, using fallback:", error.message);
+      }
+      return local;
     }
-    return data ? (data as TimerConfig) : DEFAULT_FALLBACK_CONFIG;
+    if (data) {
+      const remote = data as TimerConfig;
+      setStoredConfig(remote);
+      return remote;
+    }
+    return local;
   } catch (err) {
     console.warn("[timer-service] Exception fetching timer_config:", err);
-    return DEFAULT_FALLBACK_CONFIG;
+    return local;
   }
 }
 
 export async function fetchTimerEvents(onlyVisible = true): Promise<TimerEvent[]> {
-  if (!supabase) return DEFAULT_FALLBACK_EVENTS;
+  const local = getStoredEvents();
+  if (!supabase) return onlyVisible ? local.filter((e) => e.is_visible) : local;
   try {
     let query = client()
       .from("timer_events")
@@ -287,13 +389,22 @@ export async function fetchTimerEvents(onlyVisible = true): Promise<TimerEvent[]
 
     const { data, error } = await query;
     if (error) {
-      console.warn("[timer-service] Error fetching timer_events, using fallback:", error.message);
-      return DEFAULT_FALLBACK_EVENTS;
+      if (isTableMissingError(error)) {
+        console.warn("[timer-service] timer_events table not found in schema cache. Using resilient local cache.");
+      } else {
+        console.warn("[timer-service] Error fetching timer_events, using fallback:", error.message);
+      }
+      return onlyVisible ? local.filter((e) => e.is_visible) : local;
     }
-    return data && data.length > 0 ? (data as TimerEvent[]) : DEFAULT_FALLBACK_EVENTS;
+    if (data && data.length > 0) {
+      const remote = data as TimerEvent[];
+      setStoredEvents(remote);
+      return remote;
+    }
+    return onlyVisible ? local.filter((e) => e.is_visible) : local;
   } catch (err) {
     console.warn("[timer-service] Exception fetching timer_events:", err);
-    return DEFAULT_FALLBACK_EVENTS;
+    return onlyVisible ? local.filter((e) => e.is_visible) : local;
   }
 }
 
@@ -368,26 +479,59 @@ export async function updateTimerConfig(
   patch: Partial<Omit<TimerConfig, "id" | "created_at">>,
   actor = "admin"
 ): Promise<TimerConfig> {
-  const payload = {
+  const currentLocal = getStoredConfig();
+  const updatedLocal: TimerConfig = {
+    ...currentLocal,
     ...patch,
     updated_at: new Date().toISOString(),
     updated_by: actor,
   };
 
-  const { data, error } = await client()
-    .from("timer_config")
-    .update(payload)
-    .eq("id", 1)
-    .select()
-    .single();
+  // Always persist locally first so state changes take effect instantly across all tabs
+  setStoredConfig(updatedLocal);
 
-  if (error) throw error;
+  if (supabase) {
+    try {
+      const payload = {
+        ...patch,
+        updated_at: updatedLocal.updated_at,
+        updated_by: actor,
+      };
 
-  await logAudit(actor, "timer_config_update", "timer_config", "1", {
-    updates: patch,
-  });
+      const { data, error } = await client()
+        .from("timer_config")
+        .update(payload)
+        .eq("id", 1)
+        .select()
+        .single();
 
-  return data as TimerConfig;
+      if (error) {
+        if (isTableMissingError(error)) {
+          console.warn("[timer-service] timer_config table missing from Supabase schema cache. Applied update locally.");
+          await logAudit(actor, "timer_config_update", "timer_config", "1", {
+            updates: patch,
+            note: "saved_locally_pending_db_migration",
+          });
+          return updatedLocal;
+        }
+        throw error;
+      }
+
+      const remote = data as TimerConfig;
+      setStoredConfig(remote);
+      await logAudit(actor, "timer_config_update", "timer_config", "1", {
+        updates: patch,
+      });
+      return remote;
+    } catch (err: any) {
+      if (isTableMissingError(err)) {
+        return updatedLocal;
+      }
+      throw err;
+    }
+  }
+
+  return updatedLocal;
 }
 
 /**
@@ -408,33 +552,16 @@ export async function startTimer(
 
   const startIso = new Date(now).toISOString();
   const endIso = new Date(now + durationSeconds * 1000).toISOString();
-  const nowIso = new Date(now).toISOString();
 
-  const patch = {
-    status: "running" as TimerStatus,
-    start_at: startIso,
-    end_at: endIso,
-    paused_remaining_seconds: null,
-    updated_at: nowIso,
-    updated_by: actor,
-  };
-
-  const { data, error } = await client()
-    .from("timer_config")
-    .update(patch)
-    .eq("id", 1)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await logAudit(actor, "timer_start", "timer_config", "1", {
-    duration_seconds: durationSeconds,
-    start_at: startIso,
-    end_at: endIso,
-  });
-
-  return data as TimerConfig;
+  return updateTimerConfig(
+    {
+      status: "running",
+      start_at: startIso,
+      end_at: endIso,
+      paused_remaining_seconds: null,
+    },
+    actor
+  );
 }
 
 /**
@@ -450,29 +577,14 @@ export async function pauseTimer(
   const now = Date.now();
   const endMs = new Date(currentConfig.end_at).getTime();
   const remainingSeconds = Math.max(0, Math.floor((endMs - now) / 1000));
-  const nowIso = new Date(now).toISOString();
 
-  const patch = {
-    status: "paused" as TimerStatus,
-    paused_remaining_seconds: remainingSeconds,
-    updated_at: nowIso,
-    updated_by: actor,
-  };
-
-  const { data, error } = await client()
-    .from("timer_config")
-    .update(patch)
-    .eq("id", 1)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await logAudit(actor, "timer_pause", "timer_config", "1", {
-    paused_remaining_seconds: remainingSeconds,
-  });
-
-  return data as TimerConfig;
+  return updateTimerConfig(
+    {
+      status: "paused",
+      paused_remaining_seconds: remainingSeconds,
+    },
+    actor
+  );
 }
 
 /**
@@ -492,31 +604,15 @@ export async function resumeTimer(
       : Math.max(0, Math.floor((new Date(currentConfig.end_at).getTime() - now) / 1000));
 
   const endIso = new Date(now + remainingSeconds * 1000).toISOString();
-  const nowIso = new Date(now).toISOString();
 
-  const patch = {
-    status: "running" as TimerStatus,
-    end_at: endIso,
-    paused_remaining_seconds: null,
-    updated_at: nowIso,
-    updated_by: actor,
-  };
-
-  const { data, error } = await client()
-    .from("timer_config")
-    .update(patch)
-    .eq("id", 1)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await logAudit(actor, "timer_resume", "timer_config", "1", {
-    remaining_seconds: remainingSeconds,
-    new_end_at: endIso,
-  });
-
-  return data as TimerConfig;
+  return updateTimerConfig(
+    {
+      status: "running",
+      end_at: endIso,
+      paused_remaining_seconds: null,
+    },
+    actor
+  );
 }
 
 export async function adjustTimerMinutes(
@@ -524,15 +620,6 @@ export async function adjustTimerMinutes(
   currentConfig: TimerConfig,
   actor = "admin"
 ): Promise<TimerConfig> {
-  const action = deltaMinutes >= 0 ? "timer_extend" : "timer_reduce";
-  const now = Date.now();
-  const nowIso = new Date(now).toISOString();
-
-  let patch: any = {
-    updated_at: nowIso,
-    updated_by: actor,
-  };
-
   if (currentConfig.status === "paused" || currentConfig.status === "scheduled") {
     // In paused or scheduled state: modify paused_remaining_seconds directly
     const currentRemaining =
@@ -552,98 +639,102 @@ export async function adjustTimerMinutes(
     const startMs = new Date(currentConfig.start_at).getTime();
     const newEndIso = new Date(startMs + newRemaining * 1000).toISOString();
 
-    patch = {
-      ...patch,
-      paused_remaining_seconds: newRemaining,
-      end_at: newEndIso,
-    };
+    return updateTimerConfig(
+      {
+        paused_remaining_seconds: newRemaining,
+        end_at: newEndIso,
+      },
+      actor
+    );
   } else {
     // In running state: adjust end_at directly
     const prevEnd = new Date(currentConfig.end_at).getTime();
     const newEndMs = prevEnd + deltaMinutes * 60 * 1000;
     const newEndIso = new Date(newEndMs).toISOString();
 
-    patch = {
-      ...patch,
-      end_at: newEndIso,
-    };
+    return updateTimerConfig(
+      {
+        end_at: newEndIso,
+      },
+      actor
+    );
   }
-
-  const { data, error } = await client()
-    .from("timer_config")
-    .update(patch)
-    .eq("id", 1)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await logAudit(actor, action, "timer_config", "1", {
-    delta_minutes: deltaMinutes,
-    previous_end_at: currentConfig.end_at,
-    new_end_at: patch.end_at,
-    new_paused_remaining_seconds: patch.paused_remaining_seconds,
-  });
-
-  return data as TimerConfig;
 }
 
 export async function manualEndEvent(
-  currentConfig: TimerConfig,
+  _currentConfig?: TimerConfig,
   actor = "admin"
 ): Promise<TimerConfig> {
   const nowIso = new Date().toISOString();
-
-  const { data, error } = await client()
-    .from("timer_config")
-    .update({
+  return updateTimerConfig(
+    {
       status: "completed",
       end_at: nowIso,
       paused_remaining_seconds: 0,
-      updated_at: nowIso,
-      updated_by: actor,
-    })
-    .eq("id", 1)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await logAudit(actor, "timer_end", "timer_config", "1", {
-    manual_termination: true,
-    previous_status: currentConfig.status,
-    previous_end_at: currentConfig.end_at,
-    terminated_at: nowIso,
-  });
-
-  return data as TimerConfig;
+    },
+    actor
+  );
 }
 
 export async function createTimerEvent(
   newEvent: Omit<TimerEvent, "id" | "timer_id" | "created_at" | "updated_at">,
   actor = "admin"
 ): Promise<TimerEvent> {
-  const payload = {
+  const newId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `evt-${Date.now()}`;
+  const nowIso = new Date().toISOString();
+
+  const localItem: TimerEvent = {
     ...newEvent,
+    id: newId,
     timer_id: 1,
+    created_at: nowIso,
+    updated_at: nowIso,
     updated_by: actor,
   };
 
-  const { data, error } = await client()
-    .from("timer_events")
-    .insert(payload)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await logAudit(actor, "timer_event_create", "timer_event", data.id, {
-    event_title: newEvent.title,
-    start_at: newEvent.start_at,
-    end_at: newEvent.end_at,
+  const currentEvents = getStoredEvents();
+  const nextEvents = [...currentEvents, localItem].sort((a, b) => {
+    const diff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    return diff !== 0 ? diff : a.sort_order - b.sort_order;
   });
+  setStoredEvents(nextEvents);
 
-  return data as TimerEvent;
+  if (supabase) {
+    try {
+      const payload = {
+        ...newEvent,
+        timer_id: 1,
+        updated_by: actor,
+      };
+
+      const { data, error } = await client()
+        .from("timer_events")
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        if (isTableMissingError(error)) {
+          console.warn("[timer-service] timer_events table missing in schema cache. Created checkpoint locally.");
+          return localItem;
+        }
+        throw error;
+      }
+
+      await logAudit(actor, "timer_event_create", "timer_event", data.id, {
+        event_title: newEvent.title,
+        start_at: newEvent.start_at,
+        end_at: newEvent.end_at,
+      });
+
+      return data as TimerEvent;
+    } catch (err: any) {
+      if (isTableMissingError(err)) return localItem;
+      throw err;
+    }
+  }
+
+  return localItem;
 }
 
 export async function updateTimerEvent(
@@ -651,26 +742,51 @@ export async function updateTimerEvent(
   patch: Partial<Omit<TimerEvent, "id" | "timer_id" | "created_at">>,
   actor = "admin"
 ): Promise<TimerEvent> {
-  const payload = {
-    ...patch,
-    updated_at: new Date().toISOString(),
-    updated_by: actor,
-  };
+  const nowIso = new Date().toISOString();
+  const currentEvents = getStoredEvents();
+  const updatedEvents = currentEvents.map((e) =>
+    e.id === id ? { ...e, ...patch, updated_at: nowIso, updated_by: actor } : e
+  );
+  setStoredEvents(updatedEvents);
 
-  const { data, error } = await client()
-    .from("timer_events")
-    .update(payload)
-    .eq("id", id)
-    .select()
-    .single();
+  const localUpdated = updatedEvents.find((e) => e.id === id);
 
-  if (error) throw error;
+  if (supabase) {
+    try {
+      const payload = {
+        ...patch,
+        updated_at: nowIso,
+        updated_by: actor,
+      };
 
-  await logAudit(actor, "timer_event_update", "timer_event", id, {
-    updates: patch,
-  });
+      const { data, error } = await client()
+        .from("timer_events")
+        .update(payload)
+        .eq("id", id)
+        .select()
+        .single();
 
-  return data as TimerEvent;
+      if (error) {
+        if (isTableMissingError(error)) {
+          console.warn("[timer-service] timer_events table missing in schema cache. Updated checkpoint locally.");
+          if (localUpdated) return localUpdated;
+        }
+        throw error;
+      }
+
+      await logAudit(actor, "timer_event_update", "timer_event", id, {
+        updates: patch,
+      });
+
+      return data as TimerEvent;
+    } catch (err: any) {
+      if (isTableMissingError(err) && localUpdated) return localUpdated;
+      throw err;
+    }
+  }
+
+  if (!localUpdated) throw new Error("Checkpoint event not found.");
+  return localUpdated;
 }
 
 export async function deleteTimerEvent(
@@ -678,16 +794,33 @@ export async function deleteTimerEvent(
   eventTitle: string,
   actor = "admin"
 ): Promise<void> {
-  const { error } = await client()
-    .from("timer_events")
-    .delete()
-    .eq("id", id);
+  const currentEvents = getStoredEvents();
+  const nextEvents = currentEvents.filter((e) => e.id !== id);
+  setStoredEvents(nextEvents);
 
-  if (error) throw error;
+  if (supabase) {
+    try {
+      const { error } = await client()
+        .from("timer_events")
+        .delete()
+        .eq("id", id);
 
-  await logAudit(actor, "timer_event_delete", "timer_event", id, {
-    deleted_event_title: eventTitle,
-  });
+      if (error) {
+        if (isTableMissingError(error)) {
+          console.warn("[timer-service] timer_events table missing in schema cache. Deleted checkpoint locally.");
+          return;
+        }
+        throw error;
+      }
+
+      await logAudit(actor, "timer_event_delete", "timer_event", id, {
+        deleted_event_title: eventTitle,
+      });
+    } catch (err: any) {
+      if (isTableMissingError(err)) return;
+      throw err;
+    }
+  }
 }
 
 export async function completeTimerEvent(
@@ -696,27 +829,62 @@ export async function completeTimerEvent(
   actor = "admin"
 ): Promise<TimerEvent> {
   const nowIso = new Date().toISOString();
+  const currentEvents = getStoredEvents();
+  const updatedEvents = currentEvents.map((e) =>
+    e.id === id ? { ...e, is_completed: true, completed_at: nowIso, updated_at: nowIso, updated_by: actor } : e
+  );
+  setStoredEvents(updatedEvents);
 
-  const { data, error } = await client()
-    .from("timer_events")
-    .update({
-      is_completed: true,
-      completed_at: nowIso,
-      updated_at: nowIso,
-      updated_by: actor,
-    })
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await logAudit(actor, "timer_event_complete", "timer_event", id, {
-    event_title: eventTitle,
+  const localUpdated = updatedEvents.find((e) => e.id === id) || {
+    id,
+    timer_id: 1,
+    title: eventTitle,
+    description: "",
+    start_at: nowIso,
+    end_at: nowIso,
+    location: "",
+    type: "milestone" as const,
+    sort_order: 0,
+    is_visible: true,
+    is_completed: true,
     completed_at: nowIso,
-  });
+  };
 
-  return data as TimerEvent;
+  if (supabase) {
+    try {
+      const { data, error } = await client()
+        .from("timer_events")
+        .update({
+          is_completed: true,
+          completed_at: nowIso,
+          updated_at: nowIso,
+          updated_by: actor,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) {
+        if (isTableMissingError(error)) {
+          console.warn("[timer-service] timer_events table missing in schema cache. Completed checkpoint locally.");
+          return localUpdated;
+        }
+        throw error;
+      }
+
+      await logAudit(actor, "timer_event_complete", "timer_event", id, {
+        event_title: eventTitle,
+        completed_at: nowIso,
+      });
+
+      return data as TimerEvent;
+    } catch (err: any) {
+      if (isTableMissingError(err)) return localUpdated;
+      throw err;
+    }
+  }
+
+  return localUpdated;
 }
 
 export async function reopenTimerEvent(
@@ -725,27 +893,62 @@ export async function reopenTimerEvent(
   actor = "admin"
 ): Promise<TimerEvent> {
   const nowIso = new Date().toISOString();
+  const currentEvents = getStoredEvents();
+  const updatedEvents = currentEvents.map((e) =>
+    e.id === id ? { ...e, is_completed: false, completed_at: null, updated_at: nowIso, updated_by: actor } : e
+  );
+  setStoredEvents(updatedEvents);
 
-  const { data, error } = await client()
-    .from("timer_events")
-    .update({
-      is_completed: false,
-      completed_at: null,
-      updated_at: nowIso,
-      updated_by: actor,
-    })
-    .eq("id", id)
-    .select()
-    .single();
+  const localUpdated = updatedEvents.find((e) => e.id === id) || {
+    id,
+    timer_id: 1,
+    title: eventTitle,
+    description: "",
+    start_at: nowIso,
+    end_at: nowIso,
+    location: "",
+    type: "milestone" as const,
+    sort_order: 0,
+    is_visible: true,
+    is_completed: false,
+    completed_at: null,
+  };
 
-  if (error) throw error;
+  if (supabase) {
+    try {
+      const { data, error } = await client()
+        .from("timer_events")
+        .update({
+          is_completed: false,
+          completed_at: null,
+          updated_at: nowIso,
+          updated_by: actor,
+        })
+        .eq("id", id)
+        .select()
+        .single();
 
-  await logAudit(actor, "timer_event_reopen", "timer_event", id, {
-    event_title: eventTitle,
-    reopened_at: nowIso,
-  });
+      if (error) {
+        if (isTableMissingError(error)) {
+          console.warn("[timer-service] timer_events table missing in schema cache. Reopened checkpoint locally.");
+          return localUpdated;
+        }
+        throw error;
+      }
 
-  return data as TimerEvent;
+      await logAudit(actor, "timer_event_reopen", "timer_event", id, {
+        event_title: eventTitle,
+        reopened_at: nowIso,
+      });
+
+      return data as TimerEvent;
+    } catch (err: any) {
+      if (isTableMissingError(err)) return localUpdated;
+      throw err;
+    }
+  }
+
+  return localUpdated;
 }
 
 export async function extendCheckpointMinutes(
@@ -760,25 +963,59 @@ export async function extendCheckpointMinutes(
   const newEndIso = new Date(newEndMs).toISOString();
   const nowIso = new Date().toISOString();
 
-  const { data, error } = await client()
-    .from("timer_events")
-    .update({
-      end_at: newEndIso,
-      updated_at: nowIso,
-      updated_by: actor,
-    })
-    .eq("id", id)
-    .select()
-    .single();
+  const currentEvents = getStoredEvents();
+  const updatedEvents = currentEvents.map((e) =>
+    e.id === id ? { ...e, end_at: newEndIso, updated_at: nowIso, updated_by: actor } : e
+  );
+  setStoredEvents(updatedEvents);
 
-  if (error) throw error;
+  const localUpdated = updatedEvents.find((e) => e.id === id) || {
+    id,
+    timer_id: 1,
+    title: eventTitle,
+    description: "",
+    start_at: nowIso,
+    end_at: newEndIso,
+    location: "",
+    type: "milestone" as const,
+    sort_order: 0,
+    is_visible: true,
+  };
 
-  await logAudit(actor, "timer_checkpoint_extend", "timer_event", id, {
-    event_title: eventTitle,
-    delta_minutes: deltaMinutes,
-    new_end_at: newEndIso,
-  });
+  if (supabase) {
+    try {
+      const { data, error } = await client()
+        .from("timer_events")
+        .update({
+          end_at: newEndIso,
+          updated_at: nowIso,
+          updated_by: actor,
+        })
+        .eq("id", id)
+        .select()
+        .single();
 
-  return data as TimerEvent;
+      if (error) {
+        if (isTableMissingError(error)) {
+          console.warn("[timer-service] timer_events table missing in schema cache. Extended checkpoint locally.");
+          return localUpdated;
+        }
+        throw error;
+      }
+
+      await logAudit(actor, "timer_checkpoint_extend", "timer_event", id, {
+        event_title: eventTitle,
+        delta_minutes: deltaMinutes,
+        new_end_at: newEndIso,
+      });
+
+      return data as TimerEvent;
+    } catch (err: any) {
+      if (isTableMissingError(err)) return localUpdated;
+      throw err;
+    }
+  }
+
+  return localUpdated;
 }
 

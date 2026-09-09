@@ -19,6 +19,7 @@ import {
   completeTimerEvent,
   reopenTimerEvent,
   extendCheckpointMinutes,
+  checkDatabaseMigrationStatus,
 } from "@/services/timer";
 import ConfirmDialog from "./ConfirmDialog";
 import {
@@ -37,6 +38,7 @@ import {
   Radio,
   CheckCircle2,
   Check,
+  AlertCircle,
 } from "lucide-react";
 
 export default function TimerDashboard() {
@@ -82,6 +84,15 @@ export default function TimerDashboard() {
 
   // Custom End Time date-picker state
   const [customEndLocal, setCustomEndLocal] = useState("");
+
+  // Database migration status check
+  const [dbMigrated, setDbMigrated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkDatabaseMigrationStatus().then((res) => {
+      setDbMigrated(res.migrated);
+    });
+  }, []);
 
   useEffect(() => {
     if (config.end_at) {
@@ -474,6 +485,21 @@ export default function TimerDashboard() {
           </button>
         </div>
       </div>
+
+      {/* ── NOTICE: Database Migration Status Alert ─────────────────── */}
+      {dbMigrated === false && (
+        <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 flex items-start gap-3 text-xs font-mono text-amber-300 shadow-sm">
+          <AlertCircle className="shrink-0 text-amber-400 mt-0.5" size={18} />
+          <div className="space-y-1">
+            <div className="font-bold text-amber-200 uppercase tracking-wide">
+              Notice: Table &apos;public.timer_config&apos; not found in Supabase schema cache
+            </div>
+            <p className="text-amber-300/80 leading-relaxed">
+              The timer is running in resilient local/cross-tab mode and functions immediately. To sync timer state and checkpoints across all devices in the cloud, run the migration script in <span className="text-amber-100 font-bold underline">supabase/migrations/0022_hackathon_timer.sql</span> in your <strong>Supabase Dashboard &rarr; SQL Editor</strong>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── 2. MASTER COMMAND CONTROLS (START / STOP / RESUME / END) ── */}
       <div className="rounded-2xl border-2 border-line/80 bg-ink/70 p-6 backdrop-blur-md shadow-md space-y-4">
