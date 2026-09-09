@@ -14,6 +14,8 @@ const ShortlistConfirmation = lazy(() => import("./pages/ShortlistConfirmation")
 const ShortlistReceipt = lazy(() => import("./pages/ShortlistReceipt"));
 const ShortlistInvalid = lazy(() => import("./pages/ShortlistInvalid"));
 const PhotoBoothPage = lazy(() => import("./pages/PhotoBoothPage"));
+const Timer = lazy(() => import("./pages/Timer"));
+const TimerDashboard = lazy(() => import("./admin/TimerDashboard"));
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
 const Dashboard = lazy(() => import("./admin/Dashboard"));
 const TeamLogin = lazy(() => import("./pages/TeamLogin"));
@@ -33,6 +35,17 @@ export default function App() {
               <Routes>
                 {/* Public */}
                 <Route path="/" element={<Home />} />
+                <Route path="/timer" element={<Timer />} />
+                <Route
+                  path="/admin/timer-preview"
+                  element={
+                    <div className="min-h-screen bg-void text-fg p-6 sm:p-10">
+                      <div className="max-w-7xl mx-auto">
+                        <TimerDashboard />
+                      </div>
+                    </div>
+                  }
+                />
                 <Route path="/shortlisted" element={<ShortlistedTeams />} />
                 <Route path="/shortlist/recover" element={<ShortlistRecovery />} />
                 <Route path="/shortlist/:token" element={<ShortlistDashboard />} />

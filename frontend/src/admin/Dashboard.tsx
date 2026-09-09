@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload, CreditCard, Tv } from "lucide-react";
+import { Loader2, LogOut, RefreshCcw, Shield, Wifi, WifiOff, Upload, CreditCard, Tv, Clock } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { deleteTeams } from "@/services/admin";
@@ -10,8 +10,9 @@ import PaymentDashboard from "./PaymentDashboard";
 import SpinWheelDashboard from "./SpinWheelDashboard";
 import EmailComposer from "./EmailComposer";
 import LiveStreamControl from "./LiveStreamControl";
+import TimerDashboard from "./TimerDashboard";
 
-type View = "registrations" | "import" | "payments" | "spinwheel" | "email" | "live";
+type View = "registrations" | "import" | "payments" | "spinwheel" | "email" | "live" | "timer";
 
 export default function Dashboard() {
   const { email, signOut } = useAuth();
@@ -172,6 +173,16 @@ export default function Dashboard() {
                 <Tv size={11} />
                 Live Control
               </button>
+              <button
+                onClick={() => setView("timer")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === "timer"
+                  ? "bg-plasma/20 border border-plasma/30 text-fg shadow-[0_0_12px_rgba(47,147,173,0.25)]"
+                  : "text-muted hover:text-fg"
+                  }`}
+              >
+                <Clock size={11} />
+                Timer
+              </button>
             </div>
           </div>
 
@@ -269,6 +280,16 @@ export default function Dashboard() {
             <Tv size={11} />
             Live
           </button>
+          <button
+            onClick={() => setView("timer")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all shrink-0 ${view === "timer"
+              ? "bg-plasma/20 border border-plasma/30 text-fg"
+              : "text-muted hover:text-fg"
+              }`}
+          >
+            <Clock size={11} />
+            Timer
+          </button>
         </div>
 
         {view === "import" ? (
@@ -281,6 +302,8 @@ export default function Dashboard() {
           <EmailComposer />
         ) : view === "live" ? (
           <LiveStreamControl />
+        ) : view === "timer" ? (
+          <TimerDashboard />
         ) : loading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 size={22} className="animate-spin text-plasma" />

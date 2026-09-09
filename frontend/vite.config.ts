@@ -14,6 +14,7 @@ export default defineConfig({
   },
   build: {
     target: "es2022",
+    cssMinify: "esbuild",
     cssCodeSplit: true,
     sourcemap: false,
   },
