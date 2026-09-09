@@ -68,39 +68,63 @@
 .lb-root .countdown-value { color: var(--lb-cyan-bright); font-family: "JetBrains Mono", monospace; font-size: 13px; letter-spacing: .04em; }
 
 .lb-root .hero-center { align-items: center; display: flex; flex-direction: column; text-align: center; }
-.lb-root .hero-timer { align-items: center; display: flex; flex-direction: column; gap: 22px; width: 100%; }
-.lb-root .hero-timer-digits {
-  color: #fff; font-family: "Playfair Display", ui-serif, serif;
-  font-size: clamp(52px, 11vw, 124px); font-weight: 700; letter-spacing: -.02em;
-  line-height: .92; font-variant-numeric: tabular-nums;
-}
-.lb-root .hero-timer-colon { color: var(--lb-cyan-bright); font-weight: 600; padding: 0 .04em; }
-.lb-root .hero-timer-meta { align-items: center; display: flex; flex-wrap: wrap; gap: 16px 22px; justify-content: center; }
-.lb-root .hero-timer-status {
-  align-items: center; color: #94a3b8; display: inline-flex;
-  font-family: "JetBrains Mono", monospace; font-size: 12px; gap: 8px;
-  letter-spacing: .16em; text-transform: uppercase;
-}
-.lb-root .hero-timer-status.live { color: var(--lb-cyan-bright); }
-.lb-root .hero-timer-status.done { color: #a78bfa; }
-.lb-root .event-day {
-  align-items: center; border: 1px solid rgba(148, 163, 184, .2); border-radius: 11px;
-  display: flex; flex-direction: column; gap: 3px; min-width: 64px; padding: 10px 13px;
-}
-.lb-root .event-day.active { background: rgba(103, 232, 249, .07); border-color: rgba(103, 232, 249, .4); }
-.lb-root .event-day-num { color: #fff; font-family: "Playfair Display", ui-serif, serif; font-size: 26px; font-weight: 700; line-height: 1; }
-.lb-root .event-day-meta { color: #64748b; font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .12em; line-height: 1.4; text-align: center; }
-.lb-root .hero-stats { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 40px; max-width: 560px; width: 100%; }
-.lb-root .hero-stats .stat-block { border-left: 0; border-top: 1px solid rgba(103, 232, 249, .25); padding: 14px 0 0; text-align: center; }
-.lb-root .hero-stats .stat-block > div { justify-content: center; }
 .lb-root .control-link { align-items: center; color: #94a3b8; display: inline-flex; gap: 7px; transition: color .18s ease; text-decoration: none; }
 .lb-root .control-link:hover { color: #fff; }
-.lb-root .stat-block { border-left: 1px solid rgba(103, 232, 249, .25); min-width: 122px; padding: 2px 0 2px 14px; }
 .lb-root .live-pulse { animation: lb-pulse-dot 1.8s ease-in-out infinite; }
 .lb-root .status-dot { border-radius: 999px; display: inline-block; height: 7px; width: 7px; }
 .lb-root .status-dot.live { background: var(--lb-cyan-bright); box-shadow: 0 0 0 4px rgba(103, 232, 249, .12), 0 0 18px rgba(103, 232, 249, .6); }
 .lb-root .status-dot.complete { background: #a78bfa; }
 .lb-root .status-dot.muted { background: #64748b; }
+
+/* ── top-3 podium ────────────────────────────────────────────────── */
+.lb-root .lb-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+  margin-top: 34px;
+  max-width: 760px;
+  width: 100%;
+}
+.lb-root .lb-podium-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 14px;
+  background: rgba(8, 11, 18, .74);
+  padding: 18px 12px 16px;
+  text-align: center;
+  min-width: 0;
+}
+.lb-root .lb-podium-card.p1 {
+  border-color: rgba(253, 224, 71, .4);
+  background: linear-gradient(180deg, rgba(253, 224, 71, .08), rgba(8, 11, 18, .74) 62%);
+  padding-top: 26px; padding-bottom: 24px;
+  box-shadow: 0 20px 60px -24px rgba(253, 224, 71, .3);
+}
+.lb-root .lb-podium-card.p2 { border-color: rgba(203, 213, 225, .32); }
+.lb-root .lb-podium-card.p3 { border-color: rgba(253, 186, 116, .32); }
+.lb-root .lb-podium-medal {
+  align-items: center; border-radius: 9px; display: inline-flex;
+  font-family: "JetBrains Mono", monospace; font-size: 15px; font-weight: 700;
+  height: 36px; width: 36px; justify-content: center;
+}
+.lb-root .lb-podium-card.p1 .lb-podium-medal { height: 42px; width: 42px; font-size: 17px; }
+.lb-root .lb-podium-team { color: #f8fafc; font-size: 15px; font-weight: 600; line-height: 1.25; }
+.lb-root .lb-podium-card.p1 .lb-podium-team { font-size: 17px; }
+.lb-root .lb-podium-id { color: #64748b; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .05em; }
+.lb-root .lb-podium-total { color: var(--lb-cyan-bright); font-family: "Playfair Display", ui-serif, serif; font-size: 30px; font-weight: 700; line-height: 1; }
+.lb-root .lb-podium-card.p1 .lb-podium-total { font-size: 38px; }
+.lb-root .lb-podium-sub { color: #64748b; font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+@media (max-width: 560px) {
+  .lb-root .lb-podium { gap: 7px; }
+  .lb-root .lb-podium-card { padding: 12px 7px; border-radius: 11px; }
+  .lb-root .lb-podium-card.p1 { padding-top: 18px; padding-bottom: 16px; }
+  .lb-root .lb-podium-team { font-size: 12px; }
+  .lb-root .lb-podium-card.p1 .lb-podium-team { font-size: 13px; }
+  .lb-root .lb-podium-total { font-size: 22px; }
+  .lb-root .lb-podium-card.p1 .lb-podium-total { font-size: 27px; }
+  .lb-root .lb-podium-id { font-size: 9px; }
+}
 
 /* ── filters + table ─────────────────────────────────────────────── */
 .lb-root .filter-control {
@@ -273,7 +297,4 @@
   .lb-root .admin-topbar { align-items: flex-start; gap: 18px; flex-direction: column; }
   .lb-root .overview-grid { grid-template-columns: 1fr 1fr; }
   .lb-root .schedule-grid { grid-template-columns: 1fr; }
-  .lb-root .hero-timer-status { flex-basis: 100%; justify-content: center; order: 3; }
-  .lb-root .hero-stats { grid-template-columns: 1fr 1fr; max-width: 320px; }
-  .lb-root .hero-stats .stat-block:last-child { grid-column: 1 / -1; }
 }

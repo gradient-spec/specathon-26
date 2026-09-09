@@ -1,67 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Activity, BarChart3, ChevronDown, CircleDot, Radio, Timer, Trophy,
-} from "lucide-react";
+import { BarChart3, ChevronDown, Crown, Radio, Timer } from "lucide-react";
 import { getLeaderboardData, tickStage } from "@/leaderboard/service";
 import type { LeaderboardData } from "@/leaderboard/types";
+import type { RankedRow } from "@/leaderboard/ranking";
 import "@/leaderboard/leaderboard.css";
-
-/* ── 36-hour hackathon window (Asia/Kolkata) ─────────────────────────── */
-const EVENT_START = new Date("2026-09-11T09:00:00+05:30");
-const EVENT_DURATION_HOURS = 36;
-const EVENT_END = new Date(EVENT_START.getTime() + EVENT_DURATION_HOURS * 3_600_000);
-const EVENT_START_DAY = "11";
-const EVENT_END_DAY = "12";
-const EVENT_MONTH = "SEP";
-
-function HackathonTimer() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const startMs = EVENT_START.getTime();
-  const endMs = EVENT_END.getTime();
-  let phase: "before" | "live" | "done";
-  let remainingMs: number;
-  if (now < startMs) { phase = "before"; remainingMs = EVENT_DURATION_HOURS * 3_600_000; }
-  else if (now < endMs) { phase = "live"; remainingMs = endMs - now; }
-  else { phase = "done"; remainingMs = 0; }
-
-  const totalSec = Math.max(0, Math.round(remainingMs / 1000));
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const hh = pad(Math.floor(totalSec / 3600));
-  const mm = pad(Math.floor((totalSec % 3600) / 60));
-  const ss = pad(totalSec % 60);
-
-  const status =
-    phase === "before" ? `Begins ${EVENT_MONTH} ${EVENT_START_DAY} · 09:00 AM`
-      : phase === "live" ? "Time remaining"
-        : "Time's up";
-
-  const Day = ({ day, time, active }: { day: string; time: string; active: boolean }) => (
-    <div className={`event-day${active ? " active" : ""}`}>
-      <span className="event-day-num">{day}</span>
-      <span className="event-day-meta">{EVENT_MONTH}<br />{time}</span>
-    </div>
-  );
-
-  return (
-    <div className="hero-timer">
-      <div className="hero-timer-digits">{hh}<span className="hero-timer-colon">:</span>{mm}<span className="hero-timer-colon">:</span>{ss}</div>
-      <div className="hero-timer-meta">
-        <Day day={EVENT_START_DAY} time="09:00" active={phase !== "done"} />
-        <span className={`hero-timer-status ${phase}`}>
-          {phase === "live" && <span className="status-dot live" />}
-          {status}
-        </span>
-        <Day day={EVENT_END_DAY} time="21:00" active={phase === "done"} />
-      </div>
-    </div>
-  );
-}
 
 const countdownTargets: Record<string, { label: string; field: keyof LeaderboardData["settings"] } | undefined> = {
   ROUND_1_UPCOMING: { label: "Round 1 starts in", field: "round1StartAt" },
@@ -115,11 +58,35 @@ const stageCopy: Record<string, { label: string; tone: string; helper: string }>
   RESULTS_LIVE: { label: "Results live", tone: "complete", helper: "Official results are now visible" },
 };
 
-function Stat({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+function PodiumCard({ team, place }: { team: RankedRow; place: 1 | 2 | 3 }) {
   return (
-    <div className="stat-block">
-      <div className="mb-4 flex items-center gap-2" style={{ color: "#67e8f9" }}>{icon}<span className="eyebrow">{label}</span></div>
-      <p className="font-display truncate text-lg font-semibold" style={{ color: "#fff" }}>{value}</p>
+    <div className={`lb-podium-card p${place}`}>
+      <span className={`lb-podium-medal rank-medal rank-${place}`}>
+        {place === 1 ? <Crown size={18} /> : place}
+      </span>
+      <span className="lb-podium-team">{team.teamName}</span>
+      <span className="lb-podium-id">{team.teamId}</span>
+      <span className="venue-tag">{team.venue}</span>
+      <span className="lb-podium-total">{team.total}</span>
+      <span className="lb-podium-sub">points</span>
+    </div>
+  );
+}
+
+function Podium({ teams }: { teams: RankedRow[] }) {
+  if (teams.length === 0) return null;
+  const [first, second, third] = teams;
+  // Visual order: 2nd · 1st · 3rd
+  const slots: Array<{ team: RankedRow | undefined; place: 1 | 2 | 3 }> = [
+    { team: second, place: 2 },
+    { team: first, place: 1 },
+    { team: third, place: 3 },
+  ];
+  return (
+    <div className="lb-podium">
+      {slots.map(({ team, place }) =>
+        team ? <PodiumCard key={team.id} team={team} place={place} /> : <div key={place} />,
+      )}
     </div>
   );
 }
@@ -128,7 +95,6 @@ export default function Leaderboard() {
   const [venue, setVenue] = useState("ALL");
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [isError, setIsError] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState(0);
   const loadedOnce = useRef(false);
 
   useEffect(() => {
@@ -140,7 +106,6 @@ export default function Leaderboard() {
         if (!alive) return;
         setData(next);
         setIsError(false);
-        setUpdatedAt(Date.now());
         loadedOnce.current = true;
       } catch {
         if (alive && !loadedOnce.current) setIsError(true);
@@ -167,10 +132,6 @@ export default function Leaderboard() {
     if (venue !== "ALL") return data.teams.filter((team) => team.venue === venue);
     return data.teams;
   }, [activeGroup, venue, data?.teams]);
-  const lastUpdated = updatedAt
-    ? new Date(updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-    : "—";
-
   return (
     <main className="lb-root">
       <div className="event-grid" style={{ minHeight: "100vh" }}>
@@ -193,12 +154,14 @@ export default function Leaderboard() {
             <div className="mb-6 flex items-center justify-center gap-2" style={{ color: "#67e8f9" }}>
               <Radio size={15} className="live-pulse" /><span className="eyebrow">LIVE EVALUATION &amp; LEADERBOARD</span>
             </div>
-            <HackathonTimer />
-            <div className="hero-stats">
-              <Stat label="Teams" value={String(data?.teams.length ?? "—")} icon={<Trophy size={16} />} />
-              <Stat label="Stage" value={stage?.label.split(" ").slice(0, 2).join(" ") ?? "Loading"} icon={<Activity size={16} />} />
-              <Stat label="Last sync" value={lastUpdated} icon={<CircleDot size={16} />} />
-            </div>
+            {displayedTeams.length > 0 && (
+              <>
+                <div className="mb-1 flex items-center justify-center gap-2" style={{ color: "#67e8f9" }}>
+                  <Crown size={14} /><span className="eyebrow">Top 3{activeGroup || venue !== "ALL" ? " · filtered" : ""}</span>
+                </div>
+                <Podium teams={displayedTeams} />
+              </>
+            )}
           </div>
         </section>
 
