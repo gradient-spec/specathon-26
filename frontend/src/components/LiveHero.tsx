@@ -6,7 +6,7 @@ import { Rocket, Users, Utensils, UserCog, FileText, Trophy } from "lucide-react
 /* =======================================================
    LIVE STREAM CONFIGURATION
 ======================================================= */
-const YOUTUBE_VIDEO_ID = "mKCieTImjvU"; // Replace with actual YouTube Live ID 
+const YOUTUBE_VIDEO_ID = ""; // Replace with actual YouTube Live ID 
 
 const ALL_EVENTS = [
   { name: "Inaugural", timeLabel: "9:30 AM", startStr: "09:30", endStr: "11:30", icon: Rocket, day: 1 },
