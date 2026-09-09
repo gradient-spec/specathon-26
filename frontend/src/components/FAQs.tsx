@@ -3,7 +3,6 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { MapPin, ArrowUpRight, Lock, ChevronDown } from "lucide-react";
 import Reveal from "./Reveal";
 import LineSidebar from "./LineSidebar";
-import Watermark from "./Watermark";
 
 type Faq = {
   q: string;
@@ -55,7 +54,6 @@ export default function FAQs() {
 
   return (
     <section id="faq" className="relative py-8 md:py-10 overflow-hidden">
-      <Watermark />
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="mb-14 max-w-2xl">
           <Reveal>

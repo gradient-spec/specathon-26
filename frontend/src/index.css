@@ -173,6 +173,27 @@ html {
   background: linear-gradient(180deg, rgba(24, 98, 117, 0.5), rgba(47,147,173, 0.65));
 }
 
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Schedule Card scanning beam */
+@keyframes shiningCard {
+  0% { transform: translateX(0%) skewX(-30deg); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(250%) skewX(-30deg); opacity: 0; }
+}
+.animate-shining-card {
+  animation: shiningCard 1.8s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
 /* Glass utility */
 @layer components {
   /* Card surface: Surface bg (#1A2332) with translucency + thin border (#2A3647). */

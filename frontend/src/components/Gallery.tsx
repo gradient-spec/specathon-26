@@ -2,7 +2,6 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Reveal from "./Reveal";
-import Watermark from "./Watermark";
 import { GALLERY } from "@/utils/assets";
 
 const ITEMS =
@@ -84,8 +83,6 @@ export default function Gallery() {
       id="gallery"
       className="relative py-6 md:py-8 overflow-hidden"
     >
-      <Watermark />
-
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <Reveal>
           <div className="text-center mb-6">

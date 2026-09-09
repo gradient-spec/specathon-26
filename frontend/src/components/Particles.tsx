@@ -30,7 +30,7 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     let animationFrameId: number;
@@ -38,21 +38,22 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
     let stars: Star[] = [];
     let lastBurstTime = 0;
     const BURST_INTERVAL_MS = 4000; // 4 seconds burst cycle
+    let dpr = 1;
 
-    const initStars = () => {
+    const initStars = (width: number, height: number) => {
       stars = [];
       const starCount = Math.min(
-        Math.floor((canvas.width * canvas.height) / 14000),
-        95
+        Math.floor((width * height) / 16000),
+        85
       );
       const starColors = ["#ffffff", "#E5E4E2", "#F0F3F4", "#F5F7FA", "#E8ECEF"];
 
       for (let i = 0; i < starCount; i++) {
         stars.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          size: Math.random() * 1.1 + 0.5, // 0.5px - 1.6px
-          baseAlpha: Math.random() * 0.45 + 0.3, // 0.3 - 0.75
+          x: Math.random() * width,
+          y: Math.random() * height,
+          size: Math.random() * 1.1 + 0.5,
+          baseAlpha: Math.random() * 0.45 + 0.3,
           twinkleSpeed: Math.random() * 0.003 + 0.0015,
           phase: Math.random() * Math.PI * 2,
           color: starColors[Math.floor(Math.random() * starColors.length)],
@@ -61,34 +62,38 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
     };
 
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      initStars();
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.scale(dpr, dpr);
+      initStars(w, h);
     };
 
-    const createMeteor = (staggerDelay = 0): Meteor => {
-      // Spawn from top or upper-right area of screen
+    const createMeteor = (width: number, staggerDelay = 0): Meteor => {
       const spawnSide = Math.random() < 0.65;
       let startX: number;
       let startY: number;
 
       if (spawnSide) {
-        startX = canvas.width * (0.35 + Math.random() * 0.75);
+        startX = width * (0.35 + Math.random() * 0.75);
         startY = -60 - Math.random() * 180;
       } else {
-        startX = Math.random() * canvas.width * 1.1;
+        startX = Math.random() * width * 1.1;
         startY = -60 - Math.random() * 120;
       }
 
-      // Angle shooting down-left (approx 132° - 148°)
       const angleDeg = 138 + (Math.random() - 0.5) * 16;
       const angle = (angleDeg * Math.PI) / 180;
 
-      const speed = Math.random() * 6 + 8; // speed 8px - 14px per frame
-      const length = Math.random() * 65 + 50; // trail length 50px - 115px (vibrant & sleek)
-      const size = Math.random() * 1.4 + 1.8; // head size 1.8px - 3.2px (bolder, crisp point)
-      const maxAlpha = Math.random() * 0.25 + 0.75; // high opacity 0.75 - 1.0
-      const maxLife = Math.random() * 45 + 55; // lifespan
+      const speed = Math.random() * 5 + 7;
+      const length = Math.random() * 60 + 50;
+      const size = Math.random() * 1.3 + 1.6;
+      const maxAlpha = Math.random() * 0.25 + 0.75;
+      const maxLife = Math.random() * 45 + 50;
 
       return {
         x: startX,
@@ -106,11 +111,11 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
     };
 
     const spawnBurst = () => {
-      // Handful burst (3 to 6 meteors)
-      const count = Math.floor(Math.random() * 4) + 3;
+      const w = window.innerWidth;
+      const count = Math.floor(Math.random() * 3) + 3;
       for (let i = 0; i < count; i++) {
-        const delay = Math.floor(Math.random() * 40);
-        meteors.push(createMeteor(delay));
+        const delay = Math.floor(Math.random() * 35);
+        meteors.push(createMeteor(w, delay));
       }
     };
 
@@ -118,49 +123,39 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
     spawnBurst();
 
     const animate = (timestamp: number) => {
-      // Pause all rendering when tab is hidden to save CPU/GPU
       if (document.hidden) {
         animationFrameId = requestAnimationFrame(animate);
         return;
       }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
 
-      // ── 1. DYNAMIC STARRY NIGHT ──────────────────────────
-      // Batch stars by shadow size to minimize GPU filter passes.
-      // Draw large stars (shadowBlur=8) together, then small stars (shadowBlur=4).
-      ctx.save();
-      ctx.shadowBlur = 8;
+      ctx.clearRect(0, 0, w, h);
+
+      // ── 1. FAST DYNAMIC STARRY NIGHT ──────────────────────────
+      // Batch star rendering with alpha blending (zero expensive shadowBlur per frame)
       for (let j = 0; j < stars.length; j++) {
         const s = stars[j];
-        if (s.size <= 1.6) continue;
         const currentAlpha = Math.min(
           1,
           Math.max(0.15, s.baseAlpha + Math.sin(timestamp * s.twinkleSpeed + s.phase) * 0.3)
         );
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+
         ctx.fillStyle = s.color;
         ctx.globalAlpha = currentAlpha;
-        ctx.shadowColor = s.color;
-        ctx.fill();
-      }
-      ctx.shadowBlur = 4;
-      for (let j = 0; j < stars.length; j++) {
-        const s = stars[j];
-        if (s.size > 1.6) continue;
-        const currentAlpha = Math.min(
-          1,
-          Math.max(0.15, s.baseAlpha + Math.sin(timestamp * s.twinkleSpeed + s.phase) * 0.3)
-        );
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-        ctx.fillStyle = s.color;
-        ctx.globalAlpha = currentAlpha;
-        ctx.shadowColor = s.color;
         ctx.fill();
+
+        // Subtle bloom for largest twinkling stars
+        if (s.size > 1.2 && currentAlpha > 0.6) {
+          ctx.globalAlpha = currentAlpha * 0.25;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.size * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-      ctx.restore();
 
       // ── 2. PLATINUM METEOR SHOWER BURSTS ──────────────────
       if (timestamp - lastBurstTime > BURST_INTERVAL_MS) {
@@ -178,14 +173,12 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
 
         m.life++;
 
-        // Calculate trajectory vector
         const dx = Math.cos(m.angle) * m.speed;
         const dy = Math.sin(m.angle) * m.speed;
 
         m.x += dx;
         m.y += dy;
 
-        // Fade in / out handling
         const fadeInRatio = 0.18;
         const fadeOutRatio = 0.32;
         const normalizedLife = m.life / m.maxLife;
@@ -199,49 +192,51 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
           m.alpha = m.maxAlpha;
         }
 
-        // Draw glowing smoke trail & platinum meteor head
         if (m.alpha > 0) {
           const tailX = m.x - Math.cos(m.angle) * m.length;
           const tailY = m.y - Math.sin(m.angle) * m.length;
 
-          // Rich multi-stop gradient (Pure white head -> Platinum metallic -> Lumen teal accent -> Smoky silver)
+          // Glowing trail gradient
           const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
-          grad.addColorStop(0, `rgba(255, 255, 255, ${m.alpha})`); // Intense white core
-          grad.addColorStop(0.2, `rgba(229, 228, 226, ${m.alpha * 0.85})`); // Platinum metallic
-          grad.addColorStop(0.5, `rgba(47,147,173, ${m.alpha * 0.45})`); // Vibrant teal accent
-          grad.addColorStop(1, `rgba(180, 195, 210, 0)`); // Translucent smoke tail
+          grad.addColorStop(0, `rgba(255, 255, 255, ${m.alpha})`);
+          grad.addColorStop(0.2, `rgba(229, 228, 226, ${m.alpha * 0.85})`);
+          grad.addColorStop(0.5, `rgba(47, 147, 173, ${m.alpha * 0.5})`);
+          grad.addColorStop(1, `rgba(180, 195, 210, 0)`);
 
           ctx.save();
+          ctx.globalAlpha = 1.0;
           ctx.beginPath();
           ctx.moveTo(m.x, m.y);
           ctx.lineTo(tailX, tailY);
           ctx.strokeStyle = grad;
           ctx.lineWidth = m.size * 0.95;
           ctx.lineCap = "round";
-          ctx.shadowBlur = 14;
-          ctx.shadowColor = "#2F93AD";
           ctx.stroke();
 
-          // Platinum meteor head dot with vibrant bloom
+          // Luminous meteor head with subtle glow
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.size * 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(47, 147, 173, ${m.alpha * 0.35})`;
+          ctx.fill();
+
           ctx.beginPath();
           ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(255, 255, 255, ${m.alpha})`;
-          ctx.shadowBlur = 18;
-          ctx.shadowColor = "#E5E4E2"; // Platinum glow
           ctx.fill();
+
           ctx.restore();
         }
 
-        // Remove off-screen or expired meteors
         if (
           m.life >= m.maxLife ||
           m.x < -120 ||
-          m.y > canvas.height + 120
+          m.y > h + 120
         ) {
           meteors.splice(i, 1);
         }
       }
 
+      ctx.globalAlpha = 1.0;
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -263,3 +258,4 @@ export default function Particles({ elevated = false }: { elevated?: boolean }) 
     />
   );
 }
+

@@ -28,18 +28,16 @@ export default function Cursor() {
   useEffect(() => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
-    // No center-fallback: the dot must not exist anywhere until the user's
-    // first real pointer movement. `hasMoved` gates both visibility and
-    // the very first position jump (straight to the real cursor location,
-    // not lerped in from a fake starting point).
-    let mouseX = 0;
-    let mouseY = 0;
-    let currentX = 0;
-    let currentY = 0;
+    document.body.classList.add("has-cursor");
+
+    let mouseX = -100;
+    let mouseY = -100;
+    let currentX = -100;
+    let currentY = -100;
     let hasMoved = false;
 
-    let prevSpawnX = 0;
-    let prevSpawnY = 0;
+    let prevSpawnX = -100;
+    let prevSpawnY = -100;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -56,21 +54,20 @@ export default function Cursor() {
     const particles: Particle[] = [];
 
     const spawnDust = (x: number, y: number, moveX: number, moveY: number) => {
-      if (particles.length > 50) return;
+      if (particles.length > 40) return;
 
       const count = Math.random() < 0.6 ? 1 : 2;
       for (let i = 0; i < count; i++) {
         const color = SILVER_PALETTE[Math.floor(Math.random() * SILVER_PALETTE.length)];
-        // Spawn dust at silver globe position, drifting slightly backward from globe motion vector
         particles.push({
           x: x + (Math.random() - 0.5) * 4,
           y: y + (Math.random() - 0.5) * 4,
-          vx: -moveX * 0.12 + (Math.random() - 0.5) * 0.4,
-          vy: -moveY * 0.12 + (Math.random() - 0.5) * 0.4 - 0.1,
-          size: 1.2 + Math.random() * 2.0,
+          vx: -moveX * 0.1 + (Math.random() - 0.5) * 0.35,
+          vy: -moveY * 0.1 + (Math.random() - 0.5) * 0.35 - 0.1,
+          size: 1.2 + Math.random() * 1.8,
           alpha: 0.6 + Math.random() * 0.35,
           life: 0,
-          maxLife: 20 + Math.floor(Math.random() * 16),
+          maxLife: 18 + Math.floor(Math.random() * 14),
           color,
         });
       }
@@ -80,8 +77,6 @@ export default function Cursor() {
       mouseX = e.clientX;
       mouseY = e.clientY;
       if (!hasMoved) {
-        // First real movement: jump straight to the actual cursor
-        // position (no lerp-in from a fake origin) and reveal the dot.
         hasMoved = true;
         currentX = mouseX;
         currentY = mouseY;
@@ -93,83 +88,87 @@ export default function Cursor() {
 
     document.addEventListener("mousemove", handleMouseMove, { passive: true });
 
-    const grow = () => dotRef.current?.classList.add("cursor-hover");
-    const shrink = () => dotRef.current?.classList.remove("cursor-hover");
+    // Efficient Event Delegation for hover state - NO MutationObserver needed!
+    const INTERACTIVE_SELECTOR = "a, button, input, textarea, select, [data-cursor], [role='button'], label";
 
-    const attachCursor = (root: Document | Element) => {
-      const els = root.querySelectorAll("a, button, input, textarea, select, [data-cursor]");
-      els.forEach((el) => {
-        el.removeEventListener("mouseenter", grow);
-        el.removeEventListener("mouseleave", shrink);
-        el.addEventListener("mouseenter", grow);
-        el.addEventListener("mouseleave", shrink);
-      });
+    const handlePointerOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(INTERACTIVE_SELECTOR)) {
+        dotRef.current?.classList.add("cursor-hover");
+      }
     };
 
-    attachCursor(document);
+    const handlePointerOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(INTERACTIVE_SELECTOR)) {
+        dotRef.current?.classList.remove("cursor-hover");
+      }
+    };
 
-    // Re-attach when new DOM nodes are added (lazy-loaded sections)
-    const observer = new MutationObserver(() => attachCursor(document));
-    observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("mouseover", handlePointerOver, { passive: true });
+    document.addEventListener("mouseout", handlePointerOut, { passive: true });
 
     let animId: number;
 
     const render = () => {
-      // Pause cursor animation when tab is hidden
       if (document.hidden) {
         animId = requestAnimationFrame(render);
         return;
       }
 
-      const prevX = currentX;
-      const prevY = currentY;
+      if (hasMoved) {
+        const prevX = currentX;
+        const prevY = currentY;
 
-      // Custom silver globe lerps smoothly behind user's physical mouse pointer
-      currentX += (mouseX - currentX) * 0.32;
-      currentY += (mouseY - currentY) * 0.32;
+        // Ultra smooth easing
+        currentX += (mouseX - currentX) * 0.32;
+        currentY += (mouseY - currentY) * 0.32;
 
-      if (wrapRef.current) {
-        wrapRef.current.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-      }
-
-      const dx = currentX - prevX;
-      const dy = currentY - prevY;
-      const dist = Math.hypot(currentX - prevSpawnX, currentY - prevSpawnY);
-
-      // Spawn dust ONLY from the silver globe position as it moves
-      if (dist > 4) {
-        spawnDust(currentX, currentY, dx, dy);
-        prevSpawnX = currentX;
-        prevSpawnY = currentY;
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.92; // gradual slowdown behind cursor
-        p.vy *= 0.92;
-        p.life++;
-
-        const lifeRatio = p.life / p.maxLife;
-        const currentAlpha = p.alpha * (1 - lifeRatio);
-        const currentSize = p.size * (1 - lifeRatio * 0.5);
-
-        if (p.life >= p.maxLife || currentAlpha <= 0) {
-          particles.splice(i, 1);
-          continue;
+        if (wrapRef.current) {
+          wrapRef.current.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
         }
 
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = Math.max(0, currentAlpha);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
-        ctx.fill();
+        const dx = currentX - prevX;
+        const dy = currentY - prevY;
+        const dist = Math.hypot(currentX - prevSpawnX, currentY - prevSpawnY);
+
+        if (dist > 4) {
+          spawnDust(currentX, currentY, dx, dy);
+          prevSpawnX = currentX;
+          prevSpawnY = currentY;
+        }
       }
 
-      ctx.globalAlpha = 1.0;
+      // Only draw and clear canvas if there are particles or just finished
+      if (particles.length > 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.92;
+          p.vy *= 0.92;
+          p.life++;
+
+          const lifeRatio = p.life / p.maxLife;
+          const currentAlpha = p.alpha * (1 - lifeRatio);
+          const currentSize = p.size * (1 - lifeRatio * 0.5);
+
+          if (p.life >= p.maxLife || currentAlpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, currentAlpha);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+      }
+
       animId = requestAnimationFrame(render);
     };
 
@@ -177,14 +176,11 @@ export default function Cursor() {
 
     return () => {
       cancelAnimationFrame(animId);
+      document.body.classList.remove("has-cursor");
       document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseover", handlePointerOver);
+      document.removeEventListener("mouseout", handlePointerOut);
       window.removeEventListener("resize", resizeCanvas);
-      observer.disconnect();
-      const all = document.querySelectorAll("a, button, input, textarea, select, [data-cursor]");
-      all.forEach((el) => {
-        el.removeEventListener("mouseenter", grow);
-        el.removeEventListener("mouseleave", shrink);
-      });
     };
   }, []);
 
@@ -204,3 +200,4 @@ export default function Cursor() {
     </>
   );
 }
+
