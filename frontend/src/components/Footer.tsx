@@ -11,8 +11,17 @@ export default function Footer() {
             © SPECATHON 2026
           </span>
 
-          <span className="font-mono text-[10px] sm:text-[11px] text-muted tracking-[0.18em] sm:tracking-[0.24em] sm:text-center">
-            Department of CSE (AI&amp;ML)
+          <span className="flex flex-col items-center gap-1 sm:text-center">
+            <span className="font-mono text-[10px] sm:text-[11px] text-muted tracking-[0.18em] sm:tracking-[0.24em]">
+              Department of CSE (AI&amp;ML)
+            </span>
+            <a
+              href="/leaderboard"
+              data-cursor
+              className="font-mono text-[10px] sm:text-[11px] text-lumen/80 hover:text-lumen tracking-[0.18em] sm:tracking-[0.24em] uppercase transition-colors"
+            >
+              Live Leaderboard →
+            </a>
           </span>
 
           <a
