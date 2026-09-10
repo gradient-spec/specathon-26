@@ -616,6 +616,116 @@ export async function resumeTimer(
   );
 }
 
+/**
+ * RESET TIMER:
+ * Resets the hackathon timer back to Scheduled state with full duration (default 36 hours / 129,600s).
+ * Optionally resets all checkpoints to uncompleted status.
+ */
+export async function resetTimer(
+  options?: {
+    durationHours?: number;
+    resetCheckpoints?: boolean;
+    startAt?: string;
+  },
+  actor = "admin"
+): Promise<TimerConfig> {
+  const hours = options?.durationHours ?? 36;
+  const durationSeconds = hours * 3600;
+  const now = Date.now();
+
+  const startIso = options?.startAt
+    ? new Date(options.startAt).toISOString()
+    : new Date(now).toISOString();
+  const endIso = new Date(new Date(startIso).getTime() + durationSeconds * 1000).toISOString();
+
+  const updated = await updateTimerConfig(
+    {
+      status: "scheduled",
+      start_at: startIso,
+      end_at: endIso,
+      paused_remaining_seconds: durationSeconds,
+    },
+    actor
+  );
+
+  if (options?.resetCheckpoints) {
+    await resetAllTimerEvents(actor);
+  }
+
+  await logAudit(actor, "timer_reset", "timer_config", "1", {
+    duration_hours: hours,
+    start_at: startIso,
+    end_at: endIso,
+    reset_checkpoints: !!options?.resetCheckpoints,
+  });
+
+  return updated;
+}
+
+/**
+ * SCHEDULE TIMER:
+ * Configures the timer to start at a specified future date and time with a designated duration.
+ * Places the timer into 'scheduled' state so it is ready and will auto-launch when the configured time arrives.
+ */
+export async function scheduleTimer(
+  startAt: string | Date,
+  durationHours = 36,
+  actor = "admin"
+): Promise<TimerConfig> {
+  const startMs = new Date(startAt).getTime();
+  if (Number.isNaN(startMs)) {
+    throw new Error("Invalid start time provided for scheduling.");
+  }
+  const durationSeconds = durationHours * 3600;
+  const startIso = new Date(startMs).toISOString();
+  const endIso = new Date(startMs + durationSeconds * 1000).toISOString();
+
+  const updated = await updateTimerConfig(
+    {
+      status: "scheduled",
+      start_at: startIso,
+      end_at: endIso,
+      paused_remaining_seconds: durationSeconds,
+    },
+    actor
+  );
+
+  await logAudit(actor, "timer_scheduled", "timer_config", "1", {
+    start_at: startIso,
+    end_at: endIso,
+    duration_hours: durationHours,
+  });
+
+  return updated;
+}
+
+/**
+ * RESET ALL TIMER EVENTS:
+ * Resets all checkpoints to uncompleted status.
+ */
+export async function resetAllTimerEvents(actor = "admin"): Promise<void> {
+  const currentEvents = getStoredEvents();
+  const nextEvents = currentEvents.map((e) => ({
+    ...e,
+    is_completed: false,
+    completed_at: null,
+    updated_at: new Date().toISOString(),
+    updated_by: actor,
+  }));
+  setStoredEvents(nextEvents);
+
+  if (supabase) {
+    try {
+      await client()
+        .from("timer_events")
+        .update({ is_completed: false, completed_at: null, updated_by: actor })
+        .eq("timer_id", 1);
+    } catch (err) {
+      console.warn("[timer-service] Non-fatal error resetting checkpoints in db:", err);
+    }
+  }
+}
+
 export async function adjustTimerMinutes(
   deltaMinutes: number,
   currentConfig: TimerConfig,

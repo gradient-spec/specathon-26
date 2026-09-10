@@ -12,6 +12,8 @@ import {
   startTimer,
   pauseTimer,
   resumeTimer,
+  resetTimer,
+  scheduleTimer,
   createTimerEvent,
   updateTimerEvent,
   deleteTimerEvent,
@@ -34,7 +36,6 @@ import {
   ExternalLink,
   History,
   Calendar,
-  Layers,
   Radio,
   CheckCircle2,
   Check,
@@ -54,6 +55,8 @@ export default function TimerDashboard() {
     currentEvent,
     nextEvent,
     isCurrentEventOvertime,
+    timeUntilStartSeconds,
+    timeUntilStartFormatted,
     refresh,
   } = useHackathonTimer();
 
@@ -63,6 +66,9 @@ export default function TimerDashboard() {
 
   // Time adjustment loading states
   const [busy, setBusy] = useState(false);
+
+  // Reset Timer Confirmation
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
   // End Event Confirmation
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
@@ -85,6 +91,10 @@ export default function TimerDashboard() {
   // Custom End Time date-picker state
   const [customEndLocal, setCustomEndLocal] = useState("");
 
+  // Schedule Start Time date-picker & duration state
+  const [scheduleStartLocal, setScheduleStartLocal] = useState("");
+  const [scheduleDurationHours, setScheduleDurationHours] = useState(36);
+
   // Database migration status check
   const [dbMigrated, setDbMigrated] = useState<boolean | null>(null);
 
@@ -98,7 +108,6 @@ export default function TimerDashboard() {
     if (config.end_at) {
       try {
         const d = new Date(config.end_at);
-        // format to YYYY-MM-DDTHH:mm
         const tzOffset = d.getTimezoneOffset() * 60000;
         const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
         setCustomEndLocal(localISOTime);
@@ -107,6 +116,30 @@ export default function TimerDashboard() {
       }
     }
   }, [config.end_at]);
+
+  useEffect(() => {
+    if (config.start_at) {
+      try {
+        const d = new Date(config.start_at);
+        const tzOffset = d.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+        setScheduleStartLocal(localISOTime);
+      } catch {
+        // ignore
+      }
+    }
+  }, [config.start_at]);
+
+  const calculatedEndTimePreview = (() => {
+    if (!scheduleStartLocal) return "";
+    const startMs = new Date(scheduleStartLocal).getTime();
+    if (Number.isNaN(startMs)) return "";
+    const endMs = startMs + scheduleDurationHours * 3600 * 1000;
+    return new Date(endMs).toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  })();
 
   const loadAudit = async () => {
     setLoadingAudit(true);
@@ -219,23 +252,55 @@ export default function TimerDashboard() {
     }
   };
 
-  // Reset to Scheduled (Staging mode with 36h duration)
-  const handleResetToScheduled = async () => {
+  // Reset Timer Confirm (sets to 36h Scheduled)
+  const handleResetTimerConfirm = async () => {
+    setConfirmResetOpen(false);
     if (busy) return;
     setBusy(true);
     try {
-      await updateTimerConfig(
+      await resetTimer(
         {
-          status: "scheduled",
-          paused_remaining_seconds: 129600,
+          durationHours: 36,
+          resetCheckpoints: false,
+          startAt: config.start_at,
         },
         email || "admin"
       );
-      toast.success("Timer reset to Scheduled (36:00:00).");
+      toast.success("Timer reset successfully to 36:00:00 (Scheduled state).");
       await refresh();
       loadAudit();
     } catch (err: any) {
       toast.error(err.message || "Failed to reset timer.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Schedule Timer to start at configured time
+  const handleApplySchedule = async () => {
+    if (!scheduleStartLocal) {
+      toast.error("Please pick a valid start date and time.");
+      return;
+    }
+    const startMs = new Date(scheduleStartLocal).getTime();
+    if (Number.isNaN(startMs)) {
+      toast.error("Invalid start date and time selected.");
+      return;
+    }
+    if (busy) return;
+    setBusy(true);
+    try {
+      await scheduleTimer(new Date(startMs), scheduleDurationHours, email || "admin");
+      toast.success(
+        `Timer scheduled to start on ${new Date(startMs).toLocaleString("en-IN", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })} for ${scheduleDurationHours} hours!`
+      );
+      await refresh();
+      loadAudit();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to schedule timer.");
     } finally {
       setBusy(false);
     }
@@ -528,12 +593,12 @@ export default function TimerDashboard() {
           </div>
         </div>
 
-        {/* 4 Dedicated Command Buttons: START, STOP, RESUME, END */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        {/* 5 Dedicated Command Buttons: START, STOP, RESUME, RESET, END */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
           {/* START BUTTON */}
           <button
             onClick={handleStartTimer}
-            disabled={busy || state === "RUNNING" || state === "PAUSED"}
+            disabled={busy || state === "RUNNING"}
             className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-emerald-500/80 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-mono font-black text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-sm active:scale-[0.99]"
           >
             <div className="flex items-center gap-2">
@@ -541,7 +606,7 @@ export default function TimerDashboard() {
               <span className="text-base tracking-wide">START</span>
             </div>
             <span className="text-[10px] font-normal text-emerald-400/80">
-              {state === "RUNNING" ? "Running" : "Launch 36h Countdown"}
+              {state === "RUNNING" ? "Running" : "Launch Countdown"}
             </span>
           </button>
 
@@ -572,6 +637,21 @@ export default function TimerDashboard() {
             </div>
             <span className="text-[10px] font-normal text-cyan-400/80">
               {state === "RUNNING" ? "Running" : "Unfreeze Countdown"}
+            </span>
+          </button>
+
+          {/* RESET BUTTON */}
+          <button
+            onClick={() => setConfirmResetOpen(true)}
+            disabled={busy}
+            className="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-indigo-500/80 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-mono font-black text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-sm active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-2">
+              <RotateCcw size={18} />
+              <span className="text-base tracking-wide">RESET</span>
+            </div>
+            <span className="text-[10px] font-normal text-indigo-400/80">
+              Reset to 36:00:00
             </span>
           </button>
 
@@ -680,28 +760,87 @@ export default function TimerDashboard() {
           </div>
         </div>
 
-        {/* Staging & Event Details Card */}
+        {/* Staging & Schedule Card */}
         <div className="rounded-2xl border-2 border-line/80 bg-ink/50 p-6 flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-line/40 pb-3">
               <h3 className="font-sora text-sm font-bold uppercase tracking-wider text-fg flex items-center gap-2">
-                <Layers size={16} className="text-cyan-400" />
-                Event Configuration
+                <Calendar size={16} className="text-cyan-400" />
+                Schedule & Staging
               </h3>
             </div>
 
-            <div className="space-y-2.5">
+            {/* Scheduled Start Status Banner */}
+            {state === "SCHEDULED" && timeUntilStartSeconds > 0 && (
+              <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-400/40 text-xs font-mono space-y-1">
+                <div className="text-cyan-300 font-bold flex items-center gap-1.5">
+                  <Clock size={13} className="text-cyan-400 animate-pulse" />
+                  Scheduled Launch in Progress
+                </div>
+                <div className="text-subtle text-[11px]">
+                  Starts: {new Date(config.start_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                </div>
+                <div className="text-cyan-400 font-black text-sm pt-0.5">
+                  T-MINUS: {timeUntilStartFormatted}
+                </div>
+              </div>
+            )}
+
+            {/* Schedule Start Time Picker */}
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="block eyebrow !text-[11px] mb-1.5 text-subtle">
+                  Schedule Start Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduleStartLocal}
+                  onChange={(e) => setScheduleStartLocal(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-void border border-line text-xs font-mono text-fg focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              <div>
+                <label className="block eyebrow !text-[11px] mb-1.5 text-subtle">
+                  Event Duration
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[36, 24, 12].map((hrs) => (
+                    <button
+                      key={`dur-${hrs}`}
+                      type="button"
+                      onClick={() => setScheduleDurationHours(hrs)}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-mono font-bold transition-all border ${
+                        scheduleDurationHours === hrs
+                          ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
+                          : "bg-panel/40 border-line text-subtle hover:text-fg"
+                      }`}
+                    >
+                      {hrs}h
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {calculatedEndTimePreview && (
+                <div className="text-[10px] font-mono text-subtle bg-void/60 p-2 rounded-lg border border-line/60">
+                  <span className="text-cyan-400 font-bold">Calculated End: </span>
+                  {calculatedEndTimePreview}
+                </div>
+              )}
+
               <button
-                onClick={handleResetToScheduled}
-                disabled={busy}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-line bg-panel/60 hover:bg-panel text-subtle hover:text-fg font-medium text-xs transition-all disabled:opacity-50"
-                title="Reset timer to 36:00:00 in Scheduled/Ready state"
+                type="button"
+                onClick={handleApplySchedule}
+                disabled={busy || !scheduleStartLocal}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-cyan-500/60 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-mono font-bold text-xs transition-all shadow-sm disabled:opacity-50 active:scale-[0.99]"
               >
-                <RotateCcw size={14} />
-                Reset to 36h Scheduled
+                <Calendar size={14} />
+                Set Scheduled Start
               </button>
             </div>
 
+            {/* Event Metadata Preview */}
             <div className="p-3.5 rounded-xl bg-void/60 border border-line/60 text-[11px] text-subtle space-y-1 font-mono">
               <div>Progress: {progressPercentage}</div>
               <div>Timezone: {config.timezone}</div>
@@ -1225,6 +1364,16 @@ export default function TimerDashboard() {
       )}
 
       {/* ── CONFIRMATION DIALOGS ────────────────────────────────────── */}
+      <ConfirmDialog
+        open={confirmResetOpen}
+        title="Reset Hackathon Timer?"
+        description="Are you sure you want to reset the hackathon timer? This will set the timer state back to Scheduled with the full 36:00:00 duration. Participants and projector screens will see the clock ready to start."
+        confirmLabel="Yes, Reset Timer (36:00:00)"
+        destructive={false}
+        onConfirm={handleResetTimerConfirm}
+        onCancel={() => setConfirmResetOpen(false)}
+      />
+
       <ConfirmDialog
         open={confirmEndOpen}
         title="Terminate Event Immediately?"

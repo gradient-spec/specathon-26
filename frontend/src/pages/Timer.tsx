@@ -22,6 +22,8 @@ export default function Timer() {
     nextEvent,
     isCurrentEventOvertime,
     authoritativeNow,
+    timeUntilStartSeconds,
+    timeUntilStartFormatted,
   } = useHackathonTimer();
 
   const [clockString, setClockString] = useState("");
@@ -89,7 +91,9 @@ export default function Timer() {
             <span className="h-2.5 w-2.5 bg-black" />
             <span>
               {state === "SCHEDULED"
-                ? "HACKATHON COUNTDOWN // READY TO START"
+                ? timeUntilStartSeconds > 0
+                  ? `HACKATHON SCHEDULED // STARTS IN ${timeUntilStartFormatted}`
+                  : "HACKATHON COUNTDOWN // READY TO START"
                 : state === "PAUSED"
                 ? "TIMER STOPPED // PAUSED"
                 : state === "COMPLETED"

@@ -31,6 +31,8 @@ export interface HackathonTimerReturn {
   authoritativeNow: number;
   loading: boolean;
   serverOffsetMs: number;
+  timeUntilStartSeconds: number;
+  timeUntilStartFormatted: string;
   refresh: () => Promise<void>;
   completeCurrentEvent: (actor?: string) => Promise<void>;
 }
@@ -211,14 +213,30 @@ export function useHackathonTimer(): HackathonTimerReturn {
     }
   } else {
     // "scheduled" or "draft"
-    state = "SCHEDULED";
-    // Total remaining is the full hackathon duration (default 36 hours = 129,600s)
-    totalRemainingSeconds =
-      config.paused_remaining_seconds !== undefined && config.paused_remaining_seconds !== null
-        ? config.paused_remaining_seconds
-        : Math.max(0, Math.round((endMs - startMs) / 1000)) || 129600;
-    progress = 0;
+    if (authoritativeNow >= startMs && authoritativeNow < endMs) {
+      // Configured start time has arrived! Auto-transition to RUNNING
+      state = "RUNNING";
+      totalRemainingSeconds = Math.max(0, Math.floor((endMs - authoritativeNow) / 1000));
+      progress = Math.min(1, Math.max(0, (authoritativeNow - startMs) / totalDurationMs));
+    } else if (authoritativeNow >= endMs) {
+      state = "COMPLETED";
+      totalRemainingSeconds = 0;
+      progress = 1;
+    } else {
+      // Scheduled in the future (staging phase)
+      state = "SCHEDULED";
+      // Total remaining is the full hackathon duration (default 36 hours = 129,600s)
+      totalRemainingSeconds =
+        config.paused_remaining_seconds !== undefined && config.paused_remaining_seconds !== null
+          ? config.paused_remaining_seconds
+          : Math.max(0, Math.round((endMs - startMs) / 1000)) || 129600;
+      progress = 0;
+    }
   }
+
+  const timeUntilStartSeconds = Math.max(0, Math.floor((startMs - authoritativeNow) / 1000));
+  const { hours: sh, minutes: sm, seconds: ss } = formatDurationHMS(timeUntilStartSeconds);
+  const timeUntilStartFormatted = `${sh}:${sm}:${ss}`;
 
   const { hours, minutes, seconds, formatted: formattedTime } = formatDurationHMS(totalRemainingSeconds);
   const progressPercentage = `${(progress * 100).toFixed(1)}%`;
@@ -296,6 +314,8 @@ export function useHackathonTimer(): HackathonTimerReturn {
     authoritativeNow,
     loading,
     serverOffsetMs: serverOffset,
+    timeUntilStartSeconds,
+    timeUntilStartFormatted,
     refresh,
     completeCurrentEvent: completeCurrentEventAction,
   };
