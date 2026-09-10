@@ -4,11 +4,11 @@ import * as XLSX from "xlsx";
 import { Toaster, toast } from "sonner";
 import {
   AlertTriangle, ArrowLeft, Check, FileSpreadsheet, Gauge, History, LogOut,
-  Save, Search, Settings2, ShieldCheck, Upload, Users, type LucideIcon,
+  Save, Search, Settings2, ShieldCheck, Trash2, Upload, Users, type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/admin/AuthContext";
 import {
-  clearScore, deleteVenueGroup, getAdminSummary, getAdminTeams, getAuditLog,
+  clearScore, deleteAllTeams, deleteTeam, deleteVenueGroup, getAdminSummary, getAdminTeams, getAuditLog,
   getVenueGroups, importTeams, saveVenueGroup, seedVenueGroups, setScore,
   updateSettings, updateTeam,
 } from "@/leaderboard/service";
@@ -229,6 +229,11 @@ function AdminConsole({ userName, logout }: { userName: string; logout: () => vo
               onScore={(id, round, score) => run("Score updated and audit logged", () => setScore(id, round, score))}
               onClear={(id, round) => run("Score cleared and audit logged", () => clearScore(id, round))}
               onEdit={(id, teamName, teamVenue) => run("Team details updated", () => updateTeam(id, teamName, teamVenue))}
+              onDelete={(id, teamName) => {
+                if (window.confirm(`Delete team "${teamName}"? All scores and audit records for this team will also be permanently deleted.`)) {
+                  run(`Team "${teamName}" deleted`, () => deleteTeam(id));
+                }
+              }}
             />
           )}
           {tab === "import" && (
@@ -252,6 +257,11 @@ function AdminConsole({ userName, logout }: { userName: string; logout: () => vo
               seedGroups={() => run("Default venue groups created", () => seedVenueGroups())}
               saveGroup={(id, groupName, venues) => run("Venue group saved", () => saveVenueGroup(id, groupName, venues))}
               deleteGroup={(id) => run("Venue group deleted", () => deleteVenueGroup(id))}
+              onDeleteAllTeams={() => {
+                if (window.confirm("⚠️ DANGER: Are you sure you want to permanently delete ALL teams and scores from the live leaderboard database?\n\nThis cannot be undone.")) {
+                  run("All team data removed from leaderboard", () => deleteAllTeams());
+                }
+              }}
             />
           )}
           {tab === "audit" && <AuditTab rows={audit.data ?? []} />}
@@ -309,12 +319,13 @@ function Overview({ summary, onNavigate }: { summary: AdminSummary | null; onNav
 }
 
 /* ── Teams ───────────────────────────────────────────────────────────── */
-function TeamsTab({ rows, search, setSearch, venue, setVenue, groups, onScore, onClear, onEdit }: {
+function TeamsTab({ rows, search, setSearch, venue, setVenue, groups, onScore, onClear, onEdit, onDelete }: {
   rows: TeamScoreRow[]; search: string; setSearch: (v: string) => void; venue: string; setVenue: (v: string) => void;
   groups: VenueGroup[];
   onScore: (id: number, round: "ROUND_1" | "ROUND_2", score: number) => void;
   onClear: (id: number, round: "ROUND_1" | "ROUND_2") => void;
   onEdit: (id: number, name: string, venue: string) => void;
+  onDelete: (id: number, teamName: string) => void;
 }) {
   const venues = Array.from(new Set(groups.flatMap((group) => group.venues)));
   return (
@@ -337,9 +348,9 @@ function TeamsTab({ rows, search, setSearch, venue, setVenue, groups, onScore, o
       </div>
       <div className="table-scroll">
         <table className="admin-table">
-          <thead><tr><th>Team</th><th>Venue</th><th>Round 1</th><th>Round 2</th><th>Total</th><th>Save</th></tr></thead>
+          <thead><tr><th>Team</th><th>Venue</th><th>Round 1</th><th>Round 2</th><th>Total</th><th>Actions</th></tr></thead>
           <tbody>
-            {rows.map((row) => <TeamEditor key={row.id} row={row} onScore={onScore} onClear={onClear} onEdit={onEdit} />)}
+            {rows.map((row) => <TeamEditor key={row.id} row={row} onScore={onScore} onClear={onClear} onEdit={onEdit} onDelete={onDelete} />)}
             {!rows.length && <tr><td colSpan={6} className="empty-row">No teams match the current filters.</td></tr>}
           </tbody>
         </table>
@@ -348,11 +359,12 @@ function TeamsTab({ rows, search, setSearch, venue, setVenue, groups, onScore, o
   );
 }
 
-function TeamEditor({ row, onScore, onClear, onEdit }: {
+function TeamEditor({ row, onScore, onClear, onEdit, onDelete }: {
   row: TeamScoreRow;
   onScore: (id: number, round: "ROUND_1" | "ROUND_2", score: number) => void;
   onClear: (id: number, round: "ROUND_1" | "ROUND_2") => void;
   onEdit: (id: number, name: string, venue: string) => void;
+  onDelete: (id: number, teamName: string) => void;
 }) {
   const [name, setName] = useState(row.teamName);
   const [venue, setVenue] = useState(row.venue);
@@ -370,7 +382,12 @@ function TeamEditor({ row, onScore, onClear, onEdit }: {
       <td><input className="table-input score-input" type="number" min="0" value={r1} onChange={(e) => setR1(e.target.value)} onBlur={() => (r1 === "" ? onClear(row.id, "ROUND_1") : onScore(row.id, "ROUND_1", Number(r1)))} /></td>
       <td><input className="table-input score-input" type="number" min="0" value={r2} onChange={(e) => setR2(e.target.value)} onBlur={() => (r2 === "" ? onClear(row.id, "ROUND_2") : onScore(row.id, "ROUND_2", Number(r2)))} /></td>
       <td className="total-cell">{hasScore ? total : "—"}</td>
-      <td><button className="icon-button" onClick={() => onEdit(row.id, name, venue)} aria-label={`Save ${row.teamName}`}><Save size={16} /></button></td>
+      <td>
+        <div className="flex items-center gap-1.5">
+          <button className="icon-button" onClick={() => onEdit(row.id, name, venue)} aria-label={`Save ${row.teamName}`} title="Save details"><Save size={16} /></button>
+          <button className="icon-button danger" onClick={() => onDelete(row.id, row.teamName)} aria-label={`Delete ${row.teamName}`} title="Delete team"><Trash2 size={16} /></button>
+        </div>
+      </td>
     </tr>
   );
 }
@@ -461,7 +478,7 @@ function ImportTab({ validation, fileRef, onFile, onImport }: {
 }
 
 /* ── Settings ────────────────────────────────────────────────────────── */
-function SettingsTab({ settings, groups, setSettingsDraft, saveSettings, seedGroups, saveGroup, deleteGroup }: {
+function SettingsTab({ settings, groups, setSettingsDraft, saveSettings, seedGroups, saveGroup, deleteGroup, onDeleteAllTeams }: {
   settings: Record<string, unknown> | undefined;
   groups: VenueGroup[];
   setSettingsDraft: (value: Record<string, unknown>) => void;
@@ -469,6 +486,7 @@ function SettingsTab({ settings, groups, setSettingsDraft, saveSettings, seedGro
   seedGroups: () => void;
   saveGroup: (id: number | undefined, groupName: string, venues: string[]) => void;
   deleteGroup: (id: number) => void;
+  onDeleteAllTeams: () => void;
 }) {
   const [groupName, setGroupName] = useState("");
   const [groupVenues, setGroupVenues] = useState("");
@@ -563,6 +581,35 @@ function SettingsTab({ settings, groups, setSettingsDraft, saveSettings, seedGro
               <button className="lb-btn-outline" onClick={seedGroups}>Create default groups</button>
             </>
           )}
+        </div>
+      </section>
+      <section className="panel lg:col-span-2" style={{ borderColor: "rgba(239, 68, 68, 0.35)", background: "rgba(239, 68, 68, 0.03)" }}>
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow" style={{ color: "#fda4af" }}>Danger Zone</p>
+            <h2 className="panel-title" style={{ color: "#fca5a5" }}>Reset & Wipe Team Data</h2>
+          </div>
+          <AlertTriangle size={20} style={{ color: "#f87171" }} />
+        </div>
+        <p className="mt-3 text-sm leading-6" style={{ color: "#94a3b8" }}>
+          Permanently remove all teams, evaluations, and score audit logs from the leaderboard database.
+          Venue groups and event schedule settings will remain intact. This action cannot be undone.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl border border-red-500/25 bg-red-950/20">
+          <div>
+            <p className="font-medium text-sm text-white">Delete All Leaderboard Teams</p>
+            <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+              Clears the entire roster and all scoring records across both rounds to a clean slate.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="lb-btn-danger"
+            onClick={onDeleteAllTeams}
+          >
+            <Trash2 size={16} />
+            Delete All Team Data
+          </button>
         </div>
       </section>
     </div>

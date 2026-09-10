@@ -266,6 +266,37 @@ export async function importTeams(rows: { teamId: string; teamName: string; venu
   return (data as { count: number }).count;
 }
 
+export async function deleteTeam(id: number): Promise<void> {
+  const db = client();
+  const { error } = await db.from("leaderboard_teams").delete().eq("id", id);
+  if (error) {
+    await db.from("leaderboard_scores").delete().eq("team_id", id);
+    const { error: retryError } = await db.from("leaderboard_teams").delete().eq("id", id);
+    if (retryError) throw new Error(retryError.message);
+  }
+}
+
+export async function deleteAllTeams(): Promise<number> {
+  const db = client();
+  const { data, error } = await db
+    .from("leaderboard_teams")
+    .delete()
+    .gte("id", 0)
+    .select("id");
+
+  if (error) {
+    await db.from("leaderboard_scores").delete().gte("id", 0);
+    const { data: retryData, error: retryError } = await db
+      .from("leaderboard_teams")
+      .delete()
+      .gte("id", 0)
+      .select("id");
+    if (retryError) throw new Error(retryError.message);
+    return retryData?.length ?? 0;
+  }
+  return data?.length ?? 0;
+}
+
 export async function updateSettings(input: SettingsInput) {
   const { error } = await client()
     .from("leaderboard_event_settings")

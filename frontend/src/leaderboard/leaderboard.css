@@ -276,6 +276,19 @@
   justify-content: center; padding: 10px 16px; transition: all .18s ease; cursor: pointer;
 }
 .lb-root .lb-btn-outline:hover { border-color: rgba(103, 232, 249, .4); color: #fff; }
+.lb-root .lb-btn-danger {
+  align-items: center; background: rgba(239, 68, 68, 0.16); border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: 8px; color: #fca5a5; display: inline-flex; font-weight: 600; gap: 8px;
+  justify-content: center; padding: 10px 16px; transition: all .18s ease; cursor: pointer;
+}
+.lb-root .lb-btn-danger:hover { background: rgba(239, 68, 68, 0.32); border-color: #ef4444; color: #fff; }
+.lb-root .lb-btn-danger:disabled { cursor: not-allowed; opacity: .5; }
+.lb-root .icon-button.danger {
+  background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.25); color: #fda4af;
+}
+.lb-root .icon-button.danger:hover {
+  background: rgba(239, 68, 68, 0.25); border-color: #ef4444; color: #fff;
+}
 .lb-root .lb-badge { border-radius: 999px; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .06em; padding: 4px 9px; text-transform: uppercase; }
 .lb-root .lb-badge.ok { background: rgba(52, 211, 153, .15); color: #6ee7b7; }
 .lb-root .lb-badge.bad { background: rgba(251, 113, 133, .15); color: #fda4af; }
