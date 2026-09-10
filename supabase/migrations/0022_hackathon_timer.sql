@@ -1,5 +1,6 @@
 -- SPECATHON 2026 · Migration 0022: Hackathon Event Timer & Timeline
--- Mirrors backend/database/migrations/0021_hackathon_timer.sql for Supabase CLI
+-- Authoritative tables for event clock, metro-timeline checkpoints,
+-- real-time synchronization, and server time calibration RPC.
 
 begin;
 
@@ -81,20 +82,7 @@ begin
   end if;
 end $$;
 
--- ── 3. Timer Audit Log Table ──────────────────────────────────────────
-create table if not exists public.timer_audit_log (
-  id          uuid primary key default gen_random_uuid(),
-  created_at  timestamptz not null default now(),
-  actor       text not null,
-  action      text not null,
-  target_type text not null default 'timer_config',
-  target_id   text,
-  meta        jsonb not null default '{}'::jsonb
-);
-
-create index if not exists timer_audit_log_created_at_idx on public.timer_audit_log(created_at desc);
-
--- ── 4. Server Time Calibration RPC ────────────────────────────────────
+-- ── 3. Server Time Calibration RPC ────────────────────────────────────
 create or replace function public.get_server_time()
 returns timestamptz
 language sql
@@ -103,10 +91,12 @@ as $$
   select now();
 $$;
 
--- ── 5. Row-Level Security (RLS) ───────────────────────────────────────
+-- Clean up redundant timer_audit_log if previously created (audits use existing public.audit_log)
+drop table if exists public.timer_audit_log cascade;
+
+-- ── 4. Row-Level Security (RLS) ───────────────────────────────────────
 alter table public.timer_config enable row level security;
 alter table public.timer_events enable row level security;
-alter table public.timer_audit_log enable row level security;
 
 -- timer_config policies
 drop policy if exists "public_read_timer_config" on public.timer_config;
@@ -134,31 +124,16 @@ create policy "admin_all_timer_events"
   using (public.is_admin())
   with check (public.is_admin());
 
--- timer_audit_log policies
-drop policy if exists "admin_read_timer_audit" on public.timer_audit_log;
-create policy "admin_read_timer_audit"
-  on public.timer_audit_log for select
-  to authenticated
-  using (public.is_admin());
-
-drop policy if exists "admin_insert_timer_audit" on public.timer_audit_log;
-create policy "admin_insert_timer_audit"
-  on public.timer_audit_log for insert
-  to authenticated
-  with check (public.is_admin());
-
--- ── 6. Grant Permissions ──────────────────────────────────────────────
+-- ── 5. Grant Permissions ──────────────────────────────────────────────
 grant select on public.timer_config to anon, authenticated;
 grant all on public.timer_config to authenticated;
 
 grant select on public.timer_events to anon, authenticated;
 grant all on public.timer_events to authenticated;
 
-grant select, insert on public.timer_audit_log to authenticated;
-
 grant execute on function public.get_server_time() to anon, authenticated;
 
--- ── 7. Realtime Publication ───────────────────────────────────────────
+-- ── 6. Realtime Publication ───────────────────────────────────────────
 do $$
 begin
   alter publication supabase_realtime add table public.timer_config;
@@ -174,3 +149,4 @@ exception when others then
 end $$;
 
 commit;
+

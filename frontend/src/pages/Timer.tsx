@@ -4,9 +4,6 @@ import { useHackathonTimer } from "@/hooks/useHackathonTimer";
 import MetroTimeline from "@/components/timer/MetroTimeline";
 import {
   Home,
-  Maximize2,
-  Minimize2,
-  CheckCircle2,
   MapPin,
   Clock,
 } from "lucide-react";
@@ -23,14 +20,11 @@ export default function Timer() {
     progressPercentage,
     currentEvent,
     nextEvent,
-    nextEventCountdown,
     isCurrentEventOvertime,
     authoritativeNow,
-    serverOffsetMs,
   } = useHackathonTimer();
 
   const [clockString, setClockString] = useState("");
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     try {
@@ -49,16 +43,6 @@ export default function Timer() {
     }
   }, [authoritativeNow, config.timezone]);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
-    }
-  };
-
   return (
     <div className="h-screen w-screen max-h-screen max-w-screen overflow-hidden flex flex-col justify-between bg-[#F4F0E8] text-black font-sans relative p-3 sm:p-4 md:p-5 select-none">
       {/* Neo-brutalist Technical Dot-Grid Canvas Background */}
@@ -72,7 +56,7 @@ export default function Timer() {
 
       {/* ── 1. INDUSTRIAL TOP HEADER ───────────────────────────────── */}
       <header className="relative z-20 flex items-center justify-between gap-3 pb-2 border-b-2 border-black/20 shrink-0">
-        {/* Left Side: Industrial Badges */}
+        {/* Left Side: Navigation & Event Badge */}
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/"
@@ -82,30 +66,8 @@ export default function Timer() {
             <Home size={15} />
           </Link>
 
-          <div className="px-2.5 py-1 rounded-[10px] bg-[#FFE500] border-2 border-black font-mono text-[11px] font-black uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-black animate-pulse" />
-            <span>STAGE: ARENA 01</span>
-          </div>
-
-          <div className="hidden md:flex px-2.5 py-1 rounded-[10px] bg-white border-2 border-black font-mono text-[11px] font-black uppercase shadow-[2px_2px_0px_0px_#000]">
-            SPEC // v4.2
-          </div>
-
-          <div className="hidden lg:flex px-2.5 py-1 rounded-[10px] bg-[#8B5CF6] text-white border-2 border-black font-mono text-[11px] font-black uppercase shadow-[2px_2px_0px_0px_#000]">
+          <div className="hidden sm:flex px-2.5 py-1 rounded-[10px] bg-[#8B5CF6] text-white border-2 border-black font-mono text-[11px] font-black uppercase shadow-[2px_2px_0px_0px_#000]">
             36-HOUR FLAGSHIP HACKATHON
-          </div>
-        </div>
-
-        {/* Center: Poster Headline */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-1 font-mono text-lg sm:text-2xl font-black tracking-tight uppercase">
-            <span className="tracking-tighter">SPECATHON</span>
-            <span className="px-1.5 py-0.5 rounded-[6px] bg-black text-[#FFE500] font-black text-sm sm:text-lg border-2 border-black">
-              26
-            </span>
-          </div>
-          <div className="hidden sm:block font-mono text-[10px] font-bold uppercase tracking-widest text-black/60">
-            48 TEAMS • 15 SYSTEM CHECKPOINTS • VENUE AUDITORIUM
           </div>
         </div>
 
@@ -116,44 +78,6 @@ export default function Timer() {
             <span className="text-black/60 font-bold">IST:</span>
             <span className="text-black tabular-nums">{clockString}</span>
           </div>
-
-          {/* State Badge */}
-          {state === "RUNNING" && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[10px] bg-black text-[#FFE500] border-2 border-black font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000]">
-              <span className="h-2 w-2 rounded-full bg-[#FFE500] animate-ping" />
-              <span>RUNNING</span>
-            </div>
-          )}
-
-          {state === "PAUSED" && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[10px] bg-amber-400 text-black border-2 border-black font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000]">
-              <span className="h-2 w-2 rounded-full bg-black animate-pulse" />
-              <span>PAUSED // STOPPED</span>
-            </div>
-          )}
-
-          {state === "SCHEDULED" && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[10px] bg-[#FFE500] text-black border-2 border-black font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000]">
-              <span className="h-2 w-2 rounded-full bg-black" />
-              <span>READY // 36:00:00</span>
-            </div>
-          )}
-
-          {state === "COMPLETED" && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[10px] bg-black text-white border-2 border-black font-mono text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000]">
-              <CheckCircle2 size={13} strokeWidth={3} />
-              <span>CONCLUDED</span>
-            </div>
-          )}
-
-          {/* Fullscreen Toggle */}
-          <button
-            onClick={toggleFullscreen}
-            className="h-8 w-8 rounded-[10px] bg-white border-2 border-black flex items-center justify-center text-black hover:bg-[#FFE500] transition-colors shadow-[2px_2px_0px_0px_#000]"
-            title={isFullscreen ? "Exit Fullscreen" : "Projector Fullscreen"}
-          >
-            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
         </div>
       </header>
 
@@ -172,10 +96,6 @@ export default function Timer() {
                 ? "EVENT CONCLUDED"
                 : "OFFICIAL TIME REMAINING"}
             </span>
-          </div>
-
-          <div className="px-2.5 py-0.5 rounded-[8px] bg-black text-[#FFE500] font-mono text-xs font-black uppercase border-2 border-black">
-            TARGET: 36:00:00
           </div>
         </div>
 
@@ -294,13 +214,6 @@ export default function Timer() {
                 {nextEvent ? nextEvent.title : "ALL CHECKPOINTS CONCLUDED"}
               </span>
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-black/70">TIME TO GATE:</span>
-              <span className="px-2 py-0.5 rounded bg-white text-black border-2 border-black font-black tabular-nums">
-                {nextEventCountdown || "00:00:00"}
-              </span>
-            </div>
           </div>
         </div>
       </section>
@@ -317,19 +230,8 @@ export default function Timer() {
       </section>
 
       {/* ── 4. MINIMAL TECHNICAL FOOTER ────────────────────────────── */}
-      <footer className="relative z-20 flex items-center justify-between text-[11px] font-mono text-black/70 pt-1 shrink-0">
-        <div className="flex items-center gap-3">
-          <span>
-            WINDOW:{" "}
-            <strong className="text-black font-black">
-              11 SEP 08:30 AM → 12 SEP 05:30 PM IST
-            </strong>
-          </span>
-          <span className="hidden sm:inline">•</span>
-          <span className="hidden sm:inline">
-            SYNC: <strong className="text-black">{serverOffsetMs}ms</strong>
-          </span>
-        </div>
+      <footer className="relative z-20 flex items-center justify-between text-[11px] font-mono text-black/70 pt-3 sm:pt-4 shrink-0">
+        <div />
 
         <div className="flex items-center gap-4">
           <span className="hidden md:inline">

@@ -149,25 +149,6 @@ export default function MetroTimeline({
             <span className="text-[#8B5CF6]">LIVE TRANSIT RAIL</span>
           </h3>
         </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-3 text-[10px] font-mono uppercase font-bold text-black/70">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-black" />
-            <span className="hidden sm:inline">Completed</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#FFE500] border-2 border-black" />
-            <span className="hidden sm:inline">Active</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-white border-2 border-black" />
-            <span className="hidden sm:inline">Upcoming</span>
-          </div>
-          <div className="px-2 py-0.5 rounded-[6px] bg-black text-[#FFE500] border border-black font-mono text-[10px] font-black">
-            {(clampedProgress * 100).toFixed(1)}% TRAJECTORY
-          </div>
-        </div>
       </div>
 
       {/* The Moving Track Viewport (No Scrollbar, Track Translates Smoothly) */}

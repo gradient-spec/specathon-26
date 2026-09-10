@@ -439,8 +439,9 @@ export async function fetchTimerAuditLogs(limit = 50): Promise<TimerAuditLog[]> 
   if (!supabase) return [];
   try {
     const { data, error } = await client()
-      .from("timer_audit_log")
+      .from("audit_log")
       .select("*")
+      .in("target_type", ["timer_config", "timer_event"])
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -463,7 +464,7 @@ async function logAudit(
 ) {
   if (!supabase) return;
   try {
-    await client().from("timer_audit_log").insert({
+    await client().from("audit_log").insert({
       actor: actor || "admin",
       action,
       target_type: targetType,
