@@ -160,10 +160,19 @@ export function useHackathonTimer(): HackathonTimerReturn {
         .subscribe();
     }
 
+    // Same-window custom event listeners for instant local updates
+    const handleLocalUpdate = () => {
+      triggerDebouncedRefresh();
+    };
+    window.addEventListener("timer-config-changed", handleLocalUpdate);
+    window.addEventListener("timer-events-changed", handleLocalUpdate);
+
     return () => {
       if (debounceTimer) window.clearTimeout(debounceTimer);
       if (bc) bc.close();
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("timer-config-changed", handleLocalUpdate);
+      window.removeEventListener("timer-events-changed", handleLocalUpdate);
       if (supabase && channel) supabase.removeChannel(channel);
     };
   }, [refresh]);
@@ -213,21 +222,28 @@ export function useHackathonTimer(): HackathonTimerReturn {
     }
   } else {
     // "scheduled" or "draft"
-    if (authoritativeNow >= startMs && authoritativeNow < endMs) {
+    // If paused_remaining_seconds is set (e.g. 129,600s), it is in manual standby / reset mode
+    // If paused_remaining_seconds is null, it was explicitly armed for scheduled auto-launch!
+    const isArmedForAutoLaunch =
+      config.paused_remaining_seconds === null || config.paused_remaining_seconds === undefined;
+
+    if (isArmedForAutoLaunch && authoritativeNow >= startMs && authoritativeNow < endMs) {
       // Configured start time has arrived! Auto-transition to RUNNING
       state = "RUNNING";
       totalRemainingSeconds = Math.max(0, Math.floor((endMs - authoritativeNow) / 1000));
       progress = Math.min(1, Math.max(0, (authoritativeNow - startMs) / totalDurationMs));
-    } else if (authoritativeNow >= endMs) {
+    } else if (isArmedForAutoLaunch && authoritativeNow >= endMs) {
       state = "COMPLETED";
       totalRemainingSeconds = 0;
       progress = 1;
     } else {
-      // Scheduled in the future (staging phase)
+      // Scheduled in the future or in manual reset / standby phase
       state = "SCHEDULED";
       // Total remaining is the full hackathon duration (default 36 hours = 129,600s)
       totalRemainingSeconds =
-        config.paused_remaining_seconds !== undefined && config.paused_remaining_seconds !== null
+        config.paused_remaining_seconds !== undefined &&
+        config.paused_remaining_seconds !== null &&
+        config.paused_remaining_seconds > 0
           ? config.paused_remaining_seconds
           : Math.max(0, Math.round((endMs - startMs) / 1000)) || 129600;
       progress = 0;

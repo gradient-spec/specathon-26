@@ -619,7 +619,8 @@ export async function resumeTimer(
 /**
  * RESET TIMER:
  * Resets the hackathon timer back to Scheduled state with full duration (default 36 hours / 129,600s).
- * Optionally resets all checkpoints to uncompleted status.
+ * Restores official event schedule, disarms any auto-start launch, sets paused_remaining_seconds to 129,600s,
+ * and resets all checkpoints to uncompleted status.
  */
 export async function resetTimer(
   options?: {
@@ -631,12 +632,13 @@ export async function resetTimer(
 ): Promise<TimerConfig> {
   const hours = options?.durationHours ?? 36;
   const durationSeconds = hours * 3600;
-  const now = Date.now();
 
   const startIso = options?.startAt
     ? new Date(options.startAt).toISOString()
-    : new Date(now).toISOString();
-  const endIso = new Date(new Date(startIso).getTime() + durationSeconds * 1000).toISOString();
+    : DEFAULT_FALLBACK_CONFIG.start_at;
+  const endIso = options?.startAt
+    ? new Date(new Date(startIso).getTime() + durationSeconds * 1000).toISOString()
+    : DEFAULT_FALLBACK_CONFIG.end_at;
 
   const updated = await updateTimerConfig(
     {
@@ -648,7 +650,7 @@ export async function resetTimer(
     actor
   );
 
-  if (options?.resetCheckpoints) {
+  if (options?.resetCheckpoints !== false) {
     await resetAllTimerEvents(actor);
   }
 
@@ -656,7 +658,7 @@ export async function resetTimer(
     duration_hours: hours,
     start_at: startIso,
     end_at: endIso,
-    reset_checkpoints: !!options?.resetCheckpoints,
+    reset_checkpoints: options?.resetCheckpoints !== false,
   });
 
   return updated;
@@ -665,7 +667,7 @@ export async function resetTimer(
 /**
  * SCHEDULE TIMER:
  * Configures the timer to start at a specified future date and time with a designated duration.
- * Places the timer into 'scheduled' state so it is ready and will auto-launch when the configured time arrives.
+ * Sets paused_remaining_seconds to null (arming it for auto-launch when the configured start time arrives).
  */
 export async function scheduleTimer(
   startAt: string | Date,
@@ -685,7 +687,7 @@ export async function scheduleTimer(
       status: "scheduled",
       start_at: startIso,
       end_at: endIso,
-      paused_remaining_seconds: durationSeconds,
+      paused_remaining_seconds: null, // Arm for scheduled auto-start at start_at
     },
     actor
   );

@@ -261,8 +261,7 @@ export default function TimerDashboard() {
       await resetTimer(
         {
           durationHours: 36,
-          resetCheckpoints: false,
-          startAt: config.start_at,
+          resetCheckpoints: true,
         },
         email || "admin"
       );
