@@ -1,0 +1,302 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   SPECATHON 2026 · Live Leaderboard — scoped styles
+
+   Ported from the standalone leaderboard app's index.css. Every rule is
+   scoped under `.lb-root` so the generic class names (.panel, .eyebrow,
+   .status-dot, .leaderboard-table, .admin-app …) cannot leak into or
+   collide with the main site's stylesheet.
+
+   Fonts are remapped to the site's stack:
+     display  → "Playfair Display"
+     body     → "Alegreya Sans"
+     mono     → "JetBrains Mono"
+   The palette (near-black void + lumen cyan) already matches the site.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.lb-root {
+  --lb-cyan: #2f93ad;
+  --lb-cyan-bright: #67e8f9;
+  --lb-void: #0b0f14;
+  min-height: 100vh;
+  background: var(--lb-void);
+  color: #e2e8f0;
+  font-family: "Alegreya Sans", system-ui, sans-serif;
+}
+.lb-root *,
+.lb-root *::before,
+.lb-root *::after { box-sizing: border-box; }
+
+.lb-root .font-display { font-family: "Playfair Display", ui-serif, serif; }
+.lb-root .font-mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+.lb-root .eyebrow {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px; font-weight: 500; letter-spacing: .15em;
+  text-transform: uppercase;
+}
+.lb-root .text-gradient {
+  background: linear-gradient(110deg, #67e8f9 0%, #a5f3fc 45%, #818cf8 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ── shell / hero ─────────────────────────────────────────────────── */
+.lb-root .event-grid {
+  background-image:
+    linear-gradient(rgba(103, 232, 249, .025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(103, 232, 249, .025) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.lb-root .brand-mark {
+  align-items: center;
+  background: linear-gradient(135deg, #67e8f9, #818cf8);
+  border-radius: 9px; color: #071018; display: flex; flex-shrink: 0;
+  font-weight: 700; height: 34px; justify-content: center; width: 34px;
+}
+.lb-root .brand-mark span { font-family: "JetBrains Mono", monospace; font-size: 14px; }
+.lb-root .brand-mark img { width: 24px; height: 24px; object-fit: contain; display: block; }
+.lb-root .brand-link {
+  align-items: center; display: inline-flex; gap: 12px; color: inherit;
+}
+.lb-root .brand-link a {
+  color: inherit; text-decoration: none; transition: opacity .18s ease;
+}
+.lb-root .brand-link a:hover { opacity: .7; text-decoration: underline; }
+.lb-root .hero-rule { background: linear-gradient(90deg, #67e8f9, rgba(103, 232, 249, .12), transparent); height: 1px; }
+.lb-root .countdown-pill {
+  align-items: center; background: rgba(103, 232, 249, .06);
+  border: 1px solid rgba(103, 232, 249, .22); border-radius: 7px; color: #94a3b8;
+  display: inline-flex; font-size: 12px; gap: 8px; margin-top: 12px; padding: 7px 11px;
+}
+.lb-root .countdown-pill svg { color: var(--lb-cyan-bright); }
+.lb-root .countdown-value { color: var(--lb-cyan-bright); font-family: "JetBrains Mono", monospace; font-size: 13px; letter-spacing: .04em; }
+
+.lb-root .hero-center { align-items: center; display: flex; flex-direction: column; text-align: center; }
+.lb-root .control-link { align-items: center; color: #94a3b8; display: inline-flex; gap: 7px; transition: color .18s ease; text-decoration: none; }
+.lb-root .control-link:hover { color: #fff; }
+.lb-root .live-pulse { animation: lb-pulse-dot 1.8s ease-in-out infinite; }
+.lb-root .status-dot { border-radius: 999px; display: inline-block; height: 7px; width: 7px; }
+.lb-root .status-dot.live { background: var(--lb-cyan-bright); box-shadow: 0 0 0 4px rgba(103, 232, 249, .12), 0 0 18px rgba(103, 232, 249, .6); }
+.lb-root .status-dot.complete { background: #a78bfa; }
+.lb-root .status-dot.muted { background: #64748b; }
+
+/* ── top-3 podium ────────────────────────────────────────────────── */
+.lb-root .lb-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+  margin-top: 34px;
+  max-width: 760px;
+  width: 100%;
+}
+.lb-root .lb-podium-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 14px;
+  background: rgba(8, 11, 18, .74);
+  padding: 18px 12px 16px;
+  text-align: center;
+  min-width: 0;
+}
+.lb-root .lb-podium-card.p1 {
+  border-color: rgba(253, 224, 71, .4);
+  background: linear-gradient(180deg, rgba(253, 224, 71, .08), rgba(8, 11, 18, .74) 62%);
+  padding-top: 26px; padding-bottom: 24px;
+  box-shadow: 0 20px 60px -24px rgba(253, 224, 71, .3);
+}
+.lb-root .lb-podium-card.p2 { border-color: rgba(203, 213, 225, .32); }
+.lb-root .lb-podium-card.p3 { border-color: rgba(253, 186, 116, .32); }
+.lb-root .lb-podium-medal {
+  align-items: center; border-radius: 9px; display: inline-flex;
+  font-family: "JetBrains Mono", monospace; font-size: 15px; font-weight: 700;
+  height: 36px; width: 36px; justify-content: center;
+}
+.lb-root .lb-podium-card.p1 .lb-podium-medal { height: 42px; width: 42px; font-size: 17px; }
+.lb-root .lb-podium-team { color: #f8fafc; font-size: 15px; font-weight: 600; line-height: 1.25; }
+.lb-root .lb-podium-card.p1 .lb-podium-team { font-size: 17px; }
+.lb-root .lb-podium-id { color: #64748b; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .05em; }
+.lb-root .lb-podium-total { color: var(--lb-cyan-bright); font-family: "Playfair Display", ui-serif, serif; font-size: 30px; font-weight: 700; line-height: 1; }
+.lb-root .lb-podium-card.p1 .lb-podium-total { font-size: 38px; }
+.lb-root .lb-podium-sub { color: #64748b; font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+@media (max-width: 560px) {
+  .lb-root .lb-podium { gap: 7px; }
+  .lb-root .lb-podium-card { padding: 12px 7px; border-radius: 11px; }
+  .lb-root .lb-podium-card.p1 { padding-top: 18px; padding-bottom: 16px; }
+  .lb-root .lb-podium-team { font-size: 12px; }
+  .lb-root .lb-podium-card.p1 .lb-podium-team { font-size: 13px; }
+  .lb-root .lb-podium-total { font-size: 22px; }
+  .lb-root .lb-podium-card.p1 .lb-podium-total { font-size: 27px; }
+  .lb-root .lb-podium-id { font-size: 9px; }
+}
+
+/* ── filters + table ─────────────────────────────────────────────── */
+.lb-root .filter-control {
+  align-items: center; background: rgba(15, 23, 42, .75);
+  border: 1px solid rgba(148, 163, 184, .18); border-radius: 8px;
+  display: flex; gap: 10px; padding: 10px 12px;
+}
+.lb-root .filter-control select,
+.lb-root .dark-select { appearance: none; background: transparent; border: 0; color: #e2e8f0; font-size: 13px; outline: none; }
+.lb-root .filter-control option,
+.lb-root .dark-select option { background: #0f172a; color: #fff; }
+.lb-root .filter-control svg { color: #64748b; }
+.lb-root .leaderboard-shell {
+  background: rgba(8, 11, 18, .74); border: 1px solid rgba(148, 163, 184, .15);
+  border-radius: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, .22); overflow: hidden;
+}
+.lb-root .table-scroll { overflow-x: auto; }
+.lb-root .leaderboard-table { border-collapse: collapse; min-width: 760px; width: 100%; }
+.lb-root .leaderboard-table th {
+  background: rgba(15, 23, 42, .65); color: #64748b; font-family: "JetBrains Mono", monospace;
+  font-size: 10px; font-weight: 500; letter-spacing: .12em; padding: 16px 18px;
+  text-align: left; text-transform: uppercase;
+}
+.lb-root .leaderboard-table td { border-top: 1px solid rgba(148, 163, 184, .1); padding: 18px; }
+.lb-root .leaderboard-row { transition: background .18s ease; }
+.lb-root .leaderboard-row:hover { background: rgba(103, 232, 249, .04); }
+.lb-root .rank-col { width: 90px; }
+.lb-root .score-col { text-align: right !important; width: 110px; }
+.lb-root .total-col { width: 130px; }
+.lb-root .rank-cell { color: #cbd5e1; font-family: "JetBrains Mono", monospace; font-size: 14px; }
+.lb-root .rank-medal { align-items: center; border-radius: 6px; display: inline-flex; font-size: 12px; height: 29px; justify-content: center; width: 29px; }
+.lb-root .rank-1 { background: #fde68a; color: #422006; }
+.lb-root .rank-2 { background: #cbd5e1; color: #1e293b; }
+.lb-root .rank-3 { background: #fdba74; color: #431407; }
+.lb-root .team-name { color: #f8fafc; font-size: 15px; font-weight: 600; }
+.lb-root .team-id { color: #64748b; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .05em; margin-top: 4px; }
+.lb-root .venue-tag {
+  background: rgba(103, 232, 249, .07); border: 1px solid rgba(103, 232, 249, .2);
+  border-radius: 4px; color: #a5f3fc; font-family: "JetBrains Mono", monospace;
+  font-size: 11px; padding: 5px 7px;
+}
+.lb-root .score-cell { color: #cbd5e1; font-family: "JetBrains Mono", monospace; font-size: 14px; text-align: right; }
+.lb-root .total-score { color: var(--lb-cyan-bright); font-size: 17px; font-weight: 500; }
+.lb-root .empty-row { color: #64748b; padding: 80px 20px !important; text-align: center; }
+.lb-root .table-footer {
+  align-items: center; color: #475569; display: flex; font-family: "JetBrains Mono", monospace;
+  font-size: 10px; justify-content: space-between; padding: 13px 18px;
+}
+.lb-root .table-footer .status-dot { margin-right: 2px; }
+
+/* ── admin console ───────────────────────────────────────────────── */
+.lb-root.admin-app,
+.lb-root .admin-app { background: #080b12; display: flex; min-height: 100vh; }
+.lb-root .admin-sidebar {
+  background: #0b111a; border-right: 1px solid rgba(148, 163, 184, .12);
+  display: flex; flex-direction: column; padding: 24px 14px;
+  position: sticky; top: 0; align-self: flex-start; height: 100vh; width: 250px; z-index: 10;
+}
+.lb-root .admin-brand { align-items: center; display: flex; gap: 11px; padding: 0 10px; }
+.lb-root .admin-nav {
+  align-items: center; background: transparent; border: 0; border-radius: 8px;
+  color: #64748b; display: flex; gap: 12px; padding: 11px 12px; text-align: left;
+  transition: all .18s ease; width: 100%; cursor: pointer; text-decoration: none;
+}
+.lb-root .admin-nav:hover { background: rgba(148, 163, 184, .06); color: #cbd5e1; }
+.lb-root .admin-nav.active { background: rgba(103, 232, 249, .1); color: #a5f3fc; }
+.lb-root .avatar-small {
+  align-items: center; background: #1e293b; border: 1px solid rgba(103, 232, 249, .2);
+  border-radius: 50%; color: #a5f3fc; display: flex; font-size: 12px; height: 32px;
+  justify-content: center; width: 32px;
+}
+.lb-root .admin-main { flex: 1; min-width: 0; }
+.lb-root .admin-topbar {
+  align-items: center; border-bottom: 1px solid rgba(148, 163, 184, .12);
+  display: flex; justify-content: space-between; padding: 30px clamp(20px, 4vw, 56px);
+}
+.lb-root .admin-content { margin: 0 auto; max-width: 1400px; padding: 30px clamp(20px, 4vw, 56px) 60px; }
+.lb-root .overview-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.lb-root .metric-card,
+.lb-root .panel { background: rgba(15, 23, 42, .62); border: 1px solid rgba(148, 163, 184, .14); border-radius: 12px; }
+.lb-root .metric-card { padding: 20px; }
+.lb-root .panel { padding: 24px; }
+.lb-root .panel-heading { align-items: flex-start; display: flex; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+.lb-root .panel-title { color: #f8fafc; font-size: 20px; font-weight: 600; letter-spacing: -.02em; margin-top: 8px; }
+.lb-root .dashboard-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); }
+.lb-root .stage-pill { border-radius: 999px; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .08em; padding: 7px 9px; text-transform: uppercase; }
+.lb-root .stage-pill.live { background: rgba(103, 232, 249, .1); color: #a5f3fc; }
+.lb-root .quick-action {
+  align-items: center; background: rgba(148, 163, 184, .04); border: 1px solid rgba(148, 163, 184, .12);
+  border-radius: 8px; color: #94a3b8; display: flex; gap: 9px; justify-content: center;
+  padding: 12px; transition: all .18s ease; cursor: pointer; width: 100%;
+}
+.lb-root .quick-action:hover { border-color: rgba(103, 232, 249, .3); color: #a5f3fc; }
+.lb-root .empty-panel {
+  align-items: center; background: rgba(148, 163, 184, .035); border: 1px dashed rgba(148, 163, 184, .18);
+  border-radius: 8px; color: #64748b; display: flex; justify-content: center; min-height: 140px;
+  padding: 24px; text-align: center;
+}
+.lb-root .search-box {
+  align-items: center; background: #0b111a; border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 7px; color: #64748b; display: flex; gap: 8px; padding: 8px 10px;
+}
+.lb-root .search-box input { background: transparent; border: 0; color: #e2e8f0; font-size: 13px; outline: 0; width: 160px; }
+.lb-root .dark-select,
+.lb-root .dark-input { background: #0b111a; border: 1px solid rgba(148, 163, 184, .2); border-radius: 7px; color: #e2e8f0; padding: 9px 11px; }
+.lb-root .dark-input[type="datetime-local"] { color-scheme: dark; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+.lb-root .dark-input:disabled,
+.lb-root .dark-select:disabled { cursor: not-allowed; opacity: .45; }
+.lb-root .schedule-toggle { align-items: flex-start; cursor: pointer; display: flex; gap: 10px; }
+.lb-root .schedule-toggle input { accent-color: var(--lb-cyan-bright); margin-top: 3px; }
+.lb-root .schedule-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lb-root .schedule-clear { color: #64748b; font-size: 10px; letter-spacing: .08em; margin-top: 4px; text-transform: uppercase; transition: color .15s ease; background: none; border: 0; cursor: pointer; }
+.lb-root .schedule-clear:hover { color: #f87171; }
+.lb-root .field-label { color: #94a3b8; display: block; font-size: 13px; }
+.lb-root .admin-table { border-collapse: collapse; min-width: 780px; width: 100%; }
+.lb-root .admin-table th { color: #64748b; font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 500; letter-spacing: .1em; padding: 12px 10px; text-align: left; text-transform: uppercase; }
+.lb-root .admin-table td { border-top: 1px solid rgba(148, 163, 184, .1); padding: 13px 10px; }
+.lb-root .table-input { background: transparent; border: 1px solid transparent; border-radius: 5px; color: #e2e8f0; font-size: 13px; outline: 0; padding: 6px; transition: border .18s ease; }
+.lb-root .table-input:focus { border-color: rgba(103, 232, 249, .4); }
+.lb-root .team-input { font-weight: 500; width: 180px; }
+.lb-root .venue-input { width: 65px; }
+.lb-root .score-input { font-family: "JetBrains Mono", monospace; text-align: center; width: 72px; }
+.lb-root .total-cell { color: var(--lb-cyan-bright); font-family: "JetBrains Mono", monospace; font-size: 14px; }
+.lb-root .icon-button { background: rgba(103, 232, 249, .08); border: 1px solid rgba(103, 232, 249, .15); border-radius: 6px; color: var(--lb-cyan-bright); padding: 8px; cursor: pointer; }
+.lb-root .upload-zone { border: 1px dashed rgba(103, 232, 249, .35); border-radius: 10px; padding: 34px 20px; text-align: center; transition: background .18s ease; cursor: pointer; }
+.lb-root .upload-zone:hover { background: rgba(103, 232, 249, .06); }
+.lb-root .validation-summary { align-items: center; border-bottom: 1px solid rgba(148, 163, 184, .12); display: flex; justify-content: space-between; padding-bottom: 17px; }
+.lb-root .error-list { background: rgba(251, 113, 133, .06); border: 1px solid rgba(251, 113, 133, .16); border-radius: 8px; display: grid; gap: 10px; margin-top: 18px; max-height: 310px; overflow: auto; padding: 14px; }
+.lb-root .success-callout { align-items: flex-start; background: rgba(52, 211, 153, .07); border: 1px solid rgba(52, 211, 153, .16); border-radius: 8px; color: #6ee7b7; display: flex; gap: 10px; margin-top: 18px; padding: 15px; }
+.lb-root .config-row { align-items: center; background: rgba(148, 163, 184, .04); border: 1px solid rgba(148, 163, 184, .12); border-radius: 7px; display: flex; justify-content: space-between; padding: 13px 14px; }
+.lb-root .audit-item { align-items: center; border-bottom: 1px solid rgba(148, 163, 184, .1); display: flex; gap: 12px; padding-bottom: 14px; }
+.lb-root .audit-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.lb-root .audit-icon { align-items: center; background: rgba(103, 232, 249, .08); border-radius: 6px; color: var(--lb-cyan-bright); display: flex; height: 30px; justify-content: center; width: 30px; }
+.lb-root .admin-loading { align-items: center; background: #080b12; color: #64748b; display: flex; flex-direction: column; gap: 16px; justify-content: center; min-height: 100vh; padding: 24px; text-align: center; }
+
+/* ── local button + progress (replace shadcn) ────────────────────── */
+.lb-root .lb-btn {
+  align-items: center; background: var(--lb-cyan-bright); border: 0; border-radius: 8px;
+  color: #071018; display: inline-flex; font-weight: 600; gap: 8px; justify-content: center;
+  padding: 10px 16px; transition: background .18s ease; cursor: pointer;
+}
+.lb-root .lb-btn:hover { background: #a5f3fc; }
+.lb-root .lb-btn:disabled { cursor: not-allowed; opacity: .5; }
+.lb-root .lb-btn-outline {
+  align-items: center; background: transparent; border: 1px solid rgba(148, 163, 184, .28);
+  border-radius: 8px; color: #cbd5e1; display: inline-flex; font-weight: 500; gap: 8px;
+  justify-content: center; padding: 10px 16px; transition: all .18s ease; cursor: pointer;
+}
+.lb-root .lb-btn-outline:hover { border-color: rgba(103, 232, 249, .4); color: #fff; }
+.lb-root .lb-badge { border-radius: 999px; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .06em; padding: 4px 9px; text-transform: uppercase; }
+.lb-root .lb-badge.ok { background: rgba(52, 211, 153, .15); color: #6ee7b7; }
+.lb-root .lb-badge.bad { background: rgba(251, 113, 133, .15); color: #fda4af; }
+.lb-root .lb-progress { background: rgba(255, 255, 255, .1); border-radius: 999px; height: 8px; overflow: hidden; width: 100%; }
+.lb-root .lb-progress > span { background: var(--lb-cyan-bright); display: block; height: 100%; transition: width .3s ease; }
+
+@keyframes lb-pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.9); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-root *, .lb-root *::before, .lb-root *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 900px) {
+  .lb-root .admin-sidebar { position: static; height: auto; width: 210px; }
+  .lb-root .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lb-root .dashboard-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .lb-root .admin-app { display: block; }
+  .lb-root .admin-sidebar { border-bottom: 1px solid rgba(148, 163, 184, .12); border-right: 0; width: 100%; }
+  .lb-root .admin-sidebar nav { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .lb-root .admin-topbar { align-items: flex-start; gap: 18px; flex-direction: column; }
+  .lb-root .overview-grid { grid-template-columns: 1fr 1fr; }
+  .lb-root .schedule-grid { grid-template-columns: 1fr; }
+}

@@ -18,6 +18,8 @@ const Timer = lazy(() => import("./pages/Timer"));
 const TimerDashboard = lazy(() => import("./admin/TimerDashboard"));
 const AdminLogin = lazy(() => import("./admin/AdminLogin"));
 const Dashboard = lazy(() => import("./admin/Dashboard"));
+const LeaderboardPage = lazy(() => import("./pages/Leaderboard"));
+const LeaderboardAdmin = lazy(() => import("./pages/LeaderboardAdmin"));
 const TeamLogin = lazy(() => import("./pages/TeamLogin"));
 const TeamDashboard = lazy(() => import("./pages/TeamDashboard"));
 const TeamPaymentSuccess = lazy(() => import("./pages/TeamPaymentSuccess"));
@@ -54,6 +56,17 @@ export default function App() {
                 <Route path="/shortlist/:token/receipt" element={<ShortlistReceipt />} />
                 <Route path="/shortlist/invalid" element={<ShortlistInvalid />} />
                 <Route path="/photobooth" element={<PhotoBoothPage />} />
+
+                {/* Live Leaderboard */}
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route
+                  path="/leaderboard/admin"
+                  element={
+                    <RequireAdmin>
+                      <LeaderboardAdmin />
+                    </RequireAdmin>
+                  }
+                />
 
                 {/* Team Authentication */}
                 <Route path="/team/login" element={<TeamLogin />} />
