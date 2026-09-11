@@ -8,6 +8,7 @@ import {
   fetchTimerEvents,
   fetchServerTimeOffset,
   completeTimerEvent,
+  getSynchronizedEvents,
 } from "@/services/timer";
 import { supabase } from "@/services/supabase";
 
@@ -258,7 +259,10 @@ export function useHackathonTimer(): HackathonTimerReturn {
   const progressPercentage = `${(progress * 100).toFixed(1)}%`;
 
   // ── 5. Checkpoint Gating & Overtime Derivation ───────────────────────
-  const sortedVisibleEvents = [...events]
+  // Synchronize events so that any extended event shifts subsequent checkpoints forward seamlessly
+  const synchronizedEvents = getSynchronizedEvents(events);
+
+  const sortedVisibleEvents = [...synchronizedEvents]
     .filter((e) => e.is_visible)
     .sort((a, b) => {
       const diff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
@@ -314,7 +318,7 @@ export function useHackathonTimer(): HackathonTimerReturn {
 
   return {
     config,
-    events,
+    events: synchronizedEvents,
     state,
     hours,
     minutes,

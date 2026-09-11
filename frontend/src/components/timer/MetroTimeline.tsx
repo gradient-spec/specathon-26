@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { TimerConfig, TimerEvent } from "@/services/timer";
+import { TimerConfig, TimerEvent, getSynchronizedEvents } from "@/services/timer";
 import { Check, MapPin } from "lucide-react";
 
 interface MetroTimelineProps {
@@ -55,9 +55,10 @@ export default function MetroTimeline({
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
-  // Filter visible events and sort deterministically
+  // Filter visible events and sort deterministically with schedule synchronization
   const sortedEvents = useMemo(() => {
-    return [...events]
+    const synced = getSynchronizedEvents(events);
+    return synced
       .filter((e) => e.is_visible)
       .sort((a, b) => {
         const diff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
@@ -103,6 +104,7 @@ export default function MetroTimeline({
         isOvertime,
         isUpcoming,
         timeFormatted: formatTimeIST(evt.start_at),
+        endTimeFormatted: formatTimeIST(evt.end_at),
         dayFormatted: formatDayLabel(evt.start_at),
       };
     });
@@ -270,7 +272,7 @@ export default function MetroTimeline({
                           : "bg-black/5 text-black"
                       }`}
                     >
-                      {st.timeFormatted}
+                      {st.isCurrent ? `${st.timeFormatted} – ${st.endTimeFormatted}` : st.timeFormatted}
                     </span>
                     <span className="text-[10px] font-bold text-black/60">
                       {st.dayFormatted}

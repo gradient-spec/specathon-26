@@ -728,11 +728,90 @@ export async function resetAllTimerEvents(actor = "admin"): Promise<void> {
   }
 }
 
+export async function cascadeTimerEventsAdjustment(
+  deltaMinutes: number,
+  actor = "admin"
+): Promise<TimerEvent[]> {
+  const currentEvents = getStoredEvents();
+  if (!currentEvents || currentEvents.length === 0) return [];
+
+  const sorted = [...currentEvents].sort((a, b) => {
+    const diff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    return diff !== 0 ? diff : a.sort_order - b.sort_order;
+  });
+
+  // Find the first uncompleted event (the current active phase)
+  const activeIdx = sorted.findIndex((e) => !e.is_completed);
+  if (activeIdx === -1) return currentEvents;
+
+  const deltaMs = deltaMinutes * 60 * 1000;
+  const nowIso = new Date().toISOString();
+  const updatedEvents: TimerEvent[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    const evt = sorted[i];
+    if (i < activeIdx) {
+      updatedEvents.push(evt);
+    } else if (i === activeIdx) {
+      const prevEnd = new Date(evt.end_at).getTime();
+      const newEndIso = new Date(prevEnd + deltaMs).toISOString();
+      updatedEvents.push({
+        ...evt,
+        end_at: newEndIso,
+        updated_at: nowIso,
+        updated_by: actor,
+      });
+    } else {
+      const prevStart = new Date(evt.start_at).getTime();
+      const prevEnd = new Date(evt.end_at).getTime();
+      const newStartIso = new Date(prevStart + deltaMs).toISOString();
+      const newEndIso = new Date(prevEnd + deltaMs).toISOString();
+      updatedEvents.push({
+        ...evt,
+        start_at: newStartIso,
+        end_at: newEndIso,
+        updated_at: nowIso,
+        updated_by: actor,
+      });
+    }
+  }
+
+  setStoredEvents(updatedEvents);
+
+  if (supabase) {
+    try {
+      const affected = updatedEvents.filter((_, idx) => idx >= activeIdx);
+      for (const u of affected) {
+        await client()
+          .from("timer_events")
+          .update({
+            start_at: u.start_at,
+            end_at: u.end_at,
+            updated_at: u.updated_at,
+            updated_by: actor,
+          })
+          .eq("id", u.id);
+      }
+    } catch (err) {
+      console.warn("[timer-service] Non-fatal error cascading timer events to database:", err);
+    }
+  }
+
+  return updatedEvents;
+}
+
 export async function adjustTimerMinutes(
   deltaMinutes: number,
   currentConfig: TimerConfig,
   actor = "admin"
 ): Promise<TimerConfig> {
+  // When timer is live (running or paused), cascade the time delta to the current active event and upcoming checkpoints
+  try {
+    await cascadeTimerEventsAdjustment(deltaMinutes, actor);
+  } catch (err) {
+    console.warn("[timer-service] Error cascading event adjustment:", err);
+  }
+
   if (currentConfig.status === "paused" || currentConfig.status === "scheduled") {
     // In paused or scheduled state: modify paused_remaining_seconds directly
     const currentRemaining =
@@ -1075,11 +1154,43 @@ export async function extendCheckpointMinutes(
   const newEndMs = prevEndMs + deltaMinutes * 60 * 1000;
   const newEndIso = new Date(newEndMs).toISOString();
   const nowIso = new Date().toISOString();
+  const deltaMs = deltaMinutes * 60 * 1000;
 
   const currentEvents = getStoredEvents();
-  const updatedEvents = currentEvents.map((e) =>
-    e.id === id ? { ...e, end_at: newEndIso, updated_at: nowIso, updated_by: actor } : e
-  );
+  const sorted = [...currentEvents].sort((a, b) => {
+    const diff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    return diff !== 0 ? diff : a.sort_order - b.sort_order;
+  });
+
+  const targetIdx = sorted.findIndex((e) => e.id === id);
+  const updatedEvents: TimerEvent[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    const evt = sorted[i];
+    if (i < targetIdx || targetIdx === -1) {
+      if (evt.id === id) {
+        updatedEvents.push({ ...evt, end_at: newEndIso, updated_at: nowIso, updated_by: actor });
+      } else {
+        updatedEvents.push(evt);
+      }
+    } else if (i === targetIdx) {
+      updatedEvents.push({ ...evt, end_at: newEndIso, updated_at: nowIso, updated_by: actor });
+    } else {
+      // Subsequent events: shift both start_at and end_at forward by deltaMinutes
+      const prevStart = new Date(evt.start_at).getTime();
+      const prevEnd = new Date(evt.end_at).getTime();
+      const newStartIso = new Date(prevStart + deltaMs).toISOString();
+      const newEndIso = new Date(prevEnd + deltaMs).toISOString();
+      updatedEvents.push({
+        ...evt,
+        start_at: newStartIso,
+        end_at: newEndIso,
+        updated_at: nowIso,
+        updated_by: actor,
+      });
+    }
+  }
+
   setStoredEvents(updatedEvents);
 
   const localUpdated = updatedEvents.find((e) => e.id === id) || {
@@ -1097,23 +1208,17 @@ export async function extendCheckpointMinutes(
 
   if (supabase) {
     try {
-      const { data, error } = await client()
-        .from("timer_events")
-        .update({
-          end_at: newEndIso,
-          updated_at: nowIso,
-          updated_by: actor,
-        })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) {
-        if (isTableMissingError(error)) {
-          console.warn("[timer-service] timer_events table missing in schema cache. Extended checkpoint locally.");
-          return localUpdated;
-        }
-        throw error;
+      const affected = updatedEvents.filter((_, idx) => idx >= targetIdx && targetIdx !== -1);
+      for (const u of affected) {
+        await client()
+          .from("timer_events")
+          .update({
+            start_at: u.start_at,
+            end_at: u.end_at,
+            updated_at: u.updated_at,
+            updated_by: actor,
+          })
+          .eq("id", u.id);
       }
 
       await logAudit(actor, "timer_checkpoint_extend", "timer_event", id, {
@@ -1122,7 +1227,7 @@ export async function extendCheckpointMinutes(
         new_end_at: newEndIso,
       });
 
-      return data as TimerEvent;
+      return localUpdated;
     } catch (err: any) {
       if (isTableMissingError(err)) return localUpdated;
       throw err;
@@ -1130,5 +1235,47 @@ export async function extendCheckpointMinutes(
   }
 
   return localUpdated;
+}
+
+/**
+ * Synchronizes event schedules to guarantee no overlaps in linear milestone tracks.
+ * If any event has been extended or updated (e.g. Inaugural extended to 10:55 AM),
+ * any subsequent event scheduled to start before the previous event concludes is pushed
+ * forward to start seamlessly at previousEvent.end_at, keeping the whole timeline in sync.
+ */
+export function getSynchronizedEvents(events: TimerEvent[]): TimerEvent[] {
+  if (!events || events.length === 0) return [];
+  const sorted = [...events].sort((a, b) => {
+    const diff = new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    return diff !== 0 ? diff : a.sort_order - b.sort_order;
+  });
+
+  const synced: TimerEvent[] = [];
+  let prevEndMs = 0;
+
+  for (let i = 0; i < sorted.length; i++) {
+    const evt = sorted[i];
+    const origStartMs = new Date(evt.start_at).getTime();
+    const origEndMs = new Date(evt.end_at).getTime();
+    const durationMs = Math.max(0, origEndMs - origStartMs);
+
+    let effectiveStartMs = isNaN(origStartMs) ? Date.now() : origStartMs;
+    // If the preceding event ends after this event was originally scheduled to start,
+    // push this event forward so it starts when the preceding event finishes!
+    if (i > 0 && prevEndMs > effectiveStartMs) {
+      effectiveStartMs = prevEndMs;
+    }
+
+    const effectiveEndMs = effectiveStartMs + durationMs;
+    prevEndMs = effectiveEndMs;
+
+    synced.push({
+      ...evt,
+      start_at: new Date(effectiveStartMs).toISOString(),
+      end_at: new Date(effectiveEndMs).toISOString(),
+    });
+  }
+
+  return synced;
 }
 
