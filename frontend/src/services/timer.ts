@@ -651,7 +651,7 @@ export async function resetTimer(
   );
 
   if (options?.resetCheckpoints !== false) {
-    await resetAllTimerEvents(actor);
+    await restoreOfficialTimerEvents(options?.startAt, actor);
   }
 
   await logAudit(actor, "timer_reset", "timer_config", "1", {
@@ -753,8 +753,11 @@ export async function cascadeTimerEventsAdjustment(
     if (i < activeIdx) {
       updatedEvents.push(evt);
     } else if (i === activeIdx) {
+      const prevStart = new Date(evt.start_at).getTime();
       const prevEnd = new Date(evt.end_at).getTime();
-      const newEndIso = new Date(prevEnd + deltaMs).toISOString();
+      const minDuration = 30 * 60 * 1000;
+      const newEndMs = Math.max(prevStart + minDuration, prevEnd + deltaMs);
+      const newEndIso = new Date(newEndMs).toISOString();
       updatedEvents.push({
         ...evt,
         end_at: newEndIso,
@@ -764,8 +767,11 @@ export async function cascadeTimerEventsAdjustment(
     } else {
       const prevStart = new Date(evt.start_at).getTime();
       const prevEnd = new Date(evt.end_at).getTime();
-      const newStartIso = new Date(prevStart + deltaMs).toISOString();
-      const newEndIso = new Date(prevEnd + deltaMs).toISOString();
+      const duration = Math.max(30 * 60 * 1000, prevEnd - prevStart);
+      const newStartMs = prevStart + deltaMs;
+      const newEndMs = newStartMs + duration;
+      const newStartIso = new Date(newStartMs).toISOString();
+      const newEndIso = new Date(newEndMs).toISOString();
       updatedEvents.push({
         ...evt,
         start_at: newStartIso,
@@ -1242,6 +1248,8 @@ export async function extendCheckpointMinutes(
  * If any event has been extended or updated (e.g. Inaugural extended to 10:55 AM),
  * any subsequent event scheduled to start before the previous event concludes is pushed
  * forward to start seamlessly at previousEvent.end_at, keeping the whole timeline in sync.
+ * Guarantees that corrupted 0-minute duration rows in the DB are automatically repaired
+ * using canonical event durations (e.g. evaluations = 2h, breaks/milestones = 1h).
  */
 export function getSynchronizedEvents(events: TimerEvent[]): TimerEvent[] {
   if (!events || events.length === 0) return [];
@@ -1257,11 +1265,24 @@ export function getSynchronizedEvents(events: TimerEvent[]): TimerEvent[] {
     const evt = sorted[i];
     const origStartMs = new Date(evt.start_at).getTime();
     const origEndMs = new Date(evt.end_at).getTime();
-    const durationMs = Math.max(0, origEndMs - origStartMs);
+
+    // Default canonical durations if DB row was corrupted to 0 duration
+    const titleLower = (evt.title || "").toLowerCase();
+    const fallbackDurationMs =
+      evt.type === "evaluation"
+        ? 2 * 3600 * 1000 // 2 hours
+        : evt.type === "mentoring"
+        ? 2 * 3600 * 1000 // 2 hours
+        : evt.type === "break"
+        ? (titleLower.includes("short") ? 30 * 60 * 1000 : 3600 * 1000)
+        : 3600 * 1000; // 1 hour for milestone
+
+    const rawDuration = origEndMs - origStartMs;
+    const durationMs = rawDuration >= 15 * 60 * 1000 ? rawDuration : fallbackDurationMs;
 
     let effectiveStartMs = isNaN(origStartMs) ? Date.now() : origStartMs;
     // If the preceding event ends after this event was originally scheduled to start,
-    // push this event forward so it starts when the preceding event finishes!
+    // push this event forward so it starts seamlessly when the preceding event finishes!
     if (i > 0 && prevEndMs > effectiveStartMs) {
       effectiveStartMs = prevEndMs;
     }
@@ -1277,5 +1298,157 @@ export function getSynchronizedEvents(events: TimerEvent[]): TimerEvent[] {
   }
 
   return synced;
+}
+
+/**
+ * SET TIMER REMAINING SECONDS:
+ * Directly sets the hackathon countdown timer to a specific remaining duration (e.g. 28:00:00 = 100,800s).
+ * - In 'running' state: recalculates end_at = now + seconds * 1000.
+ * - In 'paused' state: updates paused_remaining_seconds = seconds and end_at = now + seconds * 1000.
+ * - In 'scheduled' state: updates paused_remaining_seconds = seconds.
+ */
+export async function setTimerRemainingSeconds(
+  remainingSeconds: number,
+  currentConfig: TimerConfig,
+  actor = "admin"
+): Promise<TimerConfig> {
+  const safeSeconds = Math.max(0, Math.round(remainingSeconds));
+  const now = Date.now();
+  const newEndIso = new Date(now + safeSeconds * 1000).toISOString();
+
+  // Calculate delta from current remaining to cascade to checkpoints if active
+  let prevRemaining = 0;
+  if (currentConfig.status === "paused" || currentConfig.status === "scheduled") {
+    prevRemaining =
+      currentConfig.paused_remaining_seconds !== undefined &&
+      currentConfig.paused_remaining_seconds !== null
+        ? currentConfig.paused_remaining_seconds
+        : Math.max(
+            0,
+            Math.floor(
+              (new Date(currentConfig.end_at).getTime() -
+                new Date(currentConfig.start_at).getTime()) /
+                1000
+            )
+          );
+  } else {
+    prevRemaining = Math.max(
+      0,
+      Math.floor((new Date(currentConfig.end_at).getTime() - now) / 1000)
+    );
+  }
+
+  const deltaSeconds = safeSeconds - prevRemaining;
+  const deltaMinutes = Math.round(deltaSeconds / 60);
+
+  if (
+    deltaMinutes !== 0 &&
+    (currentConfig.status === "running" || currentConfig.status === "paused")
+  ) {
+    try {
+      await cascadeTimerEventsAdjustment(deltaMinutes, actor);
+    } catch (err) {
+      console.warn("[timer-service] Error cascading timer events on direct set:", err);
+    }
+  }
+
+  let patch: Partial<TimerConfig>;
+  if (currentConfig.status === "running") {
+    patch = {
+      end_at: newEndIso,
+      paused_remaining_seconds: null,
+    };
+  } else if (currentConfig.status === "paused") {
+    patch = {
+      end_at: newEndIso,
+      paused_remaining_seconds: safeSeconds,
+    };
+  } else {
+    // scheduled or draft
+    const startMs = new Date(currentConfig.start_at).getTime();
+    const scheduledEndIso = new Date(startMs + safeSeconds * 1000).toISOString();
+    patch = {
+      end_at: scheduledEndIso,
+      paused_remaining_seconds: safeSeconds,
+    };
+  }
+
+  const updated = await updateTimerConfig(patch, actor);
+  await logAudit(actor, "timer_time_set", "timer_config", "1", {
+    remaining_seconds: safeSeconds,
+    formatted_hms: `${Math.floor(safeSeconds / 3600)}:${Math.floor((safeSeconds % 3600) / 60)}:${safeSeconds % 60}`,
+    delta_minutes: deltaMinutes,
+    status: currentConfig.status,
+  });
+
+  return updated;
+}
+
+/**
+ * RESTORE OFFICIAL TIMER EVENTS:
+ * Restores all 15 checkpoints to the canonical SPECATHON 2026 schedule with verified durations.
+ * Cleans up any corrupted 0-minute duration rows in database and localStorage.
+ * If anchorStartAt is provided, re-aligns all checkpoint dates/times starting relative to that time.
+ */
+export async function restoreOfficialTimerEvents(
+  anchorStartAt?: string | Date,
+  actor = "admin"
+): Promise<TimerEvent[]> {
+  const baseOffsetMs = anchorStartAt
+    ? new Date(anchorStartAt).getTime() - new Date(DEFAULT_FALLBACK_EVENTS[0].start_at).getTime()
+    : 0;
+
+  const restoredEvents: TimerEvent[] = DEFAULT_FALLBACK_EVENTS.map((evt) => {
+    const origStart = new Date(evt.start_at).getTime();
+    const origEnd = new Date(evt.end_at).getTime();
+    const newStart = new Date(origStart + baseOffsetMs).toISOString();
+    const newEnd = new Date(origEnd + baseOffsetMs).toISOString();
+
+    return {
+      ...evt,
+      start_at: newStart,
+      end_at: newEnd,
+      is_completed: false,
+      completed_at: null,
+      updated_at: new Date().toISOString(),
+      updated_by: actor,
+    };
+  });
+
+  setStoredEvents(restoredEvents);
+
+  if (supabase) {
+    try {
+      for (const evt of restoredEvents) {
+        await client()
+          .from("timer_events")
+          .upsert({
+            id: evt.id,
+            timer_id: 1,
+            title: evt.title,
+            description: evt.description,
+            start_at: evt.start_at,
+            end_at: evt.end_at,
+            location: evt.location,
+            type: evt.type,
+            sort_order: evt.sort_order,
+            is_visible: evt.is_visible,
+            is_completed: false,
+            completed_at: null,
+            updated_at: new Date().toISOString(),
+            updated_by: actor,
+          });
+      }
+
+      await logAudit(actor, "timer_events_restore_official", "timer_events", "all", {
+        anchored_to: anchorStartAt ? new Date(anchorStartAt).toISOString() : "default",
+        count: restoredEvents.length,
+      });
+    } catch (err) {
+      console.warn("[timer-service] Non-fatal error restoring official checkpoints to DB:", err);
+    }
+  }
+
+  return restoredEvents;
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useMemo, FormEvent } from "react";
 import { toast } from "sonner";
 import { useAuth } from "./AuthContext";
 import { useHackathonTimer } from "@/hooks/useHackathonTimer";
@@ -7,6 +7,10 @@ import {
   TimerEventType,
   TimerAuditLog,
   adjustTimerMinutes,
+  cascadeTimerEventsAdjustment,
+  setTimerRemainingSeconds,
+  restoreOfficialTimerEvents,
+  getSynchronizedEvents,
   updateTimerConfig,
   manualEndEvent,
   startTimer,
@@ -30,9 +34,11 @@ import {
   Pause,
   Square,
   RotateCcw,
+  RotateCw,
   Plus,
   Trash2,
   Edit2,
+  Edit3,
   ExternalLink,
   History,
   Calendar,
@@ -40,6 +46,7 @@ import {
   CheckCircle2,
   Check,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 
 export default function TimerDashboard() {
@@ -130,6 +137,27 @@ export default function TimerDashboard() {
     }
   }, [config.start_at]);
 
+  // Direct editable remaining countdown states
+  const [editHours, setEditHours] = useState("36");
+  const [editMinutes, setEditMinutes] = useState("00");
+  const [editSeconds, setEditSeconds] = useState("00");
+  const [isEditingCountdown, setIsEditingCountdown] = useState(false);
+
+  // Synchronized events with canonical fallback durations and dynamic schedule shifts
+  const synchronizedEvents = useMemo(() => getSynchronizedEvents(events), [events]);
+
+  // Confirmation dialog states for restoring checkpoints
+  const [confirmRestoreCheckpointsOpen, setConfirmRestoreCheckpointsOpen] = useState(false);
+  const [confirmRealignCheckpointsOpen, setConfirmRealignCheckpointsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isEditingCountdown) {
+      if (hours !== undefined) setEditHours(hours);
+      if (minutes !== undefined) setEditMinutes(minutes);
+      if (seconds !== undefined) setEditSeconds(seconds);
+    }
+  }, [hours, minutes, seconds, isEditingCountdown]);
+
   const calculatedEndTimePreview = (() => {
     if (!scheduleStartLocal) return "";
     const startMs = new Date(scheduleStartLocal).getTime();
@@ -150,6 +178,87 @@ export default function TimerDashboard() {
       toast.error("Failed to load audit logs.");
     } finally {
       setLoadingAudit(false);
+    }
+  };
+
+  // Direct Editable Remaining Countdown Handler
+  const handleApplyExactRemaining = async (customTotalSec?: number) => {
+    if (busy) return;
+    let targetSeconds = customTotalSec;
+    if (targetSeconds === undefined) {
+      const h = parseInt(editHours || "0", 10);
+      const m = parseInt(editMinutes || "0", 10);
+      const s = parseInt(editSeconds || "0", 10);
+      if (
+        isNaN(h) ||
+        isNaN(m) ||
+        isNaN(s) ||
+        h < 0 ||
+        m < 0 ||
+        m > 59 ||
+        s < 0 ||
+        s > 59
+      ) {
+        toast.error("Please enter a valid time (Hours >= 0, Minutes 0-59, Seconds 0-59).");
+        return;
+      }
+      targetSeconds = h * 3600 + m * 60 + s;
+    }
+
+    if (targetSeconds < 0) {
+      toast.error("Remaining time cannot be negative.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await setTimerRemainingSeconds(targetSeconds, config, email || "admin");
+      const hStr = Math.floor(targetSeconds / 3600).toString().padStart(2, "0");
+      const mStr = Math.floor((targetSeconds % 3600) / 60).toString().padStart(2, "0");
+      const sStr = Math.floor(targetSeconds % 60).toString().padStart(2, "0");
+      toast.success(`Timer countdown set to ${hStr}:${mStr}:${sStr}! Timeline synchronized.`);
+      setIsEditingCountdown(false);
+      await refresh();
+      loadAudit();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to set timer.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Apply Quick Preset to Timer Countdown
+  const applyPreset = (h: number, m = 0, s = 0) => {
+    const hStr = h.toString().padStart(2, "0");
+    const mStr = m.toString().padStart(2, "0");
+    const sStr = s.toString().padStart(2, "0");
+    setEditHours(hStr);
+    setEditMinutes(mStr);
+    setEditSeconds(sStr);
+    setIsEditingCountdown(true);
+    handleApplyExactRemaining(h * 3600 + m * 60 + s);
+  };
+
+  // Restore Official Checkpoint Timings with canonical durations
+  const handleRestoreOfficialCheckpoints = async (reanchorToTimerStart: boolean) => {
+    setConfirmRestoreCheckpointsOpen(false);
+    setConfirmRealignCheckpointsOpen(false);
+    if (busy) return;
+    setBusy(true);
+    try {
+      const anchor = reanchorToTimerStart && config.start_at ? config.start_at : undefined;
+      await restoreOfficialTimerEvents(anchor, email || "admin");
+      toast.success(
+        reanchorToTimerStart
+          ? "Restored official checkpoints and aligned them with current timer launch time!"
+          : "Restored official checkpoints schedule with canonical event durations!"
+      );
+      await refresh();
+      loadAudit();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to restore official checkpoints.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -176,9 +285,15 @@ export default function TimerDashboard() {
     if (!customEndLocal) return;
     setBusy(true);
     try {
+      const newEndMs = new Date(customEndLocal).getTime();
+      const prevEndMs = new Date(config.end_at).getTime();
+      const deltaMinutes = Math.round((newEndMs - prevEndMs) / 60000);
+      if (deltaMinutes !== 0 && (state === "RUNNING" || state === "PAUSED")) {
+        await cascadeTimerEventsAdjustment(deltaMinutes, email || "admin");
+      }
       const newEndIso = new Date(customEndLocal).toISOString();
       await updateTimerConfig({ end_at: newEndIso }, email || "admin");
-      toast.success("Updated event end time successfully.");
+      toast.success("Updated event end time and aligned timeline successfully.");
       await refresh();
       loadAudit();
     } catch (err: any) {
@@ -511,15 +626,29 @@ export default function TimerDashboard() {
 
         {/* Live Remaining Clock & Action */}
         <div className="flex flex-wrap items-center gap-4">
-          <div className="px-5 py-3 rounded-xl bg-void border border-line font-mono text-center min-w-[170px]">
-            <div className="text-[10px] uppercase tracking-widest text-subtle">
-              {state === "SCHEDULED"
-                ? "Clock Ready"
-                : state === "PAUSED"
-                ? "Timer Paused"
-                : state === "COMPLETED"
-                ? "Concluded"
-                : "Remaining"}
+          <div className="relative group px-5 py-3 rounded-xl bg-void border border-line font-mono text-center min-w-[170px]">
+            <div className="text-[10px] uppercase tracking-widest text-subtle flex items-center justify-center gap-1.5">
+              <span>
+                {state === "SCHEDULED"
+                  ? "Clock Ready"
+                  : state === "PAUSED"
+                  ? "Timer Paused"
+                  : state === "COMPLETED"
+                  ? "Concluded"
+                  : "Remaining"}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingCountdown(true);
+                  const el = document.getElementById("direct-timer-editor");
+                  el?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="text-subtle hover:text-yellow-400 transition-colors p-0.5"
+                title="Edit remaining countdown directly"
+              >
+                <Edit3 size={11} />
+              </button>
             </div>
             <div className="text-2xl font-black text-white tracking-tight">
               {hours}:{minutes}:{seconds}
@@ -681,6 +810,122 @@ export default function TimerDashboard() {
               Live Time Extension / Reduction
             </h3>
           </div>
+
+          {/* Direct Editable Remaining Countdown Widget */}
+          <div id="direct-timer-editor" className="p-4 rounded-xl bg-void border-2 border-yellow-500/50 space-y-3 shadow-inner">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-line/40 pb-2.5">
+              <div className="flex items-center gap-2">
+                <Edit3 size={15} className="text-yellow-400" />
+                <span className="eyebrow !text-[11px] text-yellow-400 font-bold uppercase tracking-wider">
+                  Set Exact Remaining Countdown (Editable HH:MM:SS)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {isEditingCountdown && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingCountdown(false);
+                      setEditHours(hours);
+                      setEditMinutes(minutes);
+                      setEditSeconds(seconds);
+                    }}
+                    className="text-[10px] font-mono text-subtle hover:text-yellow-400 underline"
+                  >
+                    Sync with Current Clock
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Numeric Input Fields */}
+              <div className="flex items-center gap-1.5 font-mono">
+                <div className="flex flex-col items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={editHours}
+                    onFocus={() => setIsEditingCountdown(true)}
+                    onChange={(e) => {
+                      setIsEditingCountdown(true);
+                      setEditHours(e.target.value);
+                    }}
+                    className="w-16 sm:w-20 text-center py-2 px-1 text-xl sm:text-2xl font-black rounded-lg bg-panel border-2 border-line focus:border-yellow-400 text-yellow-400 focus:outline-none"
+                    placeholder="36"
+                  />
+                  <span className="text-[9px] text-subtle uppercase mt-0.5">Hours</span>
+                </div>
+
+                <span className="text-xl sm:text-2xl font-black text-subtle pb-4">:</span>
+
+                <div className="flex flex-col items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={editMinutes}
+                    onFocus={() => setIsEditingCountdown(true)}
+                    onChange={(e) => {
+                      setIsEditingCountdown(true);
+                      setEditMinutes(e.target.value);
+                    }}
+                    className="w-16 sm:w-20 text-center py-2 px-1 text-xl sm:text-2xl font-black rounded-lg bg-panel border-2 border-line focus:border-yellow-400 text-yellow-400 focus:outline-none"
+                    placeholder="00"
+                  />
+                  <span className="text-[9px] text-subtle uppercase mt-0.5">Mins</span>
+                </div>
+
+                <span className="text-xl sm:text-2xl font-black text-subtle pb-4">:</span>
+
+                <div className="flex flex-col items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={editSeconds}
+                    onFocus={() => setIsEditingCountdown(true)}
+                    onChange={(e) => {
+                      setIsEditingCountdown(true);
+                      setEditSeconds(e.target.value);
+                    }}
+                    className="w-16 sm:w-20 text-center py-2 px-1 text-xl sm:text-2xl font-black rounded-lg bg-panel border-2 border-line focus:border-yellow-400 text-yellow-400 focus:outline-none"
+                    placeholder="00"
+                  />
+                  <span className="text-[9px] text-subtle uppercase mt-0.5">Secs</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleApplyExactRemaining()}
+                disabled={busy}
+                className="px-5 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-mono font-black text-xs uppercase transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+              >
+                <Check size={16} strokeWidth={3} />
+                <span>Apply Timer Countdown</span>
+              </button>
+            </div>
+
+            {/* Quick Preset Buttons (e.g. 36h, 32h, 28h, 24h, 18h, 12h, 6h, 1h) */}
+            <div className="pt-2 border-t border-line/30 flex flex-wrap items-center gap-1.5 font-mono text-xs">
+              <span className="eyebrow !text-[10px] text-subtle mr-1">Quick Presets:</span>
+              {[36, 32, 28, 24, 18, 12, 6, 1].map((hrs) => (
+                <button
+                  key={`preset-${hrs}`}
+                  type="button"
+                  onClick={() => applyPreset(hrs)}
+                  disabled={busy}
+                  className="px-2.5 py-1 rounded-lg border border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-300 text-xs font-bold transition-all disabled:opacity-50"
+                  title={`Set remaining time directly to ${hrs}:00:00`}
+                >
+                  {hrs.toString().padStart(2, "0")}:00:00
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Quick Adjustment Buttons */}
           <div className="space-y-4">
             {/* Primary Repeatable +/- 5 Min Buttons */}
@@ -992,13 +1237,35 @@ export default function TimerDashboard() {
             </p>
           </div>
 
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-plasma hover:bg-plasma/80 border border-plasma/50 text-white font-semibold text-xs transition-all shadow-sm shrink-0"
-          >
-            <Plus size={14} />
-            Add Checkpoint
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setConfirmRealignCheckpointsOpen(true)}
+              disabled={busy || !config.start_at}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/40 font-mono text-xs font-bold transition-all shadow-sm shrink-0"
+              title="Re-align all 15 checkpoints starting from when the timer launched"
+            >
+              <RotateCw size={13} />
+              Re-align to Timer Launch
+            </button>
+
+            <button
+              onClick={() => setConfirmRestoreCheckpointsOpen(true)}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-900/40 font-mono text-xs font-bold transition-all shadow-sm shrink-0"
+              title="Restore official SPECATHON 2026 schedule with verified durations"
+            >
+              <Sparkles size={13} />
+              Restore Official Checkpoints
+            </button>
+
+            <button
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-plasma hover:bg-plasma/80 border border-plasma/50 text-white font-semibold text-xs transition-all shadow-sm shrink-0"
+            >
+              <Plus size={14} />
+              Add Checkpoint
+            </button>
+          </div>
         </div>
 
         {/* Checkpoint Table */}
@@ -1018,14 +1285,14 @@ export default function TimerDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line/40 font-mono">
-              {events.length === 0 ? (
+              {synchronizedEvents.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-muted">
                     No checkpoints defined. Click "Add Checkpoint" to begin.
                   </td>
                 </tr>
               ) : (
-                events.map((evt) => (
+                synchronizedEvents.map((evt) => (
                   <tr
                     key={evt.id}
                     className={`hover:bg-panel/20 transition-colors ${
@@ -1371,6 +1638,26 @@ export default function TimerDashboard() {
         destructive={false}
         onConfirm={handleResetTimerConfirm}
         onCancel={() => setConfirmResetOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmRestoreCheckpointsOpen}
+        title="Restore Official Checkpoints Schedule?"
+        description="This will restore all 15 checkpoints to the official SPECATHON 2026 schedule with canonical event durations (2h for evaluations, 1h for lunch/dinner, 30m for short break). Any corrupted 0-minute duration rows will be permanently repaired."
+        confirmLabel="Yes, Restore Official Schedule"
+        destructive={false}
+        onConfirm={() => handleRestoreOfficialCheckpoints(false)}
+        onCancel={() => setConfirmRestoreCheckpointsOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmRealignCheckpointsOpen}
+        title="Re-align Checkpoints to Current Timer?"
+        description={`This will shift all 15 checkpoints so that the schedule begins when your hackathon timer launched (${config.start_at ? new Date(config.start_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "current time"}). This eliminates artificial overtime caused by starting at an unscheduled hour.`}
+        confirmLabel="Yes, Re-align Checkpoints"
+        destructive={false}
+        onConfirm={() => handleRestoreOfficialCheckpoints(true)}
+        onCancel={() => setConfirmRealignCheckpointsOpen(false)}
       />
 
       <ConfirmDialog
