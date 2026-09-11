@@ -1302,7 +1302,9 @@ export default function TimerDashboard() {
                   </td>
                 </tr>
               ) : (
-                synchronizedEvents.map((evt) => (
+                [...synchronizedEvents]
+                  .sort((a, b) => a.sort_order - b.sort_order)
+                  .map((evt) => (
                   <tr
                     key={evt.id}
                     className={`hover:bg-panel/20 transition-colors ${
@@ -1326,7 +1328,7 @@ export default function TimerDashboard() {
                       {new Date(evt.start_at).toLocaleTimeString("en-IN", {
                         hour: "2-digit",
                         minute: "2-digit",
-                        hour12: false,
+                        hour12: true,
                       })}
                     </td>
                     <td className="py-3 px-4 text-subtle">
@@ -1337,7 +1339,7 @@ export default function TimerDashboard() {
                       {new Date(evt.end_at).toLocaleTimeString("en-IN", {
                         hour: "2-digit",
                         minute: "2-digit",
-                        hour12: false,
+                        hour12: true,
                       })}
                     </td>
                     <td className="py-3 px-4 text-subtle">
