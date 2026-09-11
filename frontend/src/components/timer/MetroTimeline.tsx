@@ -34,9 +34,10 @@ function formatDayLabel(dateStr: string): string {
 }
 
 export default function MetroTimeline({
+  config,
   events,
   authoritativeNow,
-  progress,
+  progress: _progress,
   state,
 }: MetroTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -107,11 +108,83 @@ export default function MetroTimeline({
     });
   }, [sortedEvents, state, authoritativeNow, STATION_STEP, START_PADDING]);
 
-  // Clamped progress from 0.0 to 1.0
-  const clampedProgress = Math.min(1, Math.max(0, progress));
+  // ── PRECISE STATION-BASED TIMELINE PROGRESSION ──────────────────────
+  // The pointer moves continuously along the transit rail from station to station
+  // based on authoritative time and event milestones. When an event's start time
+  // arrives (e.g. Inaugural at 09:30), the pointer is exactly at that station.
+  // Between 09:30 and 10:30, it progresses towards Commencement (10:30).
+  // At 10:30, it is at or past Inaugural, perfectly tracking real-world milestones.
+  const pointerOnTrackX = useMemo(() => {
+    if (sortedEvents.length === 0) return START_PADDING;
+    if (sortedEvents.length === 1) return START_PADDING;
 
-  // The pointer moves continuously along the track based on authoritative time
-  const pointerOnTrackX = START_PADDING + clampedProgress * trackUsableWidth;
+    const lastIdx = sortedEvents.length - 1;
+
+    if (state === "COMPLETED") {
+      return START_PADDING + lastIdx * STATION_STEP;
+    }
+
+    // Determine the authoritative active time ms
+    let currentMs = authoritativeNow;
+    if (
+      state === "PAUSED" &&
+      config?.end_at &&
+      config.paused_remaining_seconds !== undefined &&
+      config.paused_remaining_seconds !== null
+    ) {
+      const endMs = new Date(config.end_at).getTime();
+      currentMs = isNaN(endMs) ? authoritativeNow : endMs - config.paused_remaining_seconds * 1000;
+    }
+
+    const firstStart = new Date(sortedEvents[0].start_at).getTime();
+    if (state === "SCHEDULED" || currentMs <= firstStart) {
+      return START_PADDING;
+    }
+
+    const lastStart = new Date(sortedEvents[lastIdx].start_at).getTime();
+    const lastEnd = new Date(sortedEvents[lastIdx].end_at).getTime();
+
+    // If past the last event's scheduled completion
+    if (currentMs >= lastEnd) {
+      return START_PADDING + lastIdx * STATION_STEP;
+    }
+
+    let trackIndex = 0;
+    let foundSegment = false;
+
+    // Check which segment [i, i + 1] currentMs falls into
+    for (let i = 0; i < lastIdx; i++) {
+      const sStart = new Date(sortedEvents[i].start_at).getTime();
+      const nextStart = new Date(sortedEvents[i + 1].start_at).getTime();
+
+      if (currentMs >= sStart && currentMs < nextStart) {
+        const span = nextStart - sStart;
+        const fraction = span > 0 ? (currentMs - sStart) / span : 0;
+        trackIndex = i + fraction;
+        foundSegment = true;
+        break;
+      }
+    }
+
+    // If past or at the last event's start_at but before lastEnd
+    if (!foundSegment && currentMs >= lastStart) {
+      const span = lastEnd - lastStart;
+      const fraction = span > 0 ? Math.min(1, (currentMs - lastStart) / span) : 1;
+      trackIndex = lastIdx - 1 + fraction;
+    }
+
+    // Ensure pointer never lags behind stations that have been marked completed
+    const firstUncompletedIdx = sortedEvents.findIndex((e) => !e.is_completed);
+    if (firstUncompletedIdx > 0) {
+      const minCompletedTrackIndex = firstUncompletedIdx - 1;
+      trackIndex = Math.max(trackIndex, minCompletedTrackIndex);
+    } else if (firstUncompletedIdx === -1) {
+      trackIndex = lastIdx;
+    }
+
+    const clampedIndex = Math.min(lastIdx, Math.max(0, trackIndex));
+    return START_PADDING + clampedIndex * STATION_STEP;
+  }, [sortedEvents, authoritativeNow, state, config, START_PADDING, STATION_STEP]);
 
   // ── AUTOCENTER CAMERA LOGIC (POINTER LOCKS AT 50% OF SCREEN) ───────
   // When pointer is on the left half of the screen (pointer <= viewportWidth / 2):
