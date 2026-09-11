@@ -26,6 +26,7 @@ import {
   reopenTimerEvent,
   extendCheckpointMinutes,
   checkDatabaseMigrationStatus,
+  isCorruptedEventSchedule,
 } from "@/services/timer";
 import ConfirmDialog from "./ConfirmDialog";
 import {
@@ -110,6 +111,15 @@ export default function TimerDashboard() {
       setDbMigrated(res.migrated);
     });
   }, []);
+
+  // Auto-heal schedule if corrupted or outdated timings detected in database or storage
+  useEffect(() => {
+    if (events && events.length > 0 && isCorruptedEventSchedule(events)) {
+      restoreOfficialTimerEvents(undefined, "auto-heal").then(() => {
+        refresh();
+      });
+    }
+  }, [events, refresh]);
 
   useEffect(() => {
     if (config.end_at) {

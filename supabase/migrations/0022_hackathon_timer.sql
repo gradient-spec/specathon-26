@@ -62,24 +62,24 @@ create index if not exists timer_events_completed_idx on public.timer_events(is_
 
 do $$
 begin
-  if not exists (select 1 from public.timer_events limit 1) then
-    insert into public.timer_events (title, description, start_at, end_at, location, type, sort_order) values
-      ('Reporting Time', 'Team reporting, badging, and kit collection.', '2026-09-11T08:30:00+05:30', '2026-09-11T09:30:00+05:30', 'Main Auditorium', 'milestone', 10),
-      ('Inaugural', 'Opening keynote, problem statements, and rules briefing.', '2026-09-11T09:30:00+05:30', '2026-09-11T10:30:00+05:30', 'Main Auditorium', 'milestone', 20),
-      ('Commencement of Hackathon', 'Official start of development. Clock is live!', '2026-09-11T10:30:00+05:30', '2026-09-11T11:30:00+05:30', 'Hacking Arena', 'milestone', 30),
-      ('Round 1 Evaluation', 'First evaluation checkpoint: Architecture and ideation check.', '2026-09-11T11:30:00+05:30', '2026-09-11T13:30:00+05:30', 'Evaluation Bays', 'evaluation', 40),
-      ('Lunch', 'Lunch break for all hackathon participants.', '2026-09-11T13:30:00+05:30', '2026-09-11T14:30:00+05:30', 'Dining Hall', 'break', 50),
-      ('Short Break', 'Quick rest, snacks, and networking.', '2026-09-11T17:30:00+05:30', '2026-09-11T18:00:00+05:30', 'Cafeteria', 'break', 60),
-      ('Dinner', 'Dinner served across campus dining halls.', '2026-09-11T20:00:00+05:30', '2026-09-11T21:00:00+05:30', 'Dining Hall', 'break', 70),
-      ('Mentorship / Internal Evaluation', 'Mentors review prototypes and technical architecture.', '2026-09-11T21:30:00+05:30', '2026-09-11T23:30:00+05:30', 'Hacking Arena', 'mentoring', 80),
-      ('Campfire with Jamming session', 'Midnight campfire, acoustic music, and chill session.', '2026-09-12T00:00:00+05:30', '2026-09-12T01:00:00+05:30', 'Open Amphitheatre', 'break', 90),
-      ('Refresh', 'Morning recharge and wash-up time.', '2026-09-12T06:00:00+05:30', '2026-09-12T07:30:00+05:30', 'Campus Hostels', 'break', 100),
-      ('Breakfast', 'Hot breakfast and coffee/tea served.', '2026-09-12T07:30:00+05:30', '2026-09-12T08:30:00+05:30', 'Dining Hall', 'break', 110),
-      ('Round 2 Evaluation', 'Detailed code review and feature completeness check.', '2026-09-12T10:00:00+05:30', '2026-09-12T13:00:00+05:30', 'Evaluation Bays', 'evaluation', 120),
-      ('Lunch', 'Day 2 lunch buffet.', '2026-09-12T13:00:00+05:30', '2026-09-12T14:00:00+05:30', 'Dining Hall', 'break', 130),
-      ('Final Evaluation', 'Grand jury stage presentations and live project testing.', '2026-09-12T14:30:00+05:30', '2026-09-12T16:30:00+05:30', 'Main Stage', 'evaluation', 140),
-      ('Valedictory & Vote of Thanks', 'Awards ceremony, winner declarations, and closing ceremony.', '2026-09-12T16:30:00+05:30', '2026-09-12T17:30:00+05:30', 'Main Auditorium', 'milestone', 150);
-  end if;
+  -- Re-seed official SPECATHON 2026 schedule with verified timings
+  delete from public.timer_events;
+  insert into public.timer_events (title, description, start_at, end_at, location, type, sort_order) values
+    ('Reporting Time', 'Team reporting, badging, and kit collection.', '2026-09-11T08:30:00+05:30', '2026-09-11T09:30:00+05:30', 'Main Auditorium', 'milestone', 10),
+    ('Inaugural', 'Opening keynote, problem statements, and rules briefing.', '2026-09-11T09:30:00+05:30', '2026-09-11T10:30:00+05:30', 'Main Auditorium', 'milestone', 20),
+    ('Commencement of Hackathon', 'Official start of development. Clock is live!', '2026-09-11T10:30:00+05:30', '2026-09-11T11:30:00+05:30', 'Hacking Arena', 'milestone', 30),
+    ('Round 1 Evaluation', 'First evaluation checkpoint: Architecture and ideation check.', '2026-09-11T11:30:00+05:30', '2026-09-11T13:30:00+05:30', 'Evaluation Bays', 'evaluation', 40),
+    ('Lunch', 'Lunch break for all hackathon participants.', '2026-09-11T13:30:00+05:30', '2026-09-11T14:30:00+05:30', 'Dining Hall', 'break', 50),
+    ('Short Break', 'Quick rest, snacks, and networking.', '2026-09-11T17:30:00+05:30', '2026-09-11T18:00:00+05:30', 'Cafeteria', 'break', 60),
+    ('Dinner', 'Dinner served across campus dining halls.', '2026-09-11T20:00:00+05:30', '2026-09-11T21:00:00+05:30', 'Dining Hall', 'break', 70),
+    ('Mentorship / Internal Evaluation', 'Mentors review prototypes and technical architecture.', '2026-09-11T21:30:00+05:30', '2026-09-11T23:30:00+05:30', 'Hacking Arena', 'mentoring', 80),
+    ('Campfire with Jamming session', 'Midnight campfire, acoustic music, and chill session.', '2026-09-12T00:00:00+05:30', '2026-09-12T01:00:00+05:30', 'Open Amphitheatre', 'break', 90),
+    ('Refresh', 'Morning recharge and wash-up time.', '2026-09-12T06:00:00+05:30', '2026-09-12T07:30:00+05:30', 'Campus Hostels', 'break', 100),
+    ('Breakfast', 'Hot breakfast and coffee/tea served.', '2026-09-12T07:30:00+05:30', '2026-09-12T08:30:00+05:30', 'Dining Hall', 'break', 110),
+    ('Round 2 Evaluation', 'Detailed code review and feature completeness check.', '2026-09-12T10:00:00+05:30', '2026-09-12T13:00:00+05:30', 'Evaluation Bays', 'evaluation', 120),
+    ('Lunch', 'Day 2 lunch buffet.', '2026-09-12T13:00:00+05:30', '2026-09-12T14:00:00+05:30', 'Dining Hall', 'break', 130),
+    ('Final Evaluation', 'Grand jury stage presentations and live project testing.', '2026-09-12T14:30:00+05:30', '2026-09-12T16:30:00+05:30', 'Main Stage', 'evaluation', 140),
+    ('Valedcitory & Vote of Thanks', 'Awards ceremony, winner declarations, and closing ceremony.', '2026-09-12T16:30:00+05:30', '2026-09-12T17:30:00+05:30', 'Main Auditorium', 'milestone', 150);
 end $$;
 
 -- ── 3. Server Time Calibration RPC ────────────────────────────────────

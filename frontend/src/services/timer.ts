@@ -234,7 +234,7 @@ export const DEFAULT_FALLBACK_EVENTS: TimerEvent[] = [
   {
     id: "fb-15",
     timer_id: 1,
-    title: "Valedictory & Vote of Thanks",
+    title: "Valedcitory & Vote of Thanks",
     description: "Awards ceremony, winner declarations, and closing ceremony.",
     start_at: "2026-09-12T16:30:00+05:30",
     end_at: "2026-09-12T17:30:00+05:30",
@@ -308,13 +308,33 @@ export function setStoredConfig(cfg: TimerConfig) {
   notifyTimerBroadcast();
 }
 
+export function isCorruptedEventSchedule(evts: TimerEvent[]): boolean {
+  if (!evts || evts.length === 0) return true;
+  return evts.some((e) => {
+    const startMs = new Date(e.start_at).getTime();
+    const endMs = new Date(e.end_at).getTime();
+    // Zero or negative durations
+    if (endMs - startMs < 15 * 60 * 1000) return true;
+    // Old incorrect schedule where Inaugural was 08:30 or Round 1 was 10:30 or Mentorship was 18:00
+    if (e.title === "Inaugural" && e.start_at.includes("08:30")) return true;
+    if (e.title === "Round 1 Evaluation" && e.start_at.includes("10:30")) return true;
+    if (e.title === "Lunch" && e.start_at.includes("10:30")) return true;
+    if (e.title === "Mentorship / Internal Evaluation" && e.start_at.includes("18:00")) return true;
+    return false;
+  });
+}
+
 export function getStoredEvents(): TimerEvent[] {
   if (typeof window === "undefined") return DEFAULT_FALLBACK_EVENTS;
   try {
     const raw = localStorage.getItem(STORAGE_EVENTS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (!isCorruptedEventSchedule(parsed)) {
+          return parsed;
+        }
+      }
     }
   } catch {}
   return DEFAULT_FALLBACK_EVENTS;
@@ -398,6 +418,11 @@ export async function fetchTimerEvents(onlyVisible = true): Promise<TimerEvent[]
     }
     if (data && data.length > 0) {
       const remote = data as TimerEvent[];
+      if (isCorruptedEventSchedule(remote)) {
+        console.info("[timer-service] Detected outdated/corrupted event schedule in database. Auto-healing to official agenda.");
+        restoreOfficialTimerEvents().catch(() => {});
+        return onlyVisible ? DEFAULT_FALLBACK_EVENTS.filter((e) => e.is_visible) : DEFAULT_FALLBACK_EVENTS;
+      }
       setStoredEvents(remote);
       return remote;
     }
@@ -1419,25 +1444,57 @@ export async function restoreOfficialTimerEvents(
 
   if (supabase) {
     try {
+      // Query existing remote events to match by sort_order
+      const { data: existingRows } = await client()
+        .from("timer_events")
+        .select("id, sort_order");
+
+      const existingMap = new Map<number, string>();
+      if (existingRows) {
+        for (const row of existingRows) {
+          if (row.sort_order) existingMap.set(row.sort_order, row.id);
+        }
+      }
+
       for (const evt of restoredEvents) {
-        await client()
-          .from("timer_events")
-          .upsert({
-            id: evt.id,
-            timer_id: 1,
-            title: evt.title,
-            description: evt.description,
-            start_at: evt.start_at,
-            end_at: evt.end_at,
-            location: evt.location,
-            type: evt.type,
-            sort_order: evt.sort_order,
-            is_visible: evt.is_visible,
-            is_completed: false,
-            completed_at: null,
-            updated_at: new Date().toISOString(),
-            updated_by: actor,
-          });
+        const existingId = existingMap.get(evt.sort_order);
+        if (existingId) {
+          await client()
+            .from("timer_events")
+            .update({
+              title: evt.title,
+              description: evt.description,
+              start_at: evt.start_at,
+              end_at: evt.end_at,
+              location: evt.location,
+              type: evt.type,
+              sort_order: evt.sort_order,
+              is_visible: evt.is_visible,
+              is_completed: false,
+              completed_at: null,
+              updated_at: new Date().toISOString(),
+              updated_by: actor,
+            })
+            .eq("id", existingId);
+        } else {
+          await client()
+            .from("timer_events")
+            .insert({
+              timer_id: 1,
+              title: evt.title,
+              description: evt.description,
+              start_at: evt.start_at,
+              end_at: evt.end_at,
+              location: evt.location,
+              type: evt.type,
+              sort_order: evt.sort_order,
+              is_visible: evt.is_visible,
+              is_completed: false,
+              completed_at: null,
+              updated_at: new Date().toISOString(),
+              updated_by: actor,
+            });
+        }
       }
 
       await logAudit(actor, "timer_events_restore_official", "timer_events", "all", {
